@@ -1,0 +1,154 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.Material3.Light.NoActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+        <item name="colorSurface">@color/colorPrimaryDark</item>
+        <item name="colorOnSurface">@color/black</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="windowActionModeOverlay">true</item>
+        <item name="android:statusBarColor">@color/colorPrimaryDark</item>
+        <item name="android:navigationBarColor">@color/colorPrimaryDark</item>
+        <item name="colorSecondaryContainer">@color/colorPrimaryDark</item>
+        <item name="popupMenuStyle">@style/popupMenuStyle</item>
+        <item name="colorOnPrimary">@color/white</item>
+    </style>
+
+    <style name="MyToolbarTheme" parent="ThemeOverlay.MaterialComponents.Toolbar.Primary">
+        <item name="colorOnSurface">@color/black</item>
+        <item name="colorOnPrimary">@color/black</item>
+    </style>
+
+
+    <style name="popwin_anim_style">
+        <item name="android:windowEnterAnimation">@anim/menushow</item>
+        <item name="android:windowExitAnimation">@anim/menuhide</item>
+    </style>
+
+    <style name="textview_login" parent="AppTheme">
+        <item name="android:textColorHint">@color/primary_text</item>
+        <item name="android:textSize">16sp</item>
+        <item name="colorAccent">@color/primary_text</item>
+        <item name="colorControlNormal">@color/primary_text</item>
+        <item name="colorControlActivated">@color/primary_text</item>
+        <item name="android:textColor">@color/primary_text</item>
+    </style>
+
+    <style name="MyFilledBox" parent="Widget.Material3.TextInputLayout.FilledBox">
+        <!-- Set the background color of the text field box -->
+        <item name="boxBackgroundColor">@color/white</item>
+        <item name="boxStrokeColor">@color/black</item>
+
+        <!-- Color of the hint text when it's floating above the box (focused) -->
+        <item name="hintTextColor">@color/primary_text</item>
+
+        <!-- Color of the hint text when it's inside the box (unfocused) -->
+        <item name="android:textColorHint">@color/primary_text</item>
+
+        <!-- Color of the text the user types -->
+        <item name="android:textColor">@color/primary_text</item>
+
+        <!-- Color of the cursor -->
+        <item name="cursorColor">@color/primary_text</item>
+
+        <!-- Hide the bottom line (stroke) -->
+        <item name="boxStrokeWidth">0dp</item>
+        <item name="boxStrokeWidthFocused">0dp</item>
+    </style>
+
+    <style name="MyActionBarTheme" parent="AppTheme">
+        <item name="android:textColorPrimary">@color/white</item>
+        <item name="android:textColorSecondary">@color/white</item>
+        <item name="colorControlNormal">@color/white</item>
+    </style>
+    <style name="ActionBar" parent="Theme.AppCompat">
+        <item name="android:background">@color/white</item>
+        <item name="android:titleTextStyle">@style/ActionBar.TitleTextStyle</item>
+    </style>
+    <style name="ActionBar.TitleTextStyle" parent="@style/TextAppearance.AppCompat.Widget.ActionBar.Title">
+        <item name="android:textColor">@color/primary_text</item>
+    </style>
+    <style name="AppTheme.WhiteAccent">
+        <item name="colorAccent">@color/white</item> <!-- Whatever color you want-->
+    </style>
+    <style name="Theme_Dialog" parent="android:Theme.Holo.Dialog">
+        <item name="android:windowMinWidthMajor">100%</item>
+        <item name="android:windowMinWidthMinor">100%</item>
+    </style>
+    <style name="Theme_DialogRate" parent="android:Theme.Holo.Dialog">
+        <item name="android:windowMinWidthMajor">90%</item>
+        <item name="android:windowMinWidthMinor">90%</item>
+    </style>
+    <style name="AppTheme.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+
+    <style name="AppTheme.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+
+    <style name="MaterialSearchViewStyle">
+        <!-- Background for the search bar-->
+        <item name="searchBackground">@color/colorPrimaryDark</item>
+
+        <!-- Change voice icon-->
+        <item name="searchVoiceIcon">@drawable/ic_keyboard_voice_black</item>
+
+        <!-- Change clear text icon-->
+        <item name="searchCloseIcon">@drawable/ic_close</item>
+
+        <!-- Change up icon-->
+        <item name="searchBackIcon">@drawable/ic_arrow_back_black</item>
+
+        <!-- Change icon for the suggestions-->
+        <item name="searchSuggestionIcon">@drawable/ic_suggestion</item>
+
+        <!-- Change background for the suggestions list view-->
+        <item name="searchSuggestionBackground">@android:color/white</item>
+
+        <!-- Change text color for edit text. This will also be the color of the cursor-->
+        <item name="android:textColor">@color/black</item>
+
+        <!-- Change hint text color for edit text-->
+        <item name="android:textColorHint">@color/black</item>
+
+        <!-- Hint for edit text-->
+        <item name="android:hint">@string/search_hint</item>
+    </style>
+
+    <style name="Theme.UserDialog" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="android:windowFrame">@null</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowIsTranslucent">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+    </style>
+
+    <style name="Theme.App.Transparent" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- Make the window background transparent -->
+        <item name="android:windowBackground">@android:color/transparent</item>
+
+        <!-- Tell the system the window is translucent -->
+        <item name="android:windowIsTranslucent">true</item>
+
+        <!-- Other optional settings for a clean dialog-like appearance -->
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">false</item>
+        <item name="android:backgroundDimEnabled">true</item>
+    </style>
+
+    <style name="popupMenuStyle" parent="Widget.AppCompat.PopupMenu">
+        <item name="android:popupBackground">@android:color/white</item>
+    </style>
+
+    <style name="Custom.Indicator" parent="Widget.Material3.BottomNavigationView.ActiveIndicator">
+        <item name="android:color">@color/colorPrimary</item>
+        <item name="android:width">40dp</item>
+        <item name="android:height">20dp</item>
+    </style>
+
+    <style name="Custom.TextBottom" parent="Widget.Material3.BottomNavigationView">
+        <item name="android:textSize">15sp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+</resources>

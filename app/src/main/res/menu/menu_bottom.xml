@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <item
+        android:id="@+id/bottom_latest"
+        android:icon="@drawable/ic_home_2"
+        android:enabled="true"
+        android:checked="true"
+        android:title="Latest" />
+
+    <item
+        android:id="@+id/bottom_popular"
+        android:icon="@drawable/ic_zap"
+        android:title="Popular" />
+
+    <item
+        android:id="@+id/bottom_sub"
+        android:icon="@drawable/ic_subscriptions_my"
+        android:title="Subscriptons" />
+
+    <item
+        android:id="@+id/bottom_cat"
+        android:icon="@drawable/ic_grid"
+        android:title="Categories" />
+
+    <item
+        android:id="@+id/bottom_fav"
+        android:icon="@drawable/ic_favorite_border"
+        android:title="Favorites" />
+
+</menu>

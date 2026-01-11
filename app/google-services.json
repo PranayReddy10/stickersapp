@@ -1,0 +1,297 @@
+{
+  "project_info": {
+    "project_number": "634748269282",
+    "project_id": "animated-stickers-e9bf1",
+    "storage_bucket": "animated-stickers-e9bf1.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:634748269282:android:23f647a4f441c4805164bb",
+        "android_client_info": {
+          "package_name": "com.gokulanimated.stickersapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "634748269282-b9cndl565ntla5b1d2t4rlq8ll8otbkp.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.gokulanimated.stickersapp",
+            "certificate_hash": "78c35d4ebfc859e062cbd6166c06b2787cda03d4"
+          }
+        },
+        {
+          "client_id": "634748269282-csua9rihfcm03ilo997a8rndl7t0do32.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.gokulanimated.stickersapp",
+            "certificate_hash": "9016f097a5a462d7066713d189be053d98fbfc64"
+          }
+        },
+        {
+          "client_id": "634748269282-kpupg2rgehm5csl7fbor5drceq418t9s.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.gokulanimated.stickersapp",
+            "certificate_hash": "da65dafcc3e3f8bcb3f3ac92734169ff2d92747a"
+          }
+        },
+        {
+          "client_id": "634748269282-r0j29fj35gkd04k1a421b3540026v29v.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.gokulanimated.stickersapp",
+            "certificate_hash": "e3d651de34721ea732540e64bfaaa088558f2f72"
+          }
+        },
+        {
+          "client_id": "634748269282-fk6sn09ppariqhf8ligfjcvbinc84mbe.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCi3t16KkCG_qvJTDX7G-nMjEfj_COwlyg"
+        },
+        {
+          "current_key": "AIzaSyCcc1iHvmz32FicxzP9d907tumR0ad9OP4"
+        },
+        {
+          "current_key": "AIzaSyDydHYtPXZDK9sr-0kchlc60YK7ddh_NQo"
+        },
+        {
+          "current_key": "AIzaSyCL0fdNd0B1kx83MHLHXDeFQJ-DWTA3bVU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "634748269282-fk6sn09ppariqhf8ligfjcvbinc84mbe.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      },
+      "admob_app_id": "ca-app-pub-4878518502456145~7047516007"
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:634748269282:android:717bfd87edff8b305164bb",
+        "android_client_info": {
+          "package_name": "com.loveanimated.wastickers"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "634748269282-91tir5no13g1p6bk13e2ln9uoe4olsrt.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.loveanimated.wastickers",
+            "certificate_hash": "d93f4efe52dcae3ffea63fd7f7d0f5978fd9ee42"
+          }
+        },
+        {
+          "client_id": "634748269282-g4hbc43uebmnfgojoqbl7gq18b3sa7u8.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.loveanimated.wastickers",
+            "certificate_hash": "4aff321731d4028ab6a08f4c520ae586126300a5"
+          }
+        },
+        {
+          "client_id": "634748269282-fk6sn09ppariqhf8ligfjcvbinc84mbe.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCi3t16KkCG_qvJTDX7G-nMjEfj_COwlyg"
+        },
+        {
+          "current_key": "AIzaSyCcc1iHvmz32FicxzP9d907tumR0ad9OP4"
+        },
+        {
+          "current_key": "AIzaSyDydHYtPXZDK9sr-0kchlc60YK7ddh_NQo"
+        },
+        {
+          "current_key": "AIzaSyCL0fdNd0B1kx83MHLHXDeFQJ-DWTA3bVU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "634748269282-fk6sn09ppariqhf8ligfjcvbinc84mbe.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:634748269282:android:55734cd6e038c85e5164bb",
+        "android_client_info": {
+          "package_name": "com.naughty.stickers"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "634748269282-0k94llulrf71babav5e1f36ks5d1er8u.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.naughty.stickers",
+            "certificate_hash": "b17ba756852ee6f01ca38e5748dc445e71d7a71d"
+          }
+        },
+        {
+          "client_id": "634748269282-bdmcr25g029fbhgmvcrabsgkggomsmvs.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.naughty.stickers",
+            "certificate_hash": "896c984af0208e1ad13f10a129514a89b8ba3e6d"
+          }
+        },
+        {
+          "client_id": "634748269282-fk6sn09ppariqhf8ligfjcvbinc84mbe.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCi3t16KkCG_qvJTDX7G-nMjEfj_COwlyg"
+        },
+        {
+          "current_key": "AIzaSyCcc1iHvmz32FicxzP9d907tumR0ad9OP4"
+        },
+        {
+          "current_key": "AIzaSyDydHYtPXZDK9sr-0kchlc60YK7ddh_NQo"
+        },
+        {
+          "current_key": "AIzaSyCL0fdNd0B1kx83MHLHXDeFQJ-DWTA3bVU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "634748269282-fk6sn09ppariqhf8ligfjcvbinc84mbe.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:634748269282:android:460b785f06144fc45164bb",
+        "android_client_info": {
+          "package_name": "com.romanticvideos.status"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "634748269282-9a9kjg0nkjnr7udpecrut74n4n08f5kd.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.romanticvideos.status",
+            "certificate_hash": "c05369bd8a0002ee0eb33aeee0a11c6f143b318a"
+          }
+        },
+        {
+          "client_id": "634748269282-c4hcj3tlaatlkf66achm176squh9ct60.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.romanticvideos.status",
+            "certificate_hash": "47f016ed5bf00271508784bcbf92d742a22c358e"
+          }
+        },
+        {
+          "client_id": "634748269282-fk6sn09ppariqhf8ligfjcvbinc84mbe.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCi3t16KkCG_qvJTDX7G-nMjEfj_COwlyg"
+        },
+        {
+          "current_key": "AIzaSyCcc1iHvmz32FicxzP9d907tumR0ad9OP4"
+        },
+        {
+          "current_key": "AIzaSyDydHYtPXZDK9sr-0kchlc60YK7ddh_NQo"
+        },
+        {
+          "current_key": "AIzaSyCL0fdNd0B1kx83MHLHXDeFQJ-DWTA3bVU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "634748269282-fk6sn09ppariqhf8ligfjcvbinc84mbe.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:634748269282:android:180bd19d0bf57d3a5164bb",
+        "android_client_info": {
+          "package_name": "com.stickersanimated.kissing"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "634748269282-1aj28v9qkjvg8ii0gru2ui1bn6o1vdoa.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.stickersanimated.kissing",
+            "certificate_hash": "db409765f1d5b32ccdc6a94b8c7419e1898b701c"
+          }
+        },
+        {
+          "client_id": "634748269282-8h9h2rfghh8tlpj2mpmgbub8ekpcgn5r.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.stickersanimated.kissing",
+            "certificate_hash": "78c35d4ebfc859e062cbd6166c06b2787cda03d4"
+          }
+        },
+        {
+          "client_id": "634748269282-fk6sn09ppariqhf8ligfjcvbinc84mbe.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCi3t16KkCG_qvJTDX7G-nMjEfj_COwlyg"
+        },
+        {
+          "current_key": "AIzaSyCcc1iHvmz32FicxzP9d907tumR0ad9OP4"
+        },
+        {
+          "current_key": "AIzaSyDydHYtPXZDK9sr-0kchlc60YK7ddh_NQo"
+        },
+        {
+          "current_key": "AIzaSyCL0fdNd0B1kx83MHLHXDeFQJ-DWTA3bVU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "634748269282-fk6sn09ppariqhf8ligfjcvbinc84mbe.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

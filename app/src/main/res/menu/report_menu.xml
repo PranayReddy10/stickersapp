@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <item
+        android:id="@+id/report"
+        android:icon="@drawable/ic_flag"
+        android:title="Report this pack" />
+
+    <item
+        android:id="@+id/report_user"
+        android:icon="@drawable/ic_flag"
+        android:title="Report user" />
+    <item
+        android:id="@+id/block_user"
+        android:icon="@drawable/ic_flag"
+        android:title="Block this user" />
+</menu>
