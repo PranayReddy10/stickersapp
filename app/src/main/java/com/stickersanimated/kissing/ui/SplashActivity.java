@@ -81,7 +81,48 @@ public class SplashActivity extends AppCompatActivity {
         prf.setString("ADMIN_NATIVE_LINES","6");
         prf.setString("ADMIN_NATIVE_TYPE","FALSE");
         prf.setString("ADMIN_REWARDED_AD_TYPE","FALSE");
+
+        resetAdWaterfallSettings();
     }
+
+    /**
+     * Clears the per network unit ids and the waterfall order, so a placement removed from
+     * the panel stops being requested instead of lingering from the previous run.
+     */
+    private void resetAdWaterfallSettings() {
+        for (String format : new String[]{"BANNER", "NATIVE", "INTERSTITIAL", "REWARDED"}) {
+            prf.setString("ADMIN_" + format + "_ORDER", "");
+            for (String network : new String[]{"MAX", "APPLOVIN", "UNITY"}) {
+                prf.setString("ADMIN_" + format + "_" + network + "_ID", "");
+            }
+        }
+        prf.setString("ADMIN_REWARDED_FACEBOOK_ID", "");
+        prf.setString("ADMIN_UNITY_GAME_ID", "");
+    }
+
+    /**
+     * Stores any ADMIN_* setting the panel sends, including keys this build does not know
+     * about yet. That is what lets a new ad network or a new fallback order be rolled out
+     * from the backend without shipping a new APK.
+     */
+    private void storeAdminSetting(String name, String value) {
+        if (name == null || value == null || !name.startsWith("ADMIN_")) {
+            return;
+        }
+        if (INT_SETTINGS.contains(name)) {
+            try {
+                prf.setInt(name, Integer.parseInt(value.trim()));
+            } catch (NumberFormatException ignored) {
+                // Leave the previous value in place rather than corrupting the type.
+            }
+            return;
+        }
+        prf.setString(name, value);
+    }
+
+    /** Settings the app reads back with getInt(), so they must never be stored as strings. */
+    private static final java.util.Set<String> INT_SETTINGS =
+            java.util.Collections.singleton("ADMIN_INTERSTITIAL_CLICKS");
 
     private void checkUser() {
         if (prf.getString("LOGGED").toString().equals("TRUE")){
@@ -144,6 +185,8 @@ public class SplashActivity extends AppCompatActivity {
                     if (response.isSuccessful()){
 
                         for (int i = 0; i < response.body().getValues().size(); i++) {
+                            storeAdminSetting(response.body().getValues().get(i).getName(),
+                                    response.body().getValues().get(i).getValue());
                             if ( response.body().getValues().get(i).getName().equals("ADMIN_APP_ID") ){
                                 if (response.body().getValues().get(i).getValue()!=null)
                                     prf.setString("ADMIN_APP_ID",response.body().getValues().get(i).getValue());

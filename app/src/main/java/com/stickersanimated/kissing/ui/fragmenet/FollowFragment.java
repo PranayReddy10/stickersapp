@@ -328,14 +328,9 @@ public class FollowFragment extends Fragment {
                             item++;
                             if (item == lines_beetween_ads ){
                                 item= 0;
-                                if (prefManager.getString("ADMIN_NATIVE_TYPE").equals("ADMOB")) {
-                                    stickerPacks.add(new StickerPack().setViewType(6));
-                                    position++;
-                                }
-                                if (prefManager.getString("ADMIN_NATIVE_TYPE").equals("MAX")) {
-                                    stickerPacks.add(new StickerPack().setViewType(7));
-                                    position++;
-                                }
+                                // One ad row; the adapter runs the network waterfall for it.
+                                stickerPacks.add(new StickerPack().setViewType(StickerAdapter.VIEW_TYPE_NATIVE_AD));
+                                position++;
                             }
                         }
                     }
@@ -419,14 +414,9 @@ public class FollowFragment extends Fragment {
                                 item++;
                                 if (item == lines_beetween_ads ){
                                     item= 0;
-                                    if (prefManager.getString("ADMIN_NATIVE_TYPE").equals("ADMOB")) {
-                                        stickerPacks.add(new StickerPack().setViewType(6));
-                                        position++;
-                                    }
-                                    if (prefManager.getString("ADMIN_NATIVE_TYPE").equals("MAX")) {
-                                        stickerPacks.add(new StickerPack().setViewType(7));
-                                        position++;
-                                    }
+                                    // One ad row; the adapter runs the network waterfall for it.
+                                    stickerPacks.add(new StickerPack().setViewType(StickerAdapter.VIEW_TYPE_NATIVE_AD));
+                                    position++;
                                 }
                             }
                         }

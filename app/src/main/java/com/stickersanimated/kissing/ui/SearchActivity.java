@@ -4,9 +4,7 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -18,22 +16,13 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
-import com.applovin.mediation.MaxAd;
-import com.applovin.mediation.MaxAdFormat;
-import com.applovin.mediation.MaxAdViewAdListener;
-import com.applovin.mediation.MaxError;
-import com.applovin.mediation.ads.MaxAdView;
-import com.applovin.sdk.AppLovinSdkUtils;
-import com.google.android.gms.ads.AdListener;
-import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.AdSize;
-import com.google.android.gms.ads.AdView;
 import com.orhanobut.hawk.Hawk;
 import com.stickersanimated.kissing.Manager.PrefManager;
 import com.stickersanimated.kissing.R;
 import com.stickersanimated.kissing.Sticker;
 import com.stickersanimated.kissing.StickerPack;
 import com.stickersanimated.kissing.adapter.StickerAdapter;
+import com.stickersanimated.kissing.ads.BannerAdManager;
 import com.stickersanimated.kissing.api.apiClient;
 import com.stickersanimated.kissing.api.apiRest;
 import com.stickersanimated.kissing.entity.PackApi;
@@ -66,6 +55,7 @@ public class SearchActivity extends AppCompatActivity {
     private int adItemCounter = 0;
     private int linesBetweenAds = 8;
     private boolean areNativeAdsEnabled = false;
+    private BannerAdManager bannerAdManager;
 
     private String searchQuery;
 
@@ -262,14 +252,9 @@ public class SearchActivity extends AppCompatActivity {
     }
 
     private StickerPack createAdStickerPack() {
-        PrefManager prefManager = new PrefManager(getApplicationContext());
-        String adType = prefManager.getString("ADMIN_NATIVE_TYPE");
-        if ("ADMOB".equals(adType)) {
-            return new StickerPack().setViewType(6);
-        } else if ("MAX".equals(adType)) {
-            return new StickerPack().setViewType(7);
-        }
-        return null;
+        // One in-feed ad row for every network: the adapter runs the waterfall and picks
+        // whichever network fills first.
+        return new StickerPack().setViewType(StickerAdapter.VIEW_TYPE_NATIVE_AD);
     }
 
     private void finishLoading() {
@@ -335,63 +320,20 @@ public class SearchActivity extends AppCompatActivity {
     }
 
     public void showAdsBanner() {
-        if (checkSUBSCRIBED()) return;
-
-        PrefManager prefManager = new PrefManager(getApplicationContext());
-        String bannerType = prefManager.getString("ADMIN_BANNER_TYPE");
-
-        switch (bannerType) {
-            case "ADMOB":
-                showAdmobBanner();
-                break;
-            case "MAX":
-                showMaxBanner();
-                break;
+        if (checkSUBSCRIBED()) {
+            return;
+        }
+        bannerAdManager = BannerAdManager.into(this, findViewById(R.id.linear_layout_ads));
+        if (bannerAdManager != null) {
+            bannerAdManager.load();
         }
     }
 
-    public void showAdmobBanner() {
-        PrefManager prefManager = new PrefManager(getApplicationContext());
-        LinearLayout linearLayoutAds = findViewById(R.id.linear_layout_ads);
-        AdView adView = new AdView(this);
-        adView.setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(this, 360));
-        adView.setAdUnitId(prefManager.getString("ADMIN_BANNER_ADMOB_ID"));
-        AdRequest adRequest = new AdRequest.Builder().build();
-        adView.loadAd(adRequest);
-        linearLayoutAds.addView(adView);
-
-        adView.setAdListener(new AdListener() {
-            @Override
-            public void onAdLoaded() {
-                super.onAdLoaded();
-                adView.setVisibility(View.VISIBLE);
-            }
-            @Override
-            public void onAdFailedToLoad(@NonNull com.google.android.gms.ads.LoadAdError adError) {
-                super.onAdFailedToLoad(adError);
-                adView.setVisibility(View.GONE);
-            }
-        });
-    }
-
-    public void showMaxBanner() {
-        PrefManager prefManager = new PrefManager(getApplicationContext());
-        MaxAdView adView = new MaxAdView(prefManager.getString("ADMIN_BANNER_ADMOB_ID"), this);
-        adView.setListener(new MaxAdViewAdListener() {
-            @Override public void onAdLoaded(MaxAd ad) { adView.setVisibility(View.VISIBLE); }
-            @Override public void onAdLoadFailed(String adUnitId, MaxError error) { adView.setVisibility(View.GONE); }
-            @Override public void onAdExpanded(MaxAd ad) {}
-            @Override public void onAdCollapsed(MaxAd ad) {}
-            @Override public void onAdDisplayed(MaxAd ad) {}
-            @Override public void onAdHidden(MaxAd ad) {}
-            @Override public void onAdClicked(MaxAd ad) {}
-            @Override public void onAdDisplayFailed(MaxAd ad, MaxError error) {}
-        });
-
-        int heightPx = AppLovinSdkUtils.dpToPx(this, MaxAdFormat.BANNER.getAdaptiveSize(this).getHeight());
-        adView.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, heightPx));
-        LinearLayout linearLayoutAds = findViewById(R.id.linear_layout_ads);
-        linearLayoutAds.addView(adView);
-        adView.loadAd();
+    @Override
+    protected void onDestroy() {
+        if (bannerAdManager != null) {
+            bannerAdManager.destroy();
+        }
+        super.onDestroy();
     }
 }

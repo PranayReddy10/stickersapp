@@ -12,56 +12,28 @@ import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 
 import androidx.appcompat.widget.PopupMenu;
-import android.widget.RatingBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.applovin.adview.AppLovinInterstitialAd;
-import com.applovin.adview.AppLovinInterstitialAdDialog;
-import com.applovin.mediation.MaxAd;
-import com.applovin.mediation.MaxAdListener;
-import com.applovin.mediation.MaxError;
-import com.applovin.mediation.ads.MaxInterstitialAd;
-import com.applovin.mediation.nativeAds.MaxNativeAdListener;
-import com.applovin.mediation.nativeAds.MaxNativeAdLoader;
-import com.applovin.mediation.nativeAds.MaxNativeAdView;
-import com.applovin.mediation.nativeAds.MaxNativeAdViewBinder;
-import com.applovin.sdk.AppLovinAd;
-import com.applovin.sdk.AppLovinAdDisplayListener;
-import com.applovin.sdk.AppLovinAdLoadListener;
-import com.applovin.sdk.AppLovinAdSize;
-import com.applovin.sdk.AppLovinAdVideoPlaybackListener;
-import com.applovin.sdk.AppLovinSdk;
 import com.bumptech.glide.Glide;
 
 import com.github.siyamed.shapeimageview.CircularImageView;
 import com.github.vivchar.viewpagerindicator.ViewPagerIndicator;
 import com.stickersanimated.kissing.config.Config;
-import com.google.android.gms.ads.AdListener;
-import com.google.android.gms.ads.AdLoader;
-import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.FullScreenContentCallback;
-import com.google.android.gms.ads.LoadAdError;
-import com.google.android.gms.ads.VideoController;
-import com.google.android.gms.ads.VideoOptions;
-import com.google.android.gms.ads.interstitial.InterstitialAd;
-import com.google.android.gms.ads.interstitial.InterstitialAdLoadCallback;
-import com.google.android.gms.ads.nativead.NativeAdOptions;
-import com.google.android.gms.ads.nativead.NativeAdView;
 import com.orhanobut.hawk.Hawk;
 import com.stickersanimated.kissing.Manager.PrefManager;
+import com.stickersanimated.kissing.ads.AdsConfig;
+import com.stickersanimated.kissing.ads.InterstitialAdManager;
+import com.stickersanimated.kissing.ads.NativeAdManager;
 import com.stickersanimated.kissing.R;
 import com.stickersanimated.kissing.StickerPack;
 import com.stickersanimated.kissing.entity.CategoryApi;
@@ -108,10 +80,12 @@ public class StickerAdapter extends  RecyclerView.Adapter<RecyclerView.ViewHolde
     private SlideAdapter slide_adapter;
     private FollowAdapter followAdapter;
 
-    private InterstitialAd admobInterstitialAd;
-    private MaxInterstitialAd maxInterstitialAd;
-    private AppLovinInterstitialAdDialog applovinInterstitialAd;
-    private AppLovinAd applovinInterstitialAdBlock;
+    /** View type of the in-feed native ad row, filled by whichever network answers first. */
+    public static final int VIEW_TYPE_NATIVE_AD = 6;
+    /** Kept so lists built by older code still render an ad row. */
+    private static final int VIEW_TYPE_NATIVE_AD_LEGACY = 7;
+
+    private InterstitialAdManager interstitialAdManager;
 
     private String sanitizeImageUrl(String raw) {
 
@@ -141,23 +115,27 @@ public class StickerAdapter extends  RecyclerView.Adapter<RecyclerView.ViewHolde
     public StickerAdapter(Activity activity, ArrayList<StickerPack> StickerPack) {
         this.activity = activity;
         this.StickerPack = StickerPack;
+        preloadInterstitial();
     }
     public StickerAdapter(Activity activity, ArrayList<StickerPack> StickerPack,List<SlideApi> slideList) {
         this.activity = activity;
         this.StickerPack = StickerPack;
         this.slideList = slideList;
+        preloadInterstitial();
     }
     public StickerAdapter(Activity activity, ArrayList<StickerPack> StickerPack,List<SlideApi> slideList,List<CategoryApi> categoryList,Boolean b) {
         this.activity = activity;
         this.StickerPack = StickerPack;
         this.slideList = slideList;
         this.categoryList = categoryList;
+        preloadInterstitial();
     }
     public StickerAdapter(Activity activity, ArrayList<StickerPack> StickerPack,List<SlideApi> slideList,List<UserApi> userList){
         this.activity = activity;
         this.StickerPack = StickerPack;
         this.slideList = slideList;
         this.userList = userList;
+        preloadInterstitial();
     }
     @NonNull
     @Override
@@ -186,14 +164,10 @@ public class StickerAdapter extends  RecyclerView.Adapter<RecyclerView.ViewHolde
                 viewHolder = new CategoriesHolder(v5 );
                 break;
             }
-            case 6: {
+            case VIEW_TYPE_NATIVE_AD:
+            case VIEW_TYPE_NATIVE_AD_LEGACY: {
                 View v6 = inflater.inflate(R.layout.item_admob_native_ads, parent, false);
-                viewHolder = new AdmobNativeHolder(v6);
-                break;
-            }
-            case 7: {
-                View v7 = inflater.inflate(R.layout.item_max_native_ads, parent, false);
-                viewHolder = new MaxNativeHolder(v7);
+                viewHolder = new NativeAdHolder(v6);
                 break;
             }
         }
@@ -528,494 +502,71 @@ public class StickerAdapter extends  RecyclerView.Adapter<RecyclerView.ViewHolde
             recycle_view_follow_items = (RecyclerView) itemView.findViewById(R.id.recycle_view_follow_items);
         }
     }
-    public class MaxNativeHolder extends RecyclerView.ViewHolder {
-        private MaxNativeAdLoader nativeAdLoader;
-        private MaxAd             loadedNativeAd;
-        private FrameLayout         native_ad_layout;
+    /**
+     * In-feed ad row. The container is handed to {@link NativeAdManager}, which walks the
+     * configured waterfall until a network fills it.
+     */
+    public class NativeAdHolder extends RecyclerView.ViewHolder {
 
-        public MaxNativeHolder(@NonNull View itemView) {
+        NativeAdHolder(@NonNull View itemView) {
             super(itemView);
-            this.native_ad_layout = itemView.findViewById(R.id.native_ad_layout);
-            PrefManager prefManager= new PrefManager(activity);
-            nativeAdLoader = new MaxNativeAdLoader( prefManager.getString("ADMIN_NATIVE_ADMOB_ID"), activity );
-            nativeAdLoader.setNativeAdListener(new MaxNativeAdListener() {
-                @Override
-                public void onNativeAdLoaded(MaxNativeAdView nativeAdView, MaxAd nativeAd) {
-                    if ( loadedNativeAd != null )
-                    {
-                        nativeAdLoader.destroy( loadedNativeAd );
-                    }
-
-                    // Save ad for cleanup.
-                    loadedNativeAd = nativeAd;
-
-                    native_ad_layout.removeAllViews();
-                    native_ad_layout.addView( nativeAdView );
-                }
-            });
-
-            nativeAdLoader.loadAd(createNativeAdView());
+            final NativeAdManager manager =
+                    NativeAdManager.into(activity, itemView.findViewById(R.id.fl_adplaceholder));
+            if (manager != null) {
+                manager.load();
+            }
         }
     }
 
-    private MaxNativeAdView createNativeAdView()
-    {
-        MaxNativeAdViewBinder binder = new MaxNativeAdViewBinder.Builder( R.layout.native_max_ad_view )
-                .setTitleTextViewId( R.id.title_text_view )
-                .setBodyTextViewId( R.id.body_text_view )
-                .setAdvertiserTextViewId( R.id.advertiser_textView )
-                .setIconImageViewId( R.id.icon_image_view )
-                .setMediaContentViewGroupId( R.id.media_view_container )
-                .setCallToActionButtonId( R.id.cta_button )
-                .build();
-
-        return new MaxNativeAdView( binder, activity );
+    public boolean checkSUBSCRIBED() {
+        return new AdsConfig(activity).isSubscribed();
     }
-    public class AdmobNativeHolder extends RecyclerView.ViewHolder {
-        private final AdLoader adLoader;
-        private com.google.android.gms.ads.nativead.NativeAd nativeAd;
-        private FrameLayout frameLayout;
 
-        public AdmobNativeHolder(@NonNull View itemView) {
-            super(itemView);
-
-            PrefManager prefManager= new PrefManager(activity);
-            frameLayout = (FrameLayout) itemView.findViewById(R.id.fl_adplaceholder);
-            AdLoader.Builder builder = new AdLoader.Builder(activity, prefManager.getString("ADMIN_NATIVE_ADMOB_ID"));
-
-            builder.forNativeAd(
-                    nativeAd -> {
-                        // If this callback occurs after the activity is destroyed, you must call
-                        // destroy and return or you may get a memory leak.
-
-                        if (nativeAd == null) {
-                            nativeAd.destroy();
-                            return;
-                        }
-
-                        Bundle extras = nativeAd.getExtras();
-
-                        AdmobNativeHolder.this.nativeAd = nativeAd;
-                        FrameLayout frameLayout = activity.findViewById(R.id.fl_adplaceholder);
-                        NativeAdView adView = (NativeAdView) activity.getLayoutInflater().inflate(R.layout.ad_unified, null);
-
-                        populateNativeAdView(nativeAd, adView);
-                        if(frameLayout != null){
-                            frameLayout.removeAllViews();
-                            frameLayout.addView(adView);
-                        }
-
-                    });
-
-            VideoOptions videoOptions =
-                    new VideoOptions.Builder().setStartMuted(true).build();
-
-            com.google.android.gms.ads.nativead.NativeAdOptions adOptions =
-                    new NativeAdOptions.Builder().setVideoOptions(videoOptions).build();
-
-            builder.withNativeAdOptions(adOptions);
-
-            adLoader =
-                    builder
-                            .withAdListener(
-                                    new AdListener() {
-                                        @Override
-                                        public void onAdFailedToLoad(LoadAdError loadAdError) {
-                                            String error =
-                                                    String.format(
-                                                            "domain: %s, code: %d, message: %s",
-                                                            loadAdError.getDomain(),
-                                                            loadAdError.getCode(),
-                                                            loadAdError.getMessage());
-
-                                            Log.d("ADMOB_TES", error);
-
-                                        }
-                                    })
-                            .build();
-
-            adLoader.loadAd(new AdRequest.Builder().build());
-
+    public void selectOperation() {
+        if (selected_view != null && selected_position != -1) {
+            activity.startActivity(selected_intent,
+                    ActivityOptionsCompat.makeScaleUpAnimation(selected_view,
+                            (int) selected_view.getX(), (int) selected_view.getY(),
+                            selected_view.getWidth(), selected_view.getHeight()).toBundle());
         }
     }
 
     /**
-     * Populates a {@link NativeAdView} object with data from a given {@link com.google.android.gms.ads.nativead.NativeAd}.
+     * Opens the pack the user tapped, showing an interstitial first when one is due.
      *
-     * @param nativeAd the object containing the ad's assets
-     * @param adView the view to be populated
+     * <p>Every configured network is tried in turn, and navigation happens either way: a
+     * network that fails to fill can never leave the user stuck on the list.
      */
-    private void populateNativeAdView(com.google.android.gms.ads.nativead.NativeAd nativeAd, NativeAdView adView) {
-        // Set the media view.
-        adView.setMediaView((com.google.android.gms.ads.nativead.MediaView) adView.findViewById(R.id.ad_media));
-
-        // Set other ad assets.
-        adView.setHeadlineView(adView.findViewById(R.id.ad_headline));
-        adView.setBodyView(adView.findViewById(R.id.ad_body));
-        adView.setCallToActionView(adView.findViewById(R.id.ad_call_to_action));
-        adView.setIconView(adView.findViewById(R.id.ad_app_icon));
-        adView.setPriceView(adView.findViewById(R.id.ad_price));
-        adView.setStarRatingView(adView.findViewById(R.id.ad_stars));
-        adView.setStoreView(adView.findViewById(R.id.ad_store));
-        adView.setAdvertiserView(adView.findViewById(R.id.ad_advertiser));
-
-        // The headline and mediaContent are guaranteed to be in every NativeAd.
-        ((TextView) adView.getHeadlineView()).setText(nativeAd.getHeadline());
-        adView.getMediaView().setMediaContent(nativeAd.getMediaContent());
-
-        // These assets aren't guaranteed to be in every NativeAd, so it's important to
-        // check before trying to display them.
-        if (nativeAd.getBody() == null) {
-            adView.getBodyView().setVisibility(View.INVISIBLE);
-        } else {
-            adView.getBodyView().setVisibility(View.VISIBLE);
-            ((TextView) adView.getBodyView()).setText(nativeAd.getBody());
-        }
-
-        if (nativeAd.getCallToAction() == null) {
-            adView.getCallToActionView().setVisibility(View.INVISIBLE);
-        } else {
-            adView.getCallToActionView().setVisibility(View.VISIBLE);
-            ((Button) adView.getCallToActionView()).setText(nativeAd.getCallToAction());
-        }
-
-        if (nativeAd.getIcon() == null) {
-            adView.getIconView().setVisibility(View.GONE);
-        } else {
-            ((ImageView) adView.getIconView()).setImageDrawable(
-                    nativeAd.getIcon().getDrawable());
-            adView.getIconView().setVisibility(View.VISIBLE);
-        }
-
-        if (nativeAd.getPrice() == null) {
-            adView.getPriceView().setVisibility(View.INVISIBLE);
-        } else {
-            adView.getPriceView().setVisibility(View.VISIBLE);
-            ((TextView) adView.getPriceView()).setText(nativeAd.getPrice());
-        }
-
-        if (nativeAd.getStore() == null) {
-            adView.getStoreView().setVisibility(View.INVISIBLE);
-        } else {
-            adView.getStoreView().setVisibility(View.VISIBLE);
-            ((TextView) adView.getStoreView()).setText(nativeAd.getStore());
-        }
-
-        if (nativeAd.getStarRating() == null) {
-            adView.getStarRatingView().setVisibility(View.INVISIBLE);
-        } else {
-            ((RatingBar) adView.getStarRatingView())
-                    .setRating(nativeAd.getStarRating().floatValue());
-            adView.getStarRatingView().setVisibility(View.VISIBLE);
-        }
-
-        if (nativeAd.getAdvertiser() == null) {
-            adView.getAdvertiserView().setVisibility(View.INVISIBLE);
-        } else {
-            ((TextView) adView.getAdvertiserView()).setText(nativeAd.getAdvertiser());
-            adView.getAdvertiserView().setVisibility(View.VISIBLE);
-        }
-
-        // This method tells the Google Mobile Ads SDK that you have finished populating your
-        // native ad view with this native ad.
-        adView.setNativeAd(nativeAd);
-
-        // Get the video controller for the ad. One will always be provided, even if the ad doesn't
-        // have a video asset.
-        VideoController vc = nativeAd.getMediaContent().getVideoController();
-
-        // Updates the UI to say whether or not this ad has a video asset.
-        if (vc.hasVideoContent()) {
-
-
-            // Create a new VideoLifecycleCallbacks object and pass it to the VideoController. The
-            // VideoController will call methods on this object when events occur in the video
-            // lifecycle.
-            vc.setVideoLifecycleCallbacks(new VideoController.VideoLifecycleCallbacks() {
-                @Override
-                public void onVideoEnd() {
-                    // Publishers should allow native ads to complete video playback before
-                    // refreshing or replacing them with another ad in the same UI location.
-
-                    super.onVideoEnd();
-                }
-            });
-        } else {
-
-        }
-    }
-    private void requestAppLovinInterstitial() {
-        if (applovinInterstitialAdBlock==null){
-            applovinInterstitialAd = AppLovinInterstitialAd.create( AppLovinSdk.getInstance( activity ), activity );
-            applovinInterstitialAd.setAdLoadListener(new AppLovinAdLoadListener() {
-                @Override
-                public void adReceived(AppLovinAd ad) {
-                    applovinInterstitialAdBlock = ad;
-                }
-
-                @Override
-                public void failedToReceiveAd(int errorCode) {
-
-                }
-            });
-            applovinInterstitialAd.setAdDisplayListener(new AppLovinAdDisplayListener() {
-                @Override
-                public void adDisplayed(AppLovinAd ad) {
-
-                }
-
-                @Override
-                public void adHidden(AppLovinAd ad) {
-                    selectOperation();
-                    requestAppLovinInterstitial();
-                }
-            });
-            applovinInterstitialAd.setAdClickListener(ad -> {
-
-            });
-            applovinInterstitialAd.setAdVideoPlaybackListener(new AppLovinAdVideoPlaybackListener() {
-                @Override
-                public void videoPlaybackBegan(AppLovinAd ad) {
-
-                }
-
-                @Override
-                public void videoPlaybackEnded(AppLovinAd ad, double percentViewed, boolean fullyWatched) {
-
-                }
-            });
-            AppLovinSdk.getInstance( activity.getApplicationContext() ).getAdService().loadNextAd(AppLovinAdSize.INTERSTITIAL, new AppLovinAdLoadListener() {
-                @Override
-                public void adReceived(AppLovinAd ad) {
-                    applovinInterstitialAdBlock = ad;
-                }
-
-                @Override
-                public void failedToReceiveAd(int errorCode) {
-
-                }
-            });
-        }
-    }
-
-
-    private void requestMaxInterstitial() {
-        if (maxInterstitialAd==null) {
-            PrefManager prefManager= new PrefManager(activity);
-            maxInterstitialAd = new MaxInterstitialAd(prefManager.getString("ADMIN_INTERSTITIAL_ADMOB_ID"), activity);
-            maxInterstitialAd.setListener(new MaxAdListener() {
-                @Override
-                public void onAdLoaded(MaxAd ad) {
-
-                }
-
-                @Override
-                public void onAdDisplayed(MaxAd ad) {
-
-                    Log.d("TAG", "The ad was shown.");
-                }
-
-                @Override
-                public void onAdHidden(MaxAd ad) {
-                    selectOperation();
-                }
-
-                @Override
-                public void onAdClicked(MaxAd ad) {
-
-                }
-
-                @Override
-                public void onAdLoadFailed(String adUnitId, MaxError error) {
-
-                }
-
-                @Override
-                public void onAdDisplayFailed(MaxAd ad, MaxError error) {
-
-                }
-            });
-
-            // Load the first ad
-            maxInterstitialAd.loadAd();
-        }
-    }
-    /* private void requestISInterstitial() {
-         if(!IronSource.isInterstitialReady()){
-             PrefManager prefManager= new PrefManager(activity);
-             IronSource.init(activity, prefManager.getString("ADMIN_INTERSTITIAL_ADMOB_ID"), IronSource.AD_UNIT.INTERSTITIAL);
-             IronSource.setInterstitialListener(new InterstitialListener() {
-                 @Override
-                 public void onInterstitialAdReady() {
-                     Log.v("IROUNSOURCE","onInterstitialAdReady");
-
-                 }
-                 @Override
-                 public void onInterstitialAdLoadFailed(IronSourceError error) {
-                     Log.v("IROUNSOURCE",error.getErrorMessage());
-
-                 }
-                 @Override
-                 public void onInterstitialAdOpened() {
-                     Log.v("IROUNSOURCE","onInterstitialAdOpened");
-
-                 }
-                 @Override
-                 public void onInterstitialAdClosed() {
-
-                     selectOperation();
-                     requestISInterstitial();
-
-
-                 }
-                 @Override
-                 public void onInterstitialAdShowFailed(IronSourceError error) {
-                     Log.v("IROUNSOURCE",error.getErrorMessage());
-
-                 }
-                 @Override
-                 public void onInterstitialAdClicked() {
-                     Log.v("IROUNSOURCE","onInterstitialAdClicked");
-
-                 }
-                 @Override
-                 public void onInterstitialAdShowSucceeded() {
-                     Log.v("IROUNSOURCE","onInterstitialAdShowSucceeded");
-
-                 }
-             });
-             IronSource.loadInterstitial();
-         }
-
-     }*/
-    private void requestAdmobInterstitial() {
-        if (admobInterstitialAd==null){
-            PrefManager prefManager= new PrefManager(activity);
-            AdRequest adRequest = new AdRequest.Builder().build();
-            admobInterstitialAd.load(activity.getApplicationContext(), prefManager.getString("ADMIN_INTERSTITIAL_ADMOB_ID"), adRequest, new InterstitialAdLoadCallback() {
-                @Override
-                public void onAdLoaded(@NonNull InterstitialAd interstitialAd) {
-                    super.onAdLoaded(interstitialAd);
-                    admobInterstitialAd = interstitialAd;
-
-
-                    admobInterstitialAd.setFullScreenContentCallback(new FullScreenContentCallback(){
-                        @Override
-                        public void onAdDismissedFullScreenContent() {
-                            selectOperation();
-
-                            Log.d("TAG", "The ad was dismissed.");
-                        }
-
-
-                        @Override
-                        public void onAdShowedFullScreenContent() {
-                            admobInterstitialAd = null;
-                            Log.d("TAG", "The ad was shown.");
-                        }
-                    });
-
-                }
-
-                @Override
-                public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
-                    super.onAdFailedToLoad(loadAdError);
-                    admobInterstitialAd = null;
-                    Log.d("TAG_ADS", "onAdFailedToLoad: "+loadAdError.getMessage());
-
-                }
-            });
-
-        }
-
-
-    }
-    public boolean checkSUBSCRIBED(){
-        PrefManager prefManager= new PrefManager(activity);
-        if (!prefManager.getString("SUBSCRIBED").equals("TRUE")) {
-            return false;
-        }
-        return true;
-    }
-    public void selectOperation() {
-        if(selected_view !=  null && selected_position != -1){
-            (activity).startActivity(selected_intent, ActivityOptionsCompat.makeScaleUpAnimation(selected_view, (int) selected_view.getX(), (int) selected_view.getY(), selected_view.getWidth(), selected_view.getHeight()).toBundle());
-        }
-    }
-
-    public void Operation(){
-
-        PrefManager prefManager= new PrefManager(activity);
-        if(checkSUBSCRIBED()) {
+    public void Operation() {
+        if (checkSUBSCRIBED()) {
             selectOperation();
-        }else{
-            if(prefManager.getString("ADMIN_INTERSTITIAL_TYPE").equals("ADMOB")) {
-                requestAdmobInterstitial();
-                if(prefManager.getInt("ADMIN_INTERSTITIAL_CLICKS") <= prefManager.getInt("ADMOB_INTERSTITIAL_COUNT_CLICKS")){
-                    if (admobInterstitialAd != null) {
-                        prefManager.setInt("ADMOB_INTERSTITIAL_COUNT_CLICKS",0);
-                        admobInterstitialAd.show(activity);
-                    }else{
-                        selectOperation();
-                    }
-                }else{
-                    selectOperation();
-                    prefManager.setInt("ADMOB_INTERSTITIAL_COUNT_CLICKS",prefManager.getInt("ADMOB_INTERSTITIAL_COUNT_CLICKS")+1);
-                }
-            }else  if(prefManager.getString("ADMIN_INTERSTITIAL_TYPE").equals("MAX")) {
-                requestMaxInterstitial();
-                if(prefManager.getInt("ADMIN_INTERSTITIAL_CLICKS") <= prefManager.getInt("ADMOB_INTERSTITIAL_COUNT_CLICKS")){
-                    if (maxInterstitialAd != null) {
-                        if (maxInterstitialAd.isReady()) {
-                            prefManager.setInt("ADMOB_INTERSTITIAL_COUNT_CLICKS", 0);
-                            maxInterstitialAd.showAd();
+            return;
+        }
+        if (interstitialAdManager == null) {
+            interstitialAdManager = new InterstitialAdManager(activity);
+        }
+        interstitialAdManager.showThen(this::selectOperation);
+    }
 
-                        } else {
-                            selectOperation();
-                        }
-                    } else {
-                        selectOperation();
-                    }
-                }else{
-                    selectOperation();
-                    prefManager.setInt("ADMOB_INTERSTITIAL_COUNT_CLICKS",prefManager.getInt("ADMOB_INTERSTITIAL_COUNT_CLICKS")+1);
-                }
-            }else  if(prefManager.getString("ADMIN_INTERSTITIAL_TYPE").equals("APPLOVIN")) {
-                requestAppLovinInterstitial();
-                if(prefManager.getInt("ADMIN_INTERSTITIAL_CLICKS") <= prefManager.getInt("ADMOB_INTERSTITIAL_COUNT_CLICKS")){
-                    if (applovinInterstitialAd != null) {
-                        if (applovinInterstitialAdBlock!=null) {
-                            prefManager.setInt("ADMOB_INTERSTITIAL_COUNT_CLICKS", 0);
-                            applovinInterstitialAd.showAndRender(applovinInterstitialAdBlock);
-                        } else {
-                            selectOperation();
-                        }
-                    } else {
-                        selectOperation();
-                    }
-                }else{
-                    selectOperation();
-                    prefManager.setInt("ADMOB_INTERSTITIAL_COUNT_CLICKS",prefManager.getInt("ADMOB_INTERSTITIAL_COUNT_CLICKS")+1);
-                }
-            }/*else  if(prefManager.getString("ADMIN_INTERSTITIAL_TYPE").equals("IS")) {
-                requestISInterstitial();
-                if(prefManager.getInt("ADMIN_INTERSTITIAL_CLICKS") <= prefManager.getInt("ADMOB_INTERSTITIAL_COUNT_CLICKS")) {
-                    if(IronSource.isInterstitialReady()){
-                        prefManager.setInt("ADMOB_INTERSTITIAL_COUNT_CLICKS", 0);
-                        IronSource.showInterstitial();
-                    }else{
-                        selectOperation();
-                    }
-                }else{
-                    selectOperation();
-                    prefManager.setInt("ADMOB_INTERSTITIAL_COUNT_CLICKS",prefManager.getInt("ADMOB_INTERSTITIAL_COUNT_CLICKS")+1);
-                }
-            }*/
-            else{
-                selectOperation();
-            }
+    /** Warms up the next interstitial. Call it when the list becomes visible. */
+    public void preloadInterstitial() {
+        if (checkSUBSCRIBED()) {
+            return;
+        }
+        if (interstitialAdManager == null) {
+            interstitialAdManager = new InterstitialAdManager(activity);
+        }
+        interstitialAdManager.preload();
+    }
+
+    /** Releases the interstitial held by this adapter. */
+    public void destroyAds() {
+        if (interstitialAdManager != null) {
+            interstitialAdManager.destroy();
+            interstitialAdManager = null;
         }
     }
+
     private void Report(StickerPack packApi, MenuItem item) {
         final PrefManager prefManager = new PrefManager(activity);
 
