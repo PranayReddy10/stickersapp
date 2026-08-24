@@ -26,11 +26,9 @@ import android.view.ViewGroup;
 import android.view.Window;
 import android.view.WindowManager;
 import android.widget.Button;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
-import android.widget.RatingBar;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -46,42 +44,7 @@ import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
-import com.applovin.adview.AppLovinAdView;
-import com.applovin.adview.AppLovinIncentivizedInterstitial;
-import com.applovin.mediation.MaxAd;
-import com.applovin.mediation.MaxAdFormat;
-import com.applovin.mediation.MaxError;
-import com.applovin.mediation.MaxReward;
-import com.applovin.mediation.MaxRewardedAdListener;
-import com.applovin.mediation.ads.MaxAdView;
-import com.applovin.mediation.ads.MaxRewardedAd;
-import com.applovin.mediation.nativeAds.MaxNativeAdListener;
-import com.applovin.mediation.nativeAds.MaxNativeAdLoader;
-import com.applovin.mediation.nativeAds.MaxNativeAdView;
-import com.applovin.mediation.nativeAds.MaxNativeAdViewBinder;
-import com.applovin.sdk.AppLovinAd;
-import com.applovin.sdk.AppLovinAdDisplayListener;
-import com.applovin.sdk.AppLovinAdLoadListener;
-import com.applovin.sdk.AppLovinAdSize;
-import com.applovin.sdk.AppLovinSdkUtils;
-import com.facebook.ads.NativeAdLayout;
-import com.facebook.ads.NativeBannerAd;
 import com.github.siyamed.shapeimageview.CircularImageView;
-import com.google.android.gms.ads.AdError;
-import com.google.android.gms.ads.AdListener;
-import com.google.android.gms.ads.AdLoader;
-import com.google.android.gms.ads.AdRequest;
-import com.google.android.gms.ads.AdSize;
-import com.google.android.gms.ads.AdView;
-import com.google.android.gms.ads.FullScreenContentCallback;
-import com.google.android.gms.ads.LoadAdError;
-import com.google.android.gms.ads.VideoController;
-import com.google.android.gms.ads.VideoOptions;
-import com.google.android.gms.ads.nativead.NativeAd;
-import com.google.android.gms.ads.nativead.NativeAdOptions;
-import com.google.android.gms.ads.nativead.NativeAdView;
-import com.google.android.gms.ads.rewarded.RewardedAd;
-import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
 import com.orhanobut.hawk.Hawk;
 import com.squareup.picasso.Picasso;
 
@@ -92,6 +55,9 @@ import com.stickersanimated.kissing.R;
 import com.stickersanimated.kissing.Sticker;
 import com.stickersanimated.kissing.StickerPack;
 import com.stickersanimated.kissing.adapter.StickerDetailsAdapter;
+import com.stickersanimated.kissing.ads.BannerAdManager;
+import com.stickersanimated.kissing.ads.NativeAdManager;
+import com.stickersanimated.kissing.ads.RewardedAdManager;
 import com.stickersanimated.kissing.api.apiClient;
 import com.stickersanimated.kissing.api.apiRest;
 import com.stickersanimated.kissing.config.Config;
@@ -124,14 +90,13 @@ import static com.stickersanimated.kissing.MainActivity.EXTRA_STICKER_PACK_NAME;
 
 public class StickerDetailsActivity extends AppCompatActivity {
 
-    // Ad properties
-    private RewardedAd mRewardedVideoAd;
-    private MaxRewardedAd maxRewardedVideoAd;
-    private AppLovinIncentivizedInterstitial applovinRewardedVideoAd;
+    // Ad properties - every format goes through a waterfall so a network that fails to
+    // fill simply hands over to the next configured one.
+    private BannerAdManager bannerAdManager;
+    private NativeAdManager nativeAdManager;
+    private RewardedAdManager rewardedAdManager;
     private boolean autoDisplay = false;
-    private NativeAdLayout nativeAdLayout;
-    private LinearLayout adView;
-    private NativeBannerAd nativeBannerAd;
+    private TextView text_view_watch_ads;
 
     // Sticker Pack properties
     private static final int ADD_PACK = 200;
@@ -203,9 +168,6 @@ public class StickerDetailsActivity extends AppCompatActivity {
     private TextView text_view_rate_5_pack_activity;
 
 
-    NativeAd mnativeAd = null;
-
-    private MaxAd loadedNativeAd = null;
 
 
     @Override
@@ -293,14 +255,7 @@ public class StickerDetailsActivity extends AppCompatActivity {
         initBuy();
         initAds();
 
-        PrefManager prefManager = new PrefManager(getApplicationContext());
-        if ("ADMOB".equals(prefManager.getString("ADMIN_REWARDED_AD_TYPE"))) {
-            loadAdmobRewardedVideoAd();
-        } else if ("APPLOVIN".equals(prefManager.getString("ADMIN_REWARDED_AD_TYPE"))) {
-            loadAppLovinRewardedVideoAd();
-        } else if ("MAX".equals(prefManager.getString("ADMIN_REWARDED_AD_TYPE"))) {
-            loadMaxRewardedVideoAd();
-        }
+        initRewardedAds();
     }
 
     private void initListeners() {
@@ -557,44 +512,54 @@ public class StickerDetailsActivity extends AppCompatActivity {
         }
     }
 
-    // Modern, correct AdMob implementation
-    public void loadAdmobRewardedVideoAd() {
-        PrefManager prefManager = new PrefManager(getApplicationContext());
-        AdRequest adRequest = new AdRequest.Builder().build();
-
-        RewardedAd.load(this, prefManager.getString("ADMIN_REWARDED_ADMOB_ID"),
-                adRequest, new RewardedAdLoadCallback() {
-                    @Override
-                    public void onAdLoaded(@NonNull RewardedAd rewardedAd) {
-                        mRewardedVideoAd = rewardedAd;
-                        Log.d(TAG, "Ad was loaded.");
-                        mRewardedVideoAd.setFullScreenContentCallback(new FullScreenContentCallback() {
-                            @Override
-                            public void onAdDismissedFullScreenContent() {
-                                mRewardedVideoAd = null;
-                                loadAdmobRewardedVideoAd(); // Pre-load next
-                            }
-
-                            @Override
-                            public void onAdFailedToShowFullScreenContent(@NonNull AdError adError) {
-                                mRewardedVideoAd = null;
-                            }
-                        });
-                        if (autoDisplay) {
-                            autoDisplay = false;
-                            if (dialog != null) dialog.dismiss();
-                            mRewardedVideoAd.show(StickerDetailsActivity.this, rewardItem -> {
-                                stickerPack.premium = "false";
-                                Toasty.success(getApplicationContext(), "Premium unlocked!").show();
-                            });
-                        }
+    /** Warms up a rewarded video across every configured network. */
+    private void initRewardedAds() {
+        if (checkSUBSCRIBED()) {
+            return;
+        }
+        rewardedAdManager = new RewardedAdManager(this, new RewardedAdManager.Listener() {
+            @Override
+            public void onAdReady() {
+                if (autoDisplay) {
+                    autoDisplay = false;
+                    if (text_view_watch_ads != null) {
+                        text_view_watch_ads.setText("WATCH AD TO DOWNLOAD");
                     }
+                    rewardedAdManager.show();
+                }
+            }
 
-                    @Override
-                    public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
-                        mRewardedVideoAd = null;
-                    }
-                });
+            @Override
+            public void onAdUnavailable() {
+                if (!autoDisplay) {
+                    return;
+                }
+                autoDisplay = false;
+                if (text_view_watch_ads != null) {
+                    text_view_watch_ads.setText("WATCH AD TO DOWNLOAD");
+                }
+                Toasty.warning(StickerDetailsActivity.this,
+                        "No ad available right now, please try again later.").show();
+            }
+
+            @Override
+            public void onUserRewarded() {
+                stickerPack.premium = "false";
+                if (dialog != null && dialog.isShowing()) {
+                    dialog.dismiss();
+                }
+                Toasty.success(getApplicationContext(),
+                        "Now you can use this premium stickers for free").show();
+            }
+
+            @Override
+            public void onAdClosed() {
+                if (dialog != null && dialog.isShowing() && "false".equals(stickerPack.premium)) {
+                    dialog.dismiss();
+                }
+            }
+        });
+        rewardedAdManager.load();
     }
 
     public void showDialog(){
@@ -612,76 +577,23 @@ public class StickerDetailsActivity extends AppCompatActivity {
         dialog.setCancelable(false);
         dialog.setContentView(R.layout.dialog_subscribe);
 
-        final TextView text_view_watch_ads=(TextView) dialog.findViewById(R.id.text_view_watch_ads);
+        text_view_watch_ads = (TextView) dialog.findViewById(R.id.text_view_watch_ads);
         text_view_watch_ads.setText("WATCH AD TO DOWNLOAD");
 
-        RelativeLayout relative_layout_watch_ads=(RelativeLayout) dialog.findViewById(R.id.relative_layout_watch_ads);
+        RelativeLayout relative_layout_watch_ads = (RelativeLayout) dialog.findViewById(R.id.relative_layout_watch_ads);
         relative_layout_watch_ads.setVisibility(View.VISIBLE);
-        relative_layout_watch_ads.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                PrefManager   prefManager= new PrefManager(getApplicationContext());
-
-                if(prefManager.getString("ADMIN_REWARDED_AD_TYPE").equals("ADMOB")){
-                    if (mRewardedVideoAd != null) {
-                        mRewardedVideoAd.show(StickerDetailsActivity.this, rewardItem -> {
-                            dialog.dismiss();
-
-                            stickerPack.premium =  "false";
-
-                            Toasty.success(getApplicationContext(),"Now you can use this premium stickers for free").show();
-                            Log.d("Rewarded","onRewarded ");
-
-                        });
-                    }else{
-                        autoDisplay =  true;
-                        loadRewardedVideoAd();
-                        text_view_watch_ads.setText("SHOW LOADING.");
-                    }
-                }else if(prefManager.getString("ADMIN_REWARDED_AD_TYPE").equals("MAX")){
-                    if (maxRewardedVideoAd != null) {
-                        if (maxRewardedVideoAd.isReady()) {
-                            maxRewardedVideoAd.showAd(prefManager.getString("ADMIN_REWARDED_ADMOB_ID"));
-
-                        }else{
-                            autoDisplay =  true;
-                            loadMaxRewardedVideoAd();
-                            text_view_watch_ads.setText("SHOW LOADING.");
-                        }
-                    }else{
-                        autoDisplay =  true;
-                        loadMaxRewardedVideoAd();
-                        text_view_watch_ads.setText("SHOW LOADING.");
-                    }
-                }else if(prefManager.getString("ADMIN_REWARDED_AD_TYPE").equals("APPLOVIN")){
-                    if (applovinRewardedVideoAd != null) {
-                        if (applovinRewardedVideoAd.isAdReadyToDisplay()) {
-                            applovinRewardedVideoAd.show(getApplicationContext(), null, null, new AppLovinAdDisplayListener() {
-                                @Override
-                                public void adDisplayed(AppLovinAd ad) {}
-                                @Override
-                                public void adHidden(AppLovinAd ad) {
-                                    dialog.dismiss();
-
-                                    stickerPack.premium =  "false";
-
-                                    Toasty.success(getApplicationContext(),"Now you can use this premium stickers for free").show();
-                                    Log.d("Rewarded","onRewarded ");
-
-                                }
-                            });
-
-                        }else{
-                            autoDisplay =  true;
-                            loadAppLovinRewardedVideoAd();
-                            text_view_watch_ads.setText("SHOW LOADING.");
-                        }
-                    }else{
-                        autoDisplay =  true;
-                        loadAppLovinRewardedVideoAd();
-                        text_view_watch_ads.setText("SHOW LOADING.");
-                    }
-                }
+        relative_layout_watch_ads.setOnClickListener(view -> {
+            if (rewardedAdManager == null) {
+                initRewardedAds();
+            }
+            if (rewardedAdManager != null && rewardedAdManager.show()) {
+                return;
+            }
+            // Nothing warm yet: keep loading down the waterfall and show the first fill.
+            autoDisplay = true;
+            text_view_watch_ads.setText("LOADING AD...");
+            if (rewardedAdManager != null) {
+                rewardedAdManager.load();
             }
         });
 
@@ -710,40 +622,6 @@ public class StickerDetailsActivity extends AppCompatActivity {
 
     }
 
-
-    public void loadRewardedVideoAd() {
-        PrefManager   prefManager= new PrefManager(getApplicationContext());
-
-        mRewardedVideoAd.load(getApplicationContext(), prefManager.getString("ADMIN_REWARDED_ADMOB_ID"),
-                new AdRequest.Builder().build(), new RewardedAdLoadCallback() {
-                    @Override
-                    public void onAdLoaded(@NonNull RewardedAd rewardedAd) {
-                        super.onAdLoaded(rewardedAd);
-
-                        if (autoDisplay){
-                            dialog.dismiss();
-                            autoDisplay = false;
-                            mRewardedVideoAd = rewardedAd;
-                            mRewardedVideoAd.show(StickerDetailsActivity.this, rewardItem -> {
-                                dialog.dismiss();
-
-                                stickerPack.premium =  "false";
-                                dialog.dismiss();
-                                Toasty.success(getApplicationContext(),"Now you can use this premium stickers for free").show();
-                                Log.d("Rewarded","onRewarded ");
-
-                            });
-                        }
-                    }
-
-                    @Override
-                    public void onAdFailedToLoad(@NonNull LoadAdError loadAdError) {
-                        super.onAdFailedToLoad(loadAdError);
-                        mRewardedVideoAd = null;
-
-                    }
-                });
-    }
 
     private void openUserActivity(View view) {
         Intent intent  =  new Intent(getApplicationContext(), UserActivity.class);
@@ -1066,310 +944,43 @@ public class StickerDetailsActivity extends AppCompatActivity {
         return returnedBitmap;
     }
 
-    public void loadAppLovinRewardedVideoAd() {
-        if (applovinRewardedVideoAd == null) {
-            applovinRewardedVideoAd = AppLovinIncentivizedInterstitial.create(getApplicationContext());
-        }
-        if (!applovinRewardedVideoAd.isAdReadyToDisplay()) {
-            applovinRewardedVideoAd.preload(new AppLovinAdLoadListener() {
-                @Override
-                public void adReceived(AppLovinAd ad) {
-                    if (autoDisplay) {
-                        dialog.dismiss();
-                        autoDisplay = false;
-                        applovinRewardedVideoAd.show(StickerDetailsActivity.this, null, null, new AppLovinAdDisplayListener() {
-                            @Override public void adDisplayed(AppLovinAd ad) {}
-                            @Override public void adHidden(AppLovinAd ad) {
-                                stickerPack.premium = "false";
-                                Toasty.success(getApplicationContext(), "Premium unlocked!").show();
-                            }
-                        });
-                    }
-                }
-                @Override public void failedToReceiveAd(int errorCode) {}
-            });
-        }
-    }
-
-    public void loadMaxRewardedVideoAd() {
-        PrefManager prefManager = new PrefManager(getApplicationContext());
-        if (maxRewardedVideoAd == null) {
-            maxRewardedVideoAd = MaxRewardedAd.getInstance(prefManager.getString("ADMIN_REWARDED_ADMOB_ID"), this);
-            maxRewardedVideoAd.setListener(new MaxRewardedAdListener() {
-                @Override public void onUserRewarded(MaxAd ad, MaxReward reward) {
-                    dialog.dismiss(); stickerPack.premium = "false"; Toasty.success(getApplicationContext(), "Premium unlocked!").show();
-                }
-                @Override public void onAdLoaded(MaxAd ad) {
-                    if (autoDisplay) {
-                        dialog.dismiss(); autoDisplay = false; maxRewardedVideoAd.showAd();
-                    }
-                }
-                @Override public void onAdDisplayed(MaxAd ad) {}
-                @Override public void onAdHidden(MaxAd ad) {}
-                @Override public void onAdClicked(MaxAd ad) {}
-                @Override public void onAdLoadFailed(String adUnitId, MaxError error) {}
-                @Override public void onAdDisplayFailed(MaxAd ad, MaxError error) {}
-            });
-        }
-        maxRewardedVideoAd.loadAd();
-    }
-
     public boolean checkSUBSCRIBED() {
         PrefManager prefManager = new PrefManager(getApplicationContext());
         return "TRUE".equals(prefManager.getString("SUBSCRIBED"));
     }
 
     public void showAdsBanner() {
-        if (checkSUBSCRIBED()) return;
-        PrefManager prefManager = new PrefManager(getApplicationContext());
-        String bannerType = prefManager.getString("ADMIN_BANNER_TYPE");
-        switch (bannerType) {
-            case "ADMOB": showAdmobBanner(); break;
-            case "APPLOVIN": showAppLovinBanner(); break;
-            case "MAX": showMaxBanner(); break;
+        if (checkSUBSCRIBED()) {
+            return;
         }
-    }
-
-    public void showAdsNative() {
-        if (checkSUBSCRIBED()) return;
-        PrefManager prefManager = new PrefManager(getApplicationContext());
-        String nativeType = prefManager.getString("ADMIN_NATIVE_TYPE");
-        switch (nativeType) {
-            case "ADMOB": showAdmobNative(); break;
-            case "MAX": showMaxNative(); break;
+        bannerAdManager = BannerAdManager.into(this, findViewById(R.id.linear_layout_ads));
+        if (bannerAdManager != null) {
+            bannerAdManager.load();
         }
-    }
-
-    private void showMaxNative() {
-        MaxNativeAdLoader nativeAdLoader;
-        FrameLayout         native_ad_layout;
-
-        PrefManager prefManager= new PrefManager(this);
-        native_ad_layout = (FrameLayout) findViewById(R.id.native_banner_ad_container);
-
-        nativeAdLoader = new MaxNativeAdLoader( prefManager.getString("ADMIN_NATIVE_ADMOB_ID"));
-        nativeAdLoader.setNativeAdListener(new MaxNativeAdListener() {
-            @Override
-            public void onNativeAdLoaded(MaxNativeAdView nativeAdView, @NonNull MaxAd nativeAd) {
-                if ( loadedNativeAd != null )
-                {
-                    nativeAdLoader.destroy( loadedNativeAd );
-                }
-                // Save ad for cleanup.
-                loadedNativeAd = nativeAd;
-
-                native_ad_layout.removeAllViews();
-                native_ad_layout.addView( nativeAdView );
-            }
-        });
-        nativeAdLoader.loadAd(createNativeAdView());
-    }
-
-    private MaxNativeAdView createNativeAdView()
-    {
-        MaxNativeAdViewBinder binder = new MaxNativeAdViewBinder.Builder( R.layout.native_max_ad_view )
-                .setTitleTextViewId( R.id.title_text_view )
-                .setBodyTextViewId( R.id.body_text_view )
-                .setAdvertiserTextViewId( R.id.advertiser_textView )
-                .setIconImageViewId( R.id.icon_image_view )
-                .setMediaContentViewGroupId( R.id.media_view_container )
-                .setCallToActionButtonId( R.id.cta_button )
-                .build();
-
-        return new MaxNativeAdView( binder, this );
-    }
-
-    private void showAdmobNative() {
-        final AdLoader adLoader;
-        FrameLayout frameLayout;
-
-        PrefManager prefManager= new PrefManager(this);
-        frameLayout = (FrameLayout) findViewById(R.id.native_banner_ad_container);
-        AdLoader.Builder builder = new AdLoader.Builder(this, prefManager.getString("ADMIN_NATIVE_ADMOB_ID"));
-
-        builder.forNativeAd(
-                nativeAd -> {
-                    // If this callback occurs after the activity is destroyed, you must call
-                    // destroy and return or you may get a memory leak.
-                    if (mnativeAd != null) {
-                        mnativeAd.destroy();
-                        return;
-                    }
-
-                    Bundle extras = nativeAd.getExtras();
-
-                    mnativeAd = nativeAd;
-                    NativeAdView adView = (NativeAdView) getLayoutInflater().inflate(R.layout.ad_unified, null);
-
-                    populateNativeAdView(mnativeAd, adView);
-                    if(frameLayout != null){
-                        frameLayout.removeAllViews();
-                        frameLayout.addView(adView);
-                    }
-
-                });
-
-        VideoOptions videoOptions =
-                new VideoOptions.Builder().setStartMuted(true).build();
-
-        NativeAdOptions adOptions =
-                new NativeAdOptions.Builder().setVideoOptions(videoOptions).build();
-
-        builder.withNativeAdOptions(adOptions);
-
-        adLoader =
-                builder
-                        .withAdListener(
-                                new AdListener() {
-                                    @Override
-                                    public void onAdFailedToLoad(LoadAdError loadAdError) {
-                                        String error =
-                                                String.format(
-                                                        "domain: %s, code: %d, message: %s",
-                                                        loadAdError.getDomain(),
-                                                        loadAdError.getCode(),
-                                                        loadAdError.getMessage());
-
-                                        Log.d("ADMOB_TES", error);
-
-                                    }
-                                })
-                        .build();
-
-        adLoader.loadAd(new AdRequest.Builder().build());
-
-    }
-
-    private void populateNativeAdView(NativeAd nativeAd, NativeAdView adView) {
-        // Set the media view.
-        adView.setMediaView((com.google.android.gms.ads.nativead.MediaView) adView.findViewById(R.id.ad_media));
-
-        // Set other ad assets.
-        adView.setHeadlineView(adView.findViewById(R.id.ad_headline));
-        adView.setBodyView(adView.findViewById(R.id.ad_body));
-        adView.setCallToActionView(adView.findViewById(R.id.ad_call_to_action));
-        adView.setIconView(adView.findViewById(R.id.ad_app_icon));
-        adView.setPriceView(adView.findViewById(R.id.ad_price));
-        adView.setStarRatingView(adView.findViewById(R.id.ad_stars));
-        adView.setStoreView(adView.findViewById(R.id.ad_store));
-        adView.setAdvertiserView(adView.findViewById(R.id.ad_advertiser));
-
-        // The headline and mediaContent are guaranteed to be in every NativeAd.
-        ((TextView) adView.getHeadlineView()).setText(nativeAd.getHeadline());
-        adView.getMediaView().setMediaContent(nativeAd.getMediaContent());
-
-        // These assets aren't guaranteed to be in every NativeAd, so it's important to
-        // check before trying to display them.
-        if (nativeAd.getBody() == null) {
-            adView.getBodyView().setVisibility(View.INVISIBLE);
-        } else {
-            adView.getBodyView().setVisibility(View.VISIBLE);
-            ((TextView) adView.getBodyView()).setText(nativeAd.getBody());
-        }
-
-        if (nativeAd.getCallToAction() == null) {
-            adView.getCallToActionView().setVisibility(View.INVISIBLE);
-        } else {
-            adView.getCallToActionView().setVisibility(View.VISIBLE);
-            ((Button) adView.getCallToActionView()).setText(nativeAd.getCallToAction());
-        }
-
-        if (nativeAd.getIcon() == null) {
-            adView.getIconView().setVisibility(View.GONE);
-        } else {
-            ((ImageView) adView.getIconView()).setImageDrawable(
-                    nativeAd.getIcon().getDrawable());
-            adView.getIconView().setVisibility(View.VISIBLE);
-        }
-
-        if (nativeAd.getPrice() == null) {
-            adView.getPriceView().setVisibility(View.INVISIBLE);
-        } else {
-            adView.getPriceView().setVisibility(View.VISIBLE);
-            ((TextView) adView.getPriceView()).setText(nativeAd.getPrice());
-        }
-
-        if (nativeAd.getStore() == null) {
-            adView.getStoreView().setVisibility(View.INVISIBLE);
-        } else {
-            adView.getStoreView().setVisibility(View.VISIBLE);
-            ((TextView) adView.getStoreView()).setText(nativeAd.getStore());
-        }
-
-        if (nativeAd.getStarRating() == null) {
-            adView.getStarRatingView().setVisibility(View.INVISIBLE);
-        } else {
-            ((RatingBar) adView.getStarRatingView())
-                    .setRating(nativeAd.getStarRating().floatValue());
-            adView.getStarRatingView().setVisibility(View.VISIBLE);
-        }
-
-        if (nativeAd.getAdvertiser() == null) {
-            adView.getAdvertiserView().setVisibility(View.INVISIBLE);
-        } else {
-            ((TextView) adView.getAdvertiserView()).setText(nativeAd.getAdvertiser());
-            adView.getAdvertiserView().setVisibility(View.VISIBLE);
-        }
-
-        // This method tells the Google Mobile Ads SDK that you have finished populating your
-        // native ad view with this native ad.
-        adView.setNativeAd(nativeAd);
-
-        // Get the video controller for the ad. One will always be provided, even if the ad doesn't
-        // have a video asset.
-        VideoController vc = nativeAd.getMediaContent().getVideoController();
-
-        // Updates the UI to say whether or not this ad has a video asset.
-        if (vc.hasVideoContent()) {
-
-
-            // Create a new VideoLifecycleCallbacks object and pass it to the VideoController. The
-            // VideoController will call methods on this object when events occur in the video
-            // lifecycle.
-            vc.setVideoLifecycleCallbacks(new VideoController.VideoLifecycleCallbacks() {
-                @Override
-                public void onVideoEnd() {
-                    // Publishers should allow native ads to complete video playback before
-                    // refreshing or replacing them with another ad in the same UI location.
-
-                    super.onVideoEnd();
-                }
-            });
-        } else {
-
-        }
-    }
-
-    private void showAppLovinBanner() {
-        AppLovinAdView adView = new AppLovinAdView(AppLovinAdSize.BANNER, this);
-        int heightPx = AppLovinSdkUtils.dpToPx(this, AppLovinSdkUtils.isTablet(this) ? 90 : 50);
-        adView.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, heightPx));
-        ((LinearLayout) findViewById(R.id.linear_layout_ads)).addView(adView);
-        adView.loadNextAd();
-    }
-
-    public void showMaxBanner() {
-        PrefManager prefManager = new PrefManager(getApplicationContext());
-        MaxAdView adView = new MaxAdView(prefManager.getString("ADMIN_BANNER_ADMOB_ID"), this);
-        int heightPx = AppLovinSdkUtils.dpToPx(this, MaxAdFormat.BANNER.getAdaptiveSize(this).getHeight());
-        adView.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, heightPx));
-        ((LinearLayout) findViewById(R.id.linear_layout_ads)).addView(adView);
-        adView.loadAd();
-    }
-
-    public void showAdmobBanner() {
-        PrefManager prefManager = new PrefManager(getApplicationContext());
-        AdView mAdView = new AdView(this);
-        mAdView.setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(this, 360));
-        mAdView.setAdUnitId(prefManager.getString("ADMIN_BANNER_ADMOB_ID"));
-        mAdView.loadAd(new AdRequest.Builder().build());
-        ((LinearLayout) findViewById(R.id.linear_layout_ads)).addView(mAdView);
     }
 
     public void initAds() {
-        PrefManager prefManager = new PrefManager(getApplicationContext());
-        if ("TRUE".equals(prefManager.getString("SUBSCRIBED"))) return;
-        showAdsNative();
+        if (checkSUBSCRIBED()) {
+            return;
+        }
+        nativeAdManager = NativeAdManager.into(this, findViewById(R.id.native_banner_ad_container));
+        if (nativeAdManager != null) {
+            nativeAdManager.load();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        if (bannerAdManager != null) {
+            bannerAdManager.destroy();
+        }
+        if (nativeAdManager != null) {
+            nativeAdManager.destroy();
+        }
+        if (rewardedAdManager != null) {
+            rewardedAdManager.destroy();
+        }
+        super.onDestroy();
     }
 
     public void initBuy() {

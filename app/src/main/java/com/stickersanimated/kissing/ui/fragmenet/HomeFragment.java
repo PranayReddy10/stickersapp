@@ -341,14 +341,9 @@ public class HomeFragment extends Fragment {
      * **NEW:** Centralized logic for creating an Ad placeholder.
      */
     private StickerPack createAdStickerPack() {
-        PrefManager prefManager = new PrefManager(requireContext());
-        String adType = prefManager.getString("ADMIN_NATIVE_TYPE");
-        if ("ADMOB".equals(adType)) {
-            return new StickerPack().setViewType(6);
-        } else if ("MAX".equals(adType)) {
-            return new StickerPack().setViewType(7);
-        }
-        return null; // Should not happen if areNativeAdsEnabled is true
+        // One in-feed ad row for every network: the adapter runs the waterfall and picks
+        // whichever network fills first.
+        return new StickerPack().setViewType(StickerAdapter.VIEW_TYPE_NATIVE_AD);
     }
 
     /**

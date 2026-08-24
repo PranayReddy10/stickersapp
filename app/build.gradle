@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 android {
     android.defaultConfig.vectorDrawables.setUseSupportLibrary(true)
 
-    compileSdk 35
+    compileSdk 36
 
     defaultConfig {
         vectorDrawables.useSupportLibrary = true
@@ -12,7 +12,7 @@ android {
         }
         applicationId "com.stickersanimated.kissing"
         minSdk 23
-        targetSdk 35
+        targetSdk 36
         multiDexEnabled true
         versionCode 1
         versionName "1.0"
@@ -37,6 +37,20 @@ android {
 
     buildFeatures {
         buildConfig = true
+    }
+
+    // Android 16 / Google Play require 16 KB memory page support. Shipping the
+    // native libraries uncompressed lets the loader map them straight from the
+    // APK on 16 KB devices.
+    packaging {
+        jniLibs {
+            useLegacyPackaging = false
+        }
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_17
+        targetCompatibility JavaVersion.VERSION_17
     }
 
 }
@@ -106,6 +120,10 @@ dependencies {
     implementation 'com.applovin.mediation:ironsource-adapter:9.2.0.0.0'
     implementation 'com.applovin.mediation:facebook-adapter:6.21.0.0'
     implementation 'com.applovin.mediation:unityads-adapter:4.16.5.0'
+
+    // Direct Unity Ads SDK so Unity can serve as a standalone fallback network
+    // in the waterfall (same version the AppLovin adapter above is built against).
+    implementation 'com.unity3d.ads:unity-ads:4.16.5'
 
     implementation 'com.squareup.picasso:picasso:2.71828'
     //noinspection GradleCompatible
