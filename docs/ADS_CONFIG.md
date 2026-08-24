@@ -42,7 +42,8 @@ now stored, so new keys can be added on the backend without shipping a new APK.
 | `ADMIN_AD_FALLBACK` | `TRUE` (default) appends every other configured network after the ones listed. `FALSE` uses only `_ORDER` / `_TYPE`. |
 | `ADMIN_AD_TIMEOUT` | Seconds to wait for one network before moving on. Default `10`, clamped to 3–60. |
 | `ADMIN_INTERSTITIAL_CLICKS` | Clicks between two interstitials (unchanged). |
-| `ADMIN_NATIVE_LINES` | List rows between two in-feed native ads (unchanged). |
+| `ADMIN_NATIVE_LINES` | Packs between two in-feed native ads. Set it to `3` or `4` for an ad every few packs on the home screen. A missing or invalid value falls back to 3. |
+| `ADMIN_DOWNLOAD_AD_TYPE` | What to show when a **free** pack is added to WhatsApp / Telegram / Signal: `FALSE` (nothing), `INTERSTITIAL` (full screen, the pack is added either way), or `REWARDED` (the user has to finish the video). Premium packs keep using the rewarded unlock dialog. |
 
 ### Example
 
@@ -58,6 +59,25 @@ ADMIN_AD_TIMEOUT          = 8
 
 With this configuration a banner request goes to AdMob first; if AdMob returns no fill (or
 stays silent for 8 seconds) the app asks MAX, then Meta, then Unity.
+
+
+## Where each format appears in the app
+
+| Placement | Format | Controlled by |
+|---|---|---|
+| Home / category / search / popular / user lists, every N packs | Native | `ADMIN_NATIVE_*` + `ADMIN_NATIVE_LINES` |
+| Pack details screen, under the pack | Native | `ADMIN_NATIVE_*` |
+| Pack details, category and search screens, bottom bar | Banner | `ADMIN_BANNER_*` |
+| Opening a pack from a list | Interstitial | `ADMIN_INTERSTITIAL_*` + `ADMIN_INTERSTITIAL_CLICKS` |
+| Add to WhatsApp / Telegram / Signal on a **free** pack | Interstitial or Rewarded | `ADMIN_DOWNLOAD_AD_TYPE` |
+| Unlocking a **premium** pack | Rewarded | `ADMIN_REWARDED_*` |
+
+The download placement reuses the interstitial or rewarded settings depending on which
+one it is set to, including the interstitial click counter. If the format it points at is
+disabled, the pack is added with no ad rather than being blocked.
+
+A failing network never costs the user their download: when every network in the waterfall
+comes back empty, the pack is added anyway.
 
 ### Backwards compatibility
 

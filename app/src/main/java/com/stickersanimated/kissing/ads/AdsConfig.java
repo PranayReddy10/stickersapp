@@ -46,10 +46,15 @@ public final class AdsConfig {
     private static final String KEY_TIMEOUT_SECONDS = "ADMIN_AD_TIMEOUT";
     private static final String KEY_UNITY_GAME_ID = "ADMIN_UNITY_GAME_ID";
     private static final String KEY_INTERSTITIAL_CLICKS = "ADMIN_INTERSTITIAL_CLICKS";
+    private static final String KEY_NATIVE_LINES = "ADMIN_NATIVE_LINES";
+    private static final String KEY_DOWNLOAD_AD_TYPE = "ADMIN_DOWNLOAD_AD_TYPE";
 
     private static final long DEFAULT_TIMEOUT_MS = 10_000L;
     private static final long MIN_TIMEOUT_MS = 3_000L;
     private static final long MAX_TIMEOUT_MS = 60_000L;
+
+    private static final int DEFAULT_NATIVE_LINES = 3;
+    private static final int MIN_NATIVE_LINES = 1;
 
     private final PrefManager pref;
 
@@ -133,6 +138,53 @@ public final class AdsConfig {
     /** Number of clicks between two interstitials. */
     public int interstitialClicks() {
         return pref.getInt(KEY_INTERSTITIAL_CLICKS);
+    }
+
+    /**
+     * How many packs sit between two in-feed native ads. The panel sends this as
+     * {@code ADMIN_NATIVE_LINES}; a missing or nonsensical value falls back to a sane
+     * default instead of crashing the list.
+     */
+    public int packsBetweenNativeAds() {
+        final String raw = string(KEY_NATIVE_LINES);
+        int lines = DEFAULT_NATIVE_LINES;
+        if (!TextUtils.isEmpty(raw)) {
+            try {
+                lines = Integer.parseInt(raw.trim());
+            } catch (NumberFormatException ignored) {
+                lines = DEFAULT_NATIVE_LINES;
+            }
+        }
+        return Math.max(MIN_NATIVE_LINES, lines);
+    }
+
+    /**
+     * What to show when a free pack is added to WhatsApp / Telegram / Signal, from
+     * {@code ADMIN_DOWNLOAD_AD_TYPE}.
+     */
+    public DownloadAd downloadAd() {
+        if (isSubscribed()) {
+            return DownloadAd.NONE;
+        }
+        final String raw = string(KEY_DOWNLOAD_AD_TYPE);
+        if (isDisabledValue(raw)) {
+            return DownloadAd.NONE;
+        }
+        final String value = raw.trim().toUpperCase(Locale.US);
+        if ("REWARDED".equals(value) || "REWARD".equals(value)) {
+            return DownloadAd.REWARDED;
+        }
+        return DownloadAd.INTERSTITIAL;
+    }
+
+    /** The ad the panel wants shown on the download / add-to-app action. */
+    public enum DownloadAd {
+        /** No ad, the pack is added straight away. */
+        NONE,
+        /** Full screen ad; the pack is added whether or not the ad showed. */
+        INTERSTITIAL,
+        /** Rewarded video; the pack is added once the user has earned the reward. */
+        REWARDED
     }
 
     private boolean isFallbackEnabled() {
