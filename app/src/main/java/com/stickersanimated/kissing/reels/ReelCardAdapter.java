@@ -9,9 +9,16 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.recyclerview.widget.RecyclerView;
 
+import android.graphics.drawable.Drawable;
+
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.target.Target;
+import com.bumptech.glide.request.RequestListener;
+import com.bumptech.glide.load.DataSource;
+import com.bumptech.glide.load.engine.GlideException;
 import com.stickersanimated.kissing.R;
 import com.stickersanimated.kissing.ads.NativeAdManager;
 import com.stickersanimated.kissing.entity.ReelApi;
@@ -119,12 +126,32 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         }
         aspect = Math.max(MIN_ASPECT, Math.min(MAX_ASPECT, aspect));
 
-        final int mediaWidth = activity.getResources().getDisplayMetrics().widthPixels;
-        final ViewGroup.LayoutParams mediaParams = card.media.getLayoutParams();
-        mediaParams.height = (int) (mediaWidth * aspect);
-        card.media.setLayoutParams(mediaParams);
+        resize(card, aspect);
 
-        Glide.with(activity).load(reel.getThumb()).placeholder(R.drawable.sticker_error)
+        final boolean knownSize = reel.getWidth() > 0 && reel.getHeight() > 0;
+        Glide.with(activity).load(reel.getThumb())
+                .placeholder(R.drawable.sticker_error)
+                .listener(new RequestListener<Drawable>() {
+                    @Override
+                    public boolean onLoadFailed(@Nullable GlideException e, Object model,
+                                                Target<Drawable> target, boolean isFirstResource) {
+                        return false;
+                    }
+
+                    @Override
+                    public boolean onResourceReady(Drawable resource, Object model,
+                                                   Target<Drawable> target, DataSource source,
+                                                   boolean isFirstResource) {
+                        // Reels uploaded before the app started recording width and
+                        // height report zeros. Take the shape from the thumbnail itself
+                        // so those cards fit too instead of falling back to a guess.
+                        if (!knownSize && resource.getIntrinsicWidth() > 0) {
+                            resize(card, (float) resource.getIntrinsicHeight()
+                                    / (float) resource.getIntrinsicWidth());
+                        }
+                        return false;
+                    }
+                })
                 .into(card.thumb);
         Glide.with(activity).load(reel.getUserimage()).placeholder(R.drawable.profile)
                 .into(card.avatar);
@@ -140,6 +167,18 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         card.author.setOnClickListener(v -> listener.onAuthor(reel));
         card.follow.setOnClickListener(v ->
                 ReelFollow.toggle(activity, reel, following -> bindFollow(card, reel)));
+    }
+
+    /** Sets the media frame's height from an aspect ratio, clamped to sane bounds. */
+    private void resize(CardHolder card, float aspect) {
+        final float clamped = Math.max(MIN_ASPECT, Math.min(MAX_ASPECT, aspect));
+        final int width = activity.getResources().getDisplayMetrics().widthPixels;
+        final ViewGroup.LayoutParams params = card.media.getLayoutParams();
+        final int height = (int) (width * clamped);
+        if (params.height != height) {
+            params.height = height;
+            card.media.setLayoutParams(params);
+        }
     }
 
     private void bindLike(CardHolder card, ReelApi reel) {

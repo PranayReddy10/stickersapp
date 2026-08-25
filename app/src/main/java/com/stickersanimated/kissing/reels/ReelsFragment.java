@@ -186,7 +186,7 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
             return;
         }
         loading = true;
-        progressBar.setVisibility(loaded.isEmpty() ? View.VISIBLE : View.GONE);
+        progressBar.setVisibility(page == 0 && loaded.isEmpty() ? View.VISIBLE : View.GONE);
 
         final PrefManager prefManager = new PrefManager(requireContext().getApplicationContext());
         apiClient.getClient().create(apiRest.class)

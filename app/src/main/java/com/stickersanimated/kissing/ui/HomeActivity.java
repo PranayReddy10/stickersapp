@@ -28,6 +28,8 @@ import android.provider.Settings;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.KeyEvent;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.view.View;
 import com.google.android.material.navigation.NavigationView;
 import androidx.core.view.GravityCompat;
@@ -358,6 +360,10 @@ public class HomeActivity extends AppCompatActivity
 
                 // Set it as checked
                 menuItem.setChecked(true);
+
+                // The Reels tab carries its own labelled Upload button, so the
+                // floating one would sit on top of it in the same corner.
+                fab.setVisibility(i == REELS_TAB ? View.GONE : View.VISIBLE);
             }
 
             @Override
@@ -375,10 +381,20 @@ public class HomeActivity extends AppCompatActivity
         this.text_view_name_nave_header=(TextView) headerview.findViewById(R.id.text_view_name_nave_header);
         this.circle_image_view_profile_nav_header=(CircularImageView) headerview.findViewById(R.id.circle_image_view_profile_nav_header);
         initBottomNavigation();
+        // onPageSelected does not fire for the page the pager already shows.
+        fab.setVisibility(viewPager.getCurrentItem() == REELS_TAB ? View.GONE : View.VISIBLE);
     }
 
     public void initBottomNavigation() {
         bottomNavigationView = findViewById(R.id.bottom_navigation);
+        // Kill tinting outright. The icons are multi-colour, and any tint - from the
+        // widget style or the theme - repaints them a single colour, which is why the
+        // selected tab was turning white on a white bar.
+        bottomNavigationView.setItemIconTintList(null);
+        // A soft tinted pill marks the selection instead, since the icon can no
+        // longer change colour to show it.
+        bottomNavigationView.setItemActiveIndicatorColor(
+                ColorStateList.valueOf(Color.parseColor("#1AFF5722")));
         bottomNavigationView.setOnItemSelectedListener(new NavigationBarView.OnItemSelectedListener() {
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {

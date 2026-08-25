@@ -1,0 +1,10 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="56dp" android:height="56dp"
+    android:viewportWidth="56" android:viewportHeight="56">
+    <!-- Dark disc so the glyph survives a bright thumbnail, white ring for the dark ones. -->
+    <path android:fillColor="#B3000000"
+        android:pathData="M28,2A26,26 0,1 1,27.99 2Z"/>
+    <path android:strokeColor="#FFFFFF" android:strokeWidth="2" android:fillColor="#00000000"
+        android:pathData="M28,3A25,25 0,1 1,27.99 3Z"/>
+    <path android:fillColor="#FFFFFF" android:pathData="M22,17.5v21l17,-10.5z"/>
+</vector>
