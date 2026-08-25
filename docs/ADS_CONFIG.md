@@ -52,7 +52,7 @@ now stored, so new keys can be added on the backend without shipping a new APK.
 | `ADMIN_AD_TIMEOUT` | Seconds to wait for one network before moving on. Default `10`, clamped to 3–60. |
 | `ADMIN_INTERSTITIAL_CLICKS` | Clicks between two interstitials (unchanged). |
 | `ADMIN_NATIVE_LINES` | Packs between two in-feed native ads. Set it to `3` or `4` for an ad every few packs on the home screen. A missing or invalid value falls back to 3. |
-| `ADMIN_DOWNLOAD_AD_TYPE` | What to show when a **free** pack is added to WhatsApp / Telegram / Signal: `FALSE` (nothing), `INTERSTITIAL` (full screen, the pack is added either way), or `REWARDED` (the user has to finish the video). Premium packs keep using the rewarded unlock dialog. |
+| `ADMIN_REELS_NATIVE_LINES` | Reels between two native ads, both in the reels card feed and in the full screen player. A missing or invalid value falls back to 3. |
 
 ### Example
 
@@ -78,15 +78,14 @@ stays silent for 8 seconds) the app asks MAX, then Meta, then Unity.
 | Pack details screen, under the pack | Native | `ADMIN_NATIVE_*` |
 | Pack details, category and search screens, bottom bar | Banner | `ADMIN_BANNER_*` |
 | Opening a pack from a list | Interstitial | `ADMIN_INTERSTITIAL_*` + `ADMIN_INTERSTITIAL_CLICKS` |
-| Add to WhatsApp / Telegram / Signal on a **free** pack | Interstitial or Rewarded | `ADMIN_DOWNLOAD_AD_TYPE` |
-| Unlocking a **premium** pack | Rewarded | `ADMIN_REWARDED_*` |
+| Reels card feed and full screen player, every N reels | Native | `ADMIN_NATIVE_*` + `ADMIN_REELS_NATIVE_LINES` |
+| Unlocking a **premium** pack (watch an ad or subscribe) | Rewarded | `ADMIN_REWARDED_*` |
 
-The download placement reuses the interstitial or rewarded settings depending on which
-one it is set to, including the interstitial click counter. If the format it points at is
-disabled, the pack is added with no ad rather than being blocked.
-
-A failing network never costs the user their download: when every network in the waterfall
-comes back empty, the pack is added anyway.
+Adding a free pack to WhatsApp, Telegram or Signal shows no ad of its own. A premium pack
+keeps its existing unlock dialog - watch a rewarded video or subscribe - and that video now
+runs the whole waterfall, so one network failing to fill no longer blocks the unlock. If
+rewarded ads are switched off entirely, or every network comes back empty, the user is not
+left stuck behind an ad that can never load.
 
 ### Backwards compatibility
 

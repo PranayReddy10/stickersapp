@@ -224,13 +224,8 @@
                         tools:ignore="MissingConstraints"
                         />
                 </RelativeLayout>
-                <com.facebook.ads.NativeAdLayout
-                    android:layout_below="@+id/linear_layout_pack_screen_shot"
-                    android:id="@+id/native_banner_ad_container"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
                 <androidx.cardview.widget.CardView
-                    android:layout_below="@+id/native_banner_ad_container"
+                    android:layout_below="@+id/linear_layout_pack_screen_shot"
                     android:id="@+id/card_user"
                     app:cardBackgroundColor="@color/colorPrimaryDark"
                     app:cardCornerRadius="5dp"

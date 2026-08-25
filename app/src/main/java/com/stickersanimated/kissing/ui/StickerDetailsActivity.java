@@ -55,9 +55,7 @@ import com.stickersanimated.kissing.R;
 import com.stickersanimated.kissing.Sticker;
 import com.stickersanimated.kissing.StickerPack;
 import com.stickersanimated.kissing.adapter.StickerDetailsAdapter;
-import com.stickersanimated.kissing.ads.AdsConfig;
 import com.stickersanimated.kissing.ads.BannerAdManager;
-import com.stickersanimated.kissing.ads.InterstitialAdManager;
 import com.stickersanimated.kissing.ads.NativeAdManager;
 import com.stickersanimated.kissing.ads.RewardedAdManager;
 import com.stickersanimated.kissing.api.apiClient;
@@ -95,12 +93,8 @@ public class StickerDetailsActivity extends AppCompatActivity {
     // Ad properties - every format goes through a waterfall so a network that fails to
     // fill simply hands over to the next configured one.
     private BannerAdManager bannerAdManager;
-    private NativeAdManager nativeAdManager;
     private NativeAdManager detailsNativeAdManager;
     private RewardedAdManager rewardedAdManager;
-    private InterstitialAdManager downloadInterstitial;
-    /** Set while a rewarded download ad is on screen; run once the reward is earned. */
-    private Runnable pendingDownloadAction;
     private boolean autoDisplay = false;
     private TextView text_view_watch_ads;
 
@@ -306,65 +300,19 @@ public class StickerDetailsActivity extends AppCompatActivity {
     }
 
     /**
-     * Runs {@code action} - adding the pack to WhatsApp, Telegram or Signal - behind
-     * whatever the panel wants shown first.
+     * Runs {@code action} - adding the pack to WhatsApp, Telegram or Signal.
      *
-     * <p>A premium pack still goes through the rewarded unlock dialog. A free pack shows
-     * the ad configured in {@code ADMIN_DOWNLOAD_AD_TYPE}: nothing, a full screen ad
-     * (the pack is added either way), or a rewarded video the user has to watch. If no
-     * network can supply the ad, the pack is added anyway - a failing ad network must
-     * never cost the user their download.
+     * <p>A premium pack goes through the unlock dialog, where the user either watches a
+     * rewarded video or subscribes. That rewarded video is served by the whole network
+     * waterfall, so a single network failing to fill no longer blocks the unlock. A free
+     * pack is added straight away.
      */
     private void addPack(Runnable action) {
         if ("true".equals(stickerPack.premium) && !checkSUBSCRIBED()) {
             showDialog();
             return;
         }
-        if (checkSUBSCRIBED()) {
-            action.run();
-            return;
-        }
-
-        final AdsConfig.DownloadAd downloadAd = new AdsConfig(this).downloadAd();
-        switch (downloadAd) {
-            case INTERSTITIAL:
-                if (downloadInterstitial == null) {
-                    downloadInterstitial = new InterstitialAdManager(this);
-                }
-                downloadInterstitial.showThen(action);
-                break;
-            case REWARDED:
-                showDownloadRewarded(action);
-                break;
-            case NONE:
-            default:
-                action.run();
-                break;
-        }
-    }
-
-    /**
-     * Rewarded variant of the download ad. The pack is handed over once the reward is
-     * earned, or straight away when no network has an ad to give.
-     */
-    private void showDownloadRewarded(Runnable action) {
-        if (rewardedAdManager == null) {
-            initRewardedAds();
-        }
-        if (rewardedAdManager == null || !rewardedAdManager.isEnabled()) {
-            // Rewarded ads are switched off in the panel - do not trap the download
-            // behind an ad that can never load.
-            action.run();
-            return;
-        }
-        pendingDownloadAction = action;
-        if (rewardedAdManager.show()) {
-            return;
-        }
-        // Nothing warm yet - keep going down the waterfall and show the first fill.
-        autoDisplay = true;
-        Toasty.info(this, "Loading ad...", Toast.LENGTH_SHORT).show();
-        rewardedAdManager.load();
+        action.run();
     }
 
     private void startStickerPackDownload() {
@@ -548,13 +496,6 @@ public class StickerDetailsActivity extends AppCompatActivity {
         }
     }
 
-    /** Returns the waiting download action, if any, and clears it so it runs once. */
-    private Runnable takePendingDownload() {
-        final Runnable pending = pendingDownloadAction;
-        pendingDownloadAction = null;
-        return pending;
-    }
-
     /** Warms up a rewarded video across every configured network. */
     private void initRewardedAds() {
         if (checkSUBSCRIBED()) {
@@ -578,24 +519,12 @@ public class StickerDetailsActivity extends AppCompatActivity {
                 }
                 autoDisplay = false;
                 resetWatchAdsLabel();
-                // No network had an ad. A download waiting on one is handed over anyway -
-                // the user should not lose a free pack because ad fill was empty.
-                final Runnable pending = takePendingDownload();
-                if (pending != null) {
-                    pending.run();
-                    return;
-                }
                 Toasty.warning(StickerDetailsActivity.this,
                         "No ad available right now, please try again later.").show();
             }
 
             @Override
             public void onUserRewarded() {
-                final Runnable pending = takePendingDownload();
-                if (pending != null) {
-                    pending.run();
-                    return;
-                }
                 stickerPack.premium = "false";
                 if (dialog != null && dialog.isShowing()) {
                     dialog.dismiss();
@@ -606,14 +535,6 @@ public class StickerDetailsActivity extends AppCompatActivity {
 
             @Override
             public void onAdClosed() {
-                // Still holding the download here means the ad was dismissed before the
-                // reward was earned, which is exactly what the REWARDED setting asks for.
-                final Runnable pending = takePendingDownload();
-                if (pending != null) {
-                    Toasty.info(StickerDetailsActivity.this,
-                            "Watch the whole ad to get this pack.", Toast.LENGTH_SHORT).show();
-                    return;
-                }
                 if (dialog != null && dialog.isShowing() && "false".equals(stickerPack.premium)) {
                     dialog.dismiss();
                 }
@@ -1024,12 +945,8 @@ public class StickerDetailsActivity extends AppCompatActivity {
         if (checkSUBSCRIBED()) {
             return;
         }
-        nativeAdManager = NativeAdManager.into(this, findViewById(R.id.native_banner_ad_container));
-        if (nativeAdManager != null) {
-            nativeAdManager.load();
-        }
-        // Second native slot, between the author card and the rating card. It runs
-        // the same waterfall, so both are switched on and off by the panel together.
+        // A single native slot on the pack page, between the author card and the rating
+        // card. It runs the same waterfall as every other placement.
         detailsNativeAdManager = NativeAdManager.into(this,
                 findViewById(R.id.frame_layout_details_native));
         if (detailsNativeAdManager != null) {
@@ -1042,17 +959,11 @@ public class StickerDetailsActivity extends AppCompatActivity {
         if (bannerAdManager != null) {
             bannerAdManager.destroy();
         }
-        if (nativeAdManager != null) {
-            nativeAdManager.destroy();
-        }
         if (detailsNativeAdManager != null) {
             detailsNativeAdManager.destroy();
         }
         if (rewardedAdManager != null) {
             rewardedAdManager.destroy();
-        }
-        if (downloadInterstitial != null) {
-            downloadInterstitial.destroy();
         }
         super.onDestroy();
     }
