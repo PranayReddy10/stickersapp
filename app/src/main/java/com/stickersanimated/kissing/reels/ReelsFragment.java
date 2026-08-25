@@ -43,6 +43,9 @@ import retrofit2.Response;
  */
 public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener {
 
+    /** Argument: show only this author's reels, as on a profile page. */
+    private static final String ARG_AUTHOR = "author";
+
     private static final String FILTER_ALL = "all";
     private static final String FILTER_PHOTO = "photo";
     private static final String FILTER_VIDEO = "video";
@@ -61,6 +64,8 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
     private TextView chipVideos;
     private ReelCardAdapter adapter;
 
+    /** 0 for the main feed, otherwise the profile whose reels are being shown. */
+    private int author;
     private String filter = FILTER_ALL;
     private int page = 0;
     private int reelsBetweenAds = 3;
@@ -68,11 +73,25 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
     private boolean loading;
     private boolean reachedEnd;
 
+    /**
+     * The same feed, narrowed to one author, for the Reels tab of a profile page.
+     * The filter chips and the upload button are left off there: the page is already
+     * about one person, and posting belongs on the Reels tab.
+     */
+    public static ReelsFragment forUser(int authorId) {
+        final ReelsFragment fragment = new ReelsFragment();
+        final Bundle args = new Bundle();
+        args.putInt(ARG_AUTHOR, authorId);
+        fragment.setArguments(args);
+        return fragment;
+    }
+
     @Nullable
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
                              @Nullable Bundle savedInstanceState) {
         final View view = inflater.inflate(R.layout.fragment_reels, container, false);
+        author = getArguments() == null ? 0 : getArguments().getInt(ARG_AUTHOR, 0);
 
         recyclerView = view.findViewById(R.id.recycler_view_reels);
         swipeRefresh = view.findViewById(R.id.swipe_refresh_reels);
@@ -90,17 +109,23 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerView.setAdapter(adapter);
 
-        view.findViewById(R.id.fab_upload_reel).setOnClickListener(v -> {
-            final PrefManager prefs = new PrefManager(requireContext().getApplicationContext());
-            startActivity("TRUE".equals(prefs.getString("LOGGED"))
-                    ? new Intent(requireContext(), UploadReelActivity.class)
-                    : new Intent(requireContext(), LoginActivity.class));
-        });
-
-        chipAll.setOnClickListener(v -> applyFilter(FILTER_ALL));
-        chipPhotos.setOnClickListener(v -> applyFilter(FILTER_PHOTO));
-        chipVideos.setOnClickListener(v -> applyFilter(FILTER_VIDEO));
-        highlightChips();
+        final View uploadButton = view.findViewById(R.id.fab_upload_reel);
+        final View filters = view.findViewById(R.id.layout_reels_filters);
+        if (isProfileFeed()) {
+            uploadButton.setVisibility(View.GONE);
+            filters.setVisibility(View.GONE);
+        } else {
+            uploadButton.setOnClickListener(v -> {
+                final PrefManager prefs = new PrefManager(requireContext().getApplicationContext());
+                startActivity("TRUE".equals(prefs.getString("LOGGED"))
+                        ? new Intent(requireContext(), UploadReelActivity.class)
+                        : new Intent(requireContext(), LoginActivity.class));
+            });
+            chipAll.setOnClickListener(v -> applyFilter(FILTER_ALL));
+            chipPhotos.setOnClickListener(v -> applyFilter(FILTER_PHOTO));
+            chipVideos.setOnClickListener(v -> applyFilter(FILTER_VIDEO));
+            highlightChips();
+        }
 
         swipeRefresh.setOnRefreshListener(this::reload);
         recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
@@ -164,6 +189,11 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
         emptyView.setVisibility(rows.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
+    /** True when this is a profile's Reels tab rather than the main feed. */
+    private boolean isProfileFeed() {
+        return author > 0;
+    }
+
     private boolean matchesFilter(ReelApi reel) {
         if (FILTER_ALL.equals(filter)) {
             return true;
@@ -189,9 +219,12 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
         progressBar.setVisibility(page == 0 && loaded.isEmpty() ? View.VISIBLE : View.GONE);
 
         final PrefManager prefManager = new PrefManager(requireContext().getApplicationContext());
-        apiClient.getClient().create(apiRest.class)
-                .reelFeed(page, viewerId(prefManager))
-                .enqueue(new Callback<List<ReelApi>>() {
+        final apiRest service = apiClient.getClient().create(apiRest.class);
+        final Integer viewer = viewerId(prefManager);
+        final Call<List<ReelApi>> call = isProfileFeed()
+                ? service.reelByUser(page, author, viewer)
+                : service.reelFeed(page, viewer);
+        call.enqueue(new Callback<List<ReelApi>>() {
                     @Override
                     public void onResponse(@NonNull Call<List<ReelApi>> call,
                                            @NonNull Response<List<ReelApi>> response) {
@@ -262,6 +295,7 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
         intent.putExtra(ReelPlayerActivity.EXTRA_REELS, visible);
         intent.putExtra(ReelPlayerActivity.EXTRA_START, Math.max(0, visible.indexOf(reel)));
         intent.putExtra(ReelPlayerActivity.EXTRA_PAGE, page);
+        intent.putExtra(ReelPlayerActivity.EXTRA_AUTHOR, author);
         startActivity(intent);
     }
 

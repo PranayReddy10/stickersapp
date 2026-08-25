@@ -38,6 +38,7 @@ import com.stickersanimated.kissing.entity.CategoryApi;
 import com.stickersanimated.kissing.entity.PackApi;
 import com.stickersanimated.kissing.entity.UserApi;
 import com.squareup.picasso.Picasso;
+import com.stickersanimated.kissing.reels.ReelsFragment;
 import com.stickersanimated.kissing.ui.fragmenet.UserFragment;
 
 import java.util.ArrayList;
@@ -89,6 +90,8 @@ public class UserActivity extends AppCompatActivity {
 
     private boolean trusted;
     private ViewPager viewPager;
+    private TextView text_view_profile_tab_packs;
+    private TextView text_view_profile_tab_reels;
 
     private ImageView image_view_activity_user_email;
     private ImageView image_view_activity_user_instagram;
@@ -202,6 +205,8 @@ public class UserActivity extends AppCompatActivity {
         this.text_view_ringtone_count_activity_user = (TextView) findViewById(R.id.text_view_ringtone_count_activity_user);
         this.image_view_ringtone_activity_trusted = (ImageView) findViewById(R.id.image_view_ringtone_activity_trusted);
         viewPager = (ViewPager) findViewById(R.id.main_view_pager);
+        this.text_view_profile_tab_packs = (TextView) findViewById(R.id.text_view_profile_tab_packs);
+        this.text_view_profile_tab_reels = (TextView) findViewById(R.id.text_view_profile_tab_reels);
 
 
         setupViewPager(viewPager);
@@ -220,10 +225,35 @@ public class UserActivity extends AppCompatActivity {
         userFragment.setArguments(bundle_video);
 
 
-        adapter.addFragment(userFragment, "Videos");
+        adapter.addFragment(userFragment, "Stickers");
+        // Same feed as the Reels tab, narrowed to this profile.
+        adapter.addFragment(ReelsFragment.forUser(id), "Reels");
 
         viewPager.setAdapter(adapter);
         viewPager.setCurrentItem(0);
+        viewPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
+            @Override
+            public void onPageSelected(int position) {
+                highlightProfileTab(position);
+            }
+        });
+
+        text_view_profile_tab_packs.setOnClickListener(v -> viewPager.setCurrentItem(0, true));
+        text_view_profile_tab_reels.setOnClickListener(v -> viewPager.setCurrentItem(1, true));
+        highlightProfileTab(0);
+    }
+
+    /** Marks whichever of the two profile tabs is showing. */
+    private void highlightProfileTab(int position) {
+        styleProfileTab(text_view_profile_tab_packs, position == 0);
+        styleProfileTab(text_view_profile_tab_reels, position == 1);
+    }
+
+    private void styleProfileTab(TextView tab, boolean selected) {
+        tab.setBackgroundResource(selected
+                ? R.drawable.bg_chip_selected : R.drawable.bg_chip_normal);
+        tab.setTextColor(getResources().getColor(selected
+                ? android.R.color.white : R.color.primary_text));
     }
 
     class ViewPagerAdapter extends FragmentPagerAdapter {

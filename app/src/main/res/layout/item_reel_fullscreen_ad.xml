@@ -1,19 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- An ad page between reels in the full screen pager. Dark, so it does not flash
-     white between two videos. -->
+     white between two videos, and the ad itself sits in a bounded card in the middle
+     rather than being stretched over the whole screen. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#0E0E10">
 
-    <FrameLayout
-        android:id="@+id/frame_layout_fullscreen_ad"
+    <androidx.cardview.widget.CardView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp"
-        android:minHeight="200dp" />
+        android:layout_marginStart="20dp"
+        android:layout_marginEnd="20dp"
+        app:cardBackgroundColor="@color/white"
+        app:cardCornerRadius="18dp"
+        app:cardElevation="0dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="14dp"
+                android:layout_marginTop="12dp"
+                android:letterSpacing="0.08"
+                android:text="@string/reel_sponsored"
+                android:textColor="@color/primary_text_light"
+                android:textSize="11sp"
+                android:textStyle="bold" />
+
+            <FrameLayout
+                android:id="@+id/frame_layout_fullscreen_ad"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+        </LinearLayout>
+    </androidx.cardview.widget.CardView>
 
     <TextView
         android:layout_width="wrap_content"
