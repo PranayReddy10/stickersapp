@@ -544,10 +544,6 @@ public final class RewardedAdManager {
         @Override
         public void validationRequestFailed(AppLovinAd ad, int errorCode) {
         }
-
-        @Override
-        public void userDeclinedToViewAd(AppLovinAd ad) {
-        }
     };
 
     private final AppLovinAdDisplayListener displayListener = new AppLovinAdDisplayListener() {
