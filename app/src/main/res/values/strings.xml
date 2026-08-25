@@ -202,4 +202,13 @@
     <string name="reels_photos">Photos</string>
     <string name="reels_videos">Videos</string>
     <string name="reel_swipe_up">Swipe up for more reels</string>
+    <string name="reel_upload">Upload</string>
+    <string name="reel_new_title">New reel</string>
+    <string name="reel_new_subtitle">Share a short video or photo with your followers</string>
+    <string name="reel_pick_formats">MP4, MOV, WEBM · JPG, PNG, WEBP</string>
+    <string name="reel_caption_label">Caption</string>
+    <string name="reel_change">Change</string>
+    <string name="reel_caption_counter">%1$d / 500</string>
+    <string name="reel_badge_video">VIDEO</string>
+    <string name="reel_badge_photo">PHOTO</string>
 </resources>

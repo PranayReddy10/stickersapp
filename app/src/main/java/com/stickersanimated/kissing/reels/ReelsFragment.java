@@ -90,6 +90,13 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerView.setAdapter(adapter);
 
+        view.findViewById(R.id.fab_upload_reel).setOnClickListener(v -> {
+            final PrefManager prefs = new PrefManager(requireContext().getApplicationContext());
+            startActivity("TRUE".equals(prefs.getString("LOGGED"))
+                    ? new Intent(requireContext(), UploadReelActivity.class)
+                    : new Intent(requireContext(), LoginActivity.class));
+        });
+
         chipAll.setOnClickListener(v -> applyFilter(FILTER_ALL));
         chipPhotos.setOnClickListener(v -> applyFilter(FILTER_PHOTO));
         chipVideos.setOnClickListener(v -> applyFilter(FILTER_VIDEO));

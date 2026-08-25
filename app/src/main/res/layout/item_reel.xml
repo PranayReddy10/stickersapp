@@ -12,7 +12,7 @@
         android:id="@+id/image_view_reel"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:scaleType="centerCrop"
+        android:scaleType="fitCenter"
         android:contentDescription="@null" />
 
     <androidx.media3.ui.PlayerView
@@ -20,7 +20,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="gone"
-        app:resize_mode="zoom"
+        app:resize_mode="fit"
         app:use_controller="false" />
 
     <ProgressBar
