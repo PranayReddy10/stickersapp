@@ -58,6 +58,9 @@ public class ReelApi implements Serializable {
     @SerializedName("trusted")
     @Expose
     private String trusted;
+    @SerializedName("following")
+    @Expose
+    private String following;
 
     public String getId() {
         return id;
@@ -133,5 +136,13 @@ public class ReelApi implements Serializable {
 
     public boolean isTrusted() {
         return "true".equals(trusted);
+    }
+
+    public boolean isFollowing() {
+        return "true".equals(following);
+    }
+
+    public void setFollowing(boolean value) {
+        this.following = value ? "true" : "false";
     }
 }

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- An ad page between reels in the full screen pager. Dark, so it does not flash
+     white between two videos. -->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#0E0E10">
+
+    <FrameLayout
+        android:id="@+id/frame_layout_fullscreen_ad"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:layout_marginStart="16dp"
+        android:layout_marginEnd="16dp"
+        android:minHeight="200dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="60dp"
+        android:alpha="0.5"
+        android:text="@string/reel_swipe_up"
+        android:textColor="@android:color/white"
+        android:textSize="13sp" />
+</FrameLayout>

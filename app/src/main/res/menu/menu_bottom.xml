@@ -1,22 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- BottomNavigationView refuses a sixth item, so Reels takes the slot Categories
+     had; categories are still reachable from the drawer and from pack pages. -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
-
-    <item
-        android:id="@+id/bottom_reels"
-        android:icon="@drawable/ic_reels"
-        android:enabled="true"
-        android:checked="true"
-        android:title="@string/reels" />
 
     <item
         android:id="@+id/bottom_latest"
         android:icon="@drawable/ic_home_2"
+        android:enabled="true"
+        android:checked="true"
         android:title="Latest" />
 
     <item
         android:id="@+id/bottom_popular"
         android:icon="@drawable/ic_zap"
         android:title="Popular" />
+
+    <item
+        android:id="@+id/bottom_reels"
+        android:icon="@drawable/ic_reels"
+        android:title="@string/reels" />
 
     <item
         android:id="@+id/bottom_sub"

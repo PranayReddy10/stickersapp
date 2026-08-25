@@ -196,4 +196,10 @@
     <string name="reel_caption_hint">Write a caption…</string>
     <string name="reel_post">POST REEL</string>
     <string name="reel_pick">Choose a video or photo</string>
+    <string name="reel_follow">Follow</string>
+    <string name="reel_following">Following</string>
+    <string name="reels_all">All</string>
+    <string name="reels_photos">Photos</string>
+    <string name="reels_videos">Videos</string>
+    <string name="reel_swipe_up">Swipe up for more reels</string>
 </resources>

@@ -89,6 +89,9 @@ public class HomeActivity extends AppCompatActivity
     //view
     private MaterialSearchView searchView;
     private FloatingActionButton fab;
+    /** Reels sits third; the plus button posts a reel while it is showing. */
+    private static final int REELS_TAB = 2;
+
     private ViewPager viewPager;
     private Dialog dialog;
     private TextView text_view_go_pro;
@@ -334,9 +337,9 @@ public class HomeActivity extends AppCompatActivity
         adapter = new ViewPagerAdapter(getSupportFragmentManager());
         this.followFragment = new FollowFragment();
 
-        adapter.addFragment(new ReelsFragment());
         adapter.addFragment(new HomeFragment());
         adapter.addFragment(new PopularFragment());
+        adapter.addFragment(new ReelsFragment());
         adapter.addFragment(followFragment);
         adapter.addFragment(new FavoritesFragment());
 
@@ -380,11 +383,11 @@ public class HomeActivity extends AppCompatActivity
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
                 int id = item.getItemId();
-                if (id == R.id.bottom_reels) {
+                if (id == R.id.bottom_latest) {
                     viewPager.setCurrentItem(0, true);
-                } else if (id == R.id.bottom_latest) {
-                    viewPager.setCurrentItem(1, true);
                 } else if (id == R.id.bottom_popular) {
+                    viewPager.setCurrentItem(1, true);
+                } else if (id == R.id.bottom_reels) {
                     viewPager.setCurrentItem(2, true);
                 } else if (id == R.id.bottom_sub) {
                     viewPager.setCurrentItem(3, true);
@@ -419,7 +422,7 @@ public class HomeActivity extends AppCompatActivity
                     PrefManager prf= new PrefManager(getApplicationContext());
                     if (prf.getString("LOGGED").toString().equals("TRUE")) {
                         // On the Reels tab the plus posts a reel, everywhere else a pack.
-                        Class<?> target = viewPager.getCurrentItem() == 0
+                        Class<?> target = viewPager.getCurrentItem() == REELS_TAB
                                 ? UploadReelActivity.class : UploadActivity.class;
                         Intent intent = new Intent(getApplicationContext(), target);
                        startActivity(intent);

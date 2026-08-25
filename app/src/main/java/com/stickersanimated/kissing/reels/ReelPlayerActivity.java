@@ -22,6 +22,8 @@ import com.google.gson.JsonObject;
 import com.stickersanimated.kissing.Manager.PrefManager;
 import com.stickersanimated.kissing.R;
 import com.stickersanimated.kissing.api.apiClient;
+import com.stickersanimated.kissing.ads.AdFormat;
+import com.stickersanimated.kissing.ads.AdsConfig;
 import com.stickersanimated.kissing.api.apiRest;
 import com.stickersanimated.kissing.entity.ReelApi;
 import com.stickersanimated.kissing.ui.LoginActivity;
@@ -65,6 +67,8 @@ public class ReelPlayerActivity extends AppCompatActivity
 
     private int page;
     private int currentPosition = -1;
+    private int reelsBetweenAds = 3;
+    private boolean adsEnabled;
     private boolean loading;
     private boolean reachedEnd;
 
@@ -76,13 +80,31 @@ public class ReelPlayerActivity extends AppCompatActivity
 
         prefManager = new PrefManager(getApplicationContext());
 
+        final AdsConfig adsConfig = new AdsConfig(this);
+        adsEnabled = adsConfig.isEnabled(AdFormat.NATIVE);
+        reelsBetweenAds = adsConfig.packsBetweenNativeAds();
+
         final ArrayList<ReelApi> initial =
                 (ArrayList<ReelApi>) getIntent().getSerializableExtra(EXTRA_REELS);
-        if (initial != null) {
-            reels.addAll(initial);
-        }
         page = getIntent().getIntExtra(EXTRA_PAGE, 0);
-        final int start = getIntent().getIntExtra(EXTRA_START, 0);
+        final int startReel = getIntent().getIntExtra(EXTRA_START, 0);
+
+        // Ad pages are null entries, so a page index is also a list index and the
+        // player never has to translate between the two.
+        int start = startReel;
+        if (initial != null) {
+            int sinceAd = 0;
+            for (int i = 0; i < initial.size(); i++) {
+                if (i == startReel) {
+                    start = reels.size();
+                }
+                reels.add(initial.get(i));
+                if (adsEnabled && ++sinceAd >= reelsBetweenAds && i < initial.size() - 1) {
+                    sinceAd = 0;
+                    reels.add(null);
+                }
+            }
+        }
 
         if (reels.isEmpty()) {
             finish();
@@ -150,6 +172,10 @@ public class ReelPlayerActivity extends AppCompatActivity
         }
         currentPosition = position;
         final ReelApi reel = reels.get(position);
+        if (reel == null) {
+            player.stop();
+            return;
+        }
 
         // Detach from every attached page first, or the previous page keeps the
         // surface and the new one renders nothing.
@@ -221,7 +247,7 @@ public class ReelPlayerActivity extends AppCompatActivity
 
     @Override
     public void onToggleLike(int position) {
-        if (position < 0 || position >= reels.size()) {
+        if (reelAt(position) == null) {
             return;
         }
         if (!"TRUE".equals(prefManager.getString("LOGGED"))) {
@@ -266,6 +292,28 @@ public class ReelPlayerActivity extends AppCompatActivity
                 });
     }
 
+    @Override
+    public void onToggleFollow(int position) {
+        final ReelApi reel = reelAt(position);
+        if (reel == null) {
+            return;
+        }
+        ReelFollow.toggle(this, reel, following -> {
+            final ReelPagerAdapter.ReelHolder holder = holderAt(position);
+            if (holder != null) {
+                adapter.bindFollow(holder, reel);
+            }
+        });
+    }
+
+    /** Null for an ad page or an index that has scrolled out of range. */
+    private ReelApi reelAt(int position) {
+        if (position < 0 || position >= reels.size()) {
+            return null;
+        }
+        return reels.get(position);
+    }
+
     private void refreshLike(int position, ReelApi reel) {
         final ReelPagerAdapter.ReelHolder holder = holderAt(position);
         if (holder != null) {
@@ -275,7 +323,10 @@ public class ReelPlayerActivity extends AppCompatActivity
 
     @Override
     public void onShare(int position) {
-        final ReelApi reel = reels.get(position);
+        final ReelApi reel = reelAt(position);
+        if (reel == null) {
+            return;
+        }
         final Intent intent = new Intent(Intent.ACTION_SEND);
         intent.setType("text/plain");
         intent.putExtra(Intent.EXTRA_TEXT, reel.getCaption().isEmpty()
@@ -286,7 +337,10 @@ public class ReelPlayerActivity extends AppCompatActivity
 
     @Override
     public void onMore(int position) {
-        final ReelApi reel = reels.get(position);
+        final ReelApi reel = reelAt(position);
+        if (reel == null) {
+            return;
+        }
         final Intent intent = new Intent(this, SupportActivity.class);
         intent.putExtra("message", "Hi Admin, please check this reel, id : " + reel.getId());
         startActivity(intent);
@@ -294,7 +348,10 @@ public class ReelPlayerActivity extends AppCompatActivity
 
     @Override
     public void onAuthor(int position) {
-        final ReelApi reel = reels.get(position);
+        final ReelApi reel = reelAt(position);
+        if (reel == null) {
+            return;
+        }
         try {
             final Intent intent = new Intent(this, UserActivity.class);
             intent.putExtra("id", Integer.parseInt(reel.getUserid()));
@@ -328,8 +385,15 @@ public class ReelPlayerActivity extends AppCompatActivity
                         }
                         page++;
                         final int from = reels.size();
-                        reels.addAll(batch);
-                        adapter.notifyItemRangeInserted(from, batch.size());
+                        int sinceAd = 0;
+                        for (ReelApi fetched : batch) {
+                            reels.add(fetched);
+                            if (adsEnabled && ++sinceAd >= reelsBetweenAds) {
+                                sinceAd = 0;
+                                reels.add(null);
+                            }
+                        }
+                        adapter.notifyItemRangeInserted(from, reels.size() - from);
                     }
 
                     @Override
@@ -352,8 +416,8 @@ public class ReelPlayerActivity extends AppCompatActivity
     @Override
     protected void onResume() {
         super.onResume();
-        if (player != null && currentPosition >= 0
-                && currentPosition < reels.size() && reels.get(currentPosition).isVideo()) {
+        final ReelApi current = reelAt(currentPosition);
+        if (player != null && current != null && current.isVideo()) {
             player.setPlayWhenReady(true);
         }
     }

@@ -19,6 +19,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.stickersanimated.kissing.R;
+import com.stickersanimated.kissing.ads.NativeAdManager;
 import com.stickersanimated.kissing.entity.ReelApi;
 
 import java.util.List;
@@ -29,7 +30,10 @@ import java.util.List;
  * player per page runs the device out of codecs after a handful of swipes.
  */
 @OptIn(markerClass = UnstableApi.class)
-public class ReelPagerAdapter extends RecyclerView.Adapter<ReelPagerAdapter.ReelHolder> {
+public class ReelPagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
+
+    private static final int TYPE_REEL = 1;
+    private static final int TYPE_AD = 2;
 
     public interface Listener {
         void onToggleLike(int position);
@@ -39,9 +43,12 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<ReelPagerAdapter.Reel
         void onMore(int position);
 
         void onAuthor(int position);
+
+        void onToggleFollow(int position);
     }
 
     private final Activity activity;
+    /** Null entries are ad pages, so page indexes line up with what is on screen. */
     private final List<ReelApi> reels;
     private final Listener listener;
 
@@ -51,16 +58,28 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<ReelPagerAdapter.Reel
         this.listener = listener;
     }
 
+    @Override
+    public int getItemViewType(int position) {
+        return reels.get(position) == null ? TYPE_AD : TYPE_REEL;
+    }
+
     @NonNull
     @Override
-    public ReelHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        return new ReelHolder(LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_reel, parent, false));
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        final LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+        if (viewType == TYPE_AD) {
+            return new AdHolder(inflater.inflate(R.layout.item_reel_fullscreen_ad, parent, false));
+        }
+        return new ReelHolder(inflater.inflate(R.layout.item_reel, parent, false));
     }
 
     @SuppressLint("ClickableViewAccessibility")
     @Override
-    public void onBindViewHolder(@NonNull ReelHolder holder, int position) {
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder viewHolder, int position) {
+        if (!(viewHolder instanceof ReelHolder)) {
+            return; // the ad page loads once, in its holder
+        }
+        final ReelHolder holder = (ReelHolder) viewHolder;
         final ReelApi reel = reels.get(position);
 
         Glide.with(activity).load(reel.getThumb()).into(holder.poster);
@@ -81,6 +100,9 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<ReelPagerAdapter.Reel
                 .into(holder.authorImage);
 
         bindLike(holder, reel);
+        bindFollow(holder, reel);
+        holder.follow.setOnClickListener(v ->
+                listener.onToggleFollow(holder.getBindingAdapterPosition()));
 
         holder.like.setOnClickListener(v -> listener.onToggleLike(holder.getBindingAdapterPosition()));
         holder.share.setOnClickListener(v -> listener.onShare(holder.getBindingAdapterPosition()));
@@ -116,12 +138,32 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<ReelPagerAdapter.Reel
     public void bindLike(@NonNull ReelHolder holder, @NonNull ReelApi reel) {
         holder.like.setImageResource(reel.isLiked()
                 ? R.drawable.ic_favorite_black : R.drawable.ic_favorite_border);
-        holder.likes.setText(ReelGridAdapter.formatCount(reel.getLikes()));
+        holder.likes.setText(ReelFormat.count(reel.getLikes()));
+    }
+
+    /** Follow reads as a pill on the dark player rather than the feed's solid button. */
+    public void bindFollow(@NonNull ReelHolder holder, @NonNull ReelApi reel) {
+        holder.follow.setText(reel.isFollowing()
+                ? R.string.reel_following : R.string.reel_follow);
+        holder.follow.setVisibility(ReelsFragment.isSelf(activity, reel)
+                ? View.GONE : View.VISIBLE);
     }
 
     @Override
     public int getItemCount() {
         return reels.size();
+    }
+
+    /** Runs the ad waterfall once per created page. */
+    class AdHolder extends RecyclerView.ViewHolder {
+        AdHolder(@NonNull View itemView) {
+            super(itemView);
+            final NativeAdManager manager = NativeAdManager.into(activity,
+                    itemView.findViewById(R.id.frame_layout_fullscreen_ad));
+            if (manager != null) {
+                manager.load();
+            }
+        }
     }
 
     public static class ReelHolder extends RecyclerView.ViewHolder {
@@ -137,6 +179,7 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<ReelPagerAdapter.Reel
         final TextView author;
         final TextView caption;
         final TextView likes;
+        final TextView follow;
 
         ReelHolder(@NonNull View itemView) {
             super(itemView);
@@ -152,6 +195,7 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<ReelPagerAdapter.Reel
             author = itemView.findViewById(R.id.text_view_reel_author);
             caption = itemView.findViewById(R.id.text_view_reel_caption);
             likes = itemView.findViewById(R.id.text_view_likes);
+            follow = itemView.findViewById(R.id.text_view_reel_follow);
         }
 
         void playBurst() {
