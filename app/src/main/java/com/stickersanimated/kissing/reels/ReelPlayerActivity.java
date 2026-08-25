@@ -159,9 +159,12 @@ public class ReelPlayerActivity extends AppCompatActivity
             }
         });
 
+        // start is reassigned while the ad pages are folded in, so it cannot be
+        // captured by the lambda directly.
+        final int startPage = start;
         viewPager.post(() -> {
-            viewPager.setCurrentItem(start, false);
-            playAt(start);
+            viewPager.setCurrentItem(startPage, false);
+            playAt(startPage);
         });
     }
 
