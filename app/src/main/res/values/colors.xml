@@ -7,9 +7,9 @@
 
     <color name="colorAccent">#25D366</color>
 
-    <!-- Page background. Tinted enough to be read as a background next to a white
-         card - an off white a few percent from #FFFFFF was invisible on a phone. -->
-    <color name="app_background">#E7ECF3</color>
+    <!-- Page background, and the top bar with it so the header and the page read as
+         one warm surface with the white cards floating on top. -->
+    <color name="app_background">#F1EDE7</color>
 
     <color name="menuBackgroun">#25D366</color>
     <color name="menuSelector">#f7214f</color>

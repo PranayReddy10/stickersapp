@@ -23,7 +23,7 @@
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
-                android:background="@color/colorPrimary"
+                android:background="@color/app_background"
                 style="@style/ActionBar"
                 app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
                 />
@@ -36,7 +36,7 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/colorPrimarybg"
+        android:background="@color/app_background"
         android:layout_above="@+id/linear_layout_ads"
         android:layout_below="@+id/appBarLayout">
         <RelativeLayout

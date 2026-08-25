@@ -21,7 +21,7 @@
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
-                android:background="@color/colorPrimary"
+                android:background="@color/app_background"
                 style="@style/ActionBar"
                 app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
                 />
@@ -36,7 +36,7 @@
         android:layout_height="match_parent"
         tools:layout_editor_absoluteY="8dp"
         tools:layout_editor_absoluteX="8dp"
-        android:background="@color/colorPrimarybg"
+        android:background="@color/app_background"
         android:layout_below="@+id/appBarLayout">
         <LinearLayout
             android:orientation="vertical"
