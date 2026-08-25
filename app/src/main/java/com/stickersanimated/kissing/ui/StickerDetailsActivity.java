@@ -55,7 +55,9 @@ import com.stickersanimated.kissing.R;
 import com.stickersanimated.kissing.Sticker;
 import com.stickersanimated.kissing.StickerPack;
 import com.stickersanimated.kissing.adapter.StickerDetailsAdapter;
+import com.stickersanimated.kissing.ads.AdsConfig;
 import com.stickersanimated.kissing.ads.BannerAdManager;
+import com.stickersanimated.kissing.ads.InterstitialAdManager;
 import com.stickersanimated.kissing.ads.NativeAdManager;
 import com.stickersanimated.kissing.ads.RewardedAdManager;
 import com.stickersanimated.kissing.api.apiClient;
@@ -95,6 +97,9 @@ public class StickerDetailsActivity extends AppCompatActivity {
     private BannerAdManager bannerAdManager;
     private NativeAdManager nativeAdManager;
     private RewardedAdManager rewardedAdManager;
+    private InterstitialAdManager downloadInterstitial;
+    /** Set while a rewarded download ad is on screen; run once the reward is earned. */
+    private Runnable pendingDownloadAction;
     private boolean autoDisplay = false;
     private TextView text_view_watch_ads;
 
@@ -259,20 +264,7 @@ public class StickerDetailsActivity extends AppCompatActivity {
     }
 
     private void initListeners() {
-        linear_layout_add_to_whatsapp.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                if (!stickerPack.premium.equals("true")){
-                    startStickerPackDownload();
-                }else{
-                    if (checkSUBSCRIBED()) {
-                        startStickerPackDownload();
-                    }else{
-                        showDialog();
-                    }
-                }
-            }
-        });
+        linear_layout_add_to_whatsapp.setOnClickListener(view -> addPack(this::startStickerPackDownload));
 
         findViewById(R.id.image_view_menu_item).setOnClickListener(v->{
             PopupMenu popup = new PopupMenu(this, v);
@@ -306,35 +298,72 @@ public class StickerDetailsActivity extends AppCompatActivity {
         circle_image_view_user_image.setOnClickListener(this::openUserActivity);
 
         LinearLayout linear_layout_add_to_telegram = findViewById(R.id.linear_layout_add_to_telegram);
-        linear_layout_add_to_telegram.setOnClickListener(v->{
-
-            if (!stickerPack.premium.equals("true")){
-                AddToTelegram();
-            }else{
-                if (checkSUBSCRIBED()) {
-                    AddToTelegram();
-                }else{
-                    showDialog();
-                }
-            }
-
-        });
+        linear_layout_add_to_telegram.setOnClickListener(v -> addPack(this::AddToTelegram));
 
         LinearLayout linear_layout_add_to_signal = findViewById(R.id.linear_layout_add_to_signal);
-        linear_layout_add_to_signal.setOnClickListener(v-> {
+        linear_layout_add_to_signal.setOnClickListener(v -> addPack(this::AddToSignal));
+    }
 
-            if (!stickerPack.premium.equals("true")){
-                AddToSignal();
-            }else{
-                if (checkSUBSCRIBED()) {
-                    AddToSignal();
-                }else{
-                    showDialog();
+    /**
+     * Runs {@code action} - adding the pack to WhatsApp, Telegram or Signal - behind
+     * whatever the panel wants shown first.
+     *
+     * <p>A premium pack still goes through the rewarded unlock dialog. A free pack shows
+     * the ad configured in {@code ADMIN_DOWNLOAD_AD_TYPE}: nothing, a full screen ad
+     * (the pack is added either way), or a rewarded video the user has to watch. If no
+     * network can supply the ad, the pack is added anyway - a failing ad network must
+     * never cost the user their download.
+     */
+    private void addPack(Runnable action) {
+        if ("true".equals(stickerPack.premium) && !checkSUBSCRIBED()) {
+            showDialog();
+            return;
+        }
+        if (checkSUBSCRIBED()) {
+            action.run();
+            return;
+        }
+
+        final AdsConfig.DownloadAd downloadAd = new AdsConfig(this).downloadAd();
+        switch (downloadAd) {
+            case INTERSTITIAL:
+                if (downloadInterstitial == null) {
+                    downloadInterstitial = new InterstitialAdManager(this);
                 }
-            }
+                downloadInterstitial.showThen(action);
+                break;
+            case REWARDED:
+                showDownloadRewarded(action);
+                break;
+            case NONE:
+            default:
+                action.run();
+                break;
+        }
+    }
 
-        });
-
+    /**
+     * Rewarded variant of the download ad. The pack is handed over once the reward is
+     * earned, or straight away when no network has an ad to give.
+     */
+    private void showDownloadRewarded(Runnable action) {
+        if (rewardedAdManager == null) {
+            initRewardedAds();
+        }
+        if (rewardedAdManager == null || !rewardedAdManager.isEnabled()) {
+            // Rewarded ads are switched off in the panel - do not trap the download
+            // behind an ad that can never load.
+            action.run();
+            return;
+        }
+        pendingDownloadAction = action;
+        if (rewardedAdManager.show()) {
+            return;
+        }
+        // Nothing warm yet - keep going down the waterfall and show the first fill.
+        autoDisplay = true;
+        Toasty.info(this, "Loading ad...", Toast.LENGTH_SHORT).show();
+        rewardedAdManager.load();
     }
 
     private void startStickerPackDownload() {
@@ -512,6 +541,19 @@ public class StickerDetailsActivity extends AppCompatActivity {
         }
     }
 
+    private void resetWatchAdsLabel() {
+        if (text_view_watch_ads != null) {
+            text_view_watch_ads.setText("WATCH AD TO DOWNLOAD");
+        }
+    }
+
+    /** Returns the waiting download action, if any, and clears it so it runs once. */
+    private Runnable takePendingDownload() {
+        final Runnable pending = pendingDownloadAction;
+        pendingDownloadAction = null;
+        return pending;
+    }
+
     /** Warms up a rewarded video across every configured network. */
     private void initRewardedAds() {
         if (checkSUBSCRIBED()) {
@@ -520,13 +562,12 @@ public class StickerDetailsActivity extends AppCompatActivity {
         rewardedAdManager = new RewardedAdManager(this, new RewardedAdManager.Listener() {
             @Override
             public void onAdReady() {
-                if (autoDisplay) {
-                    autoDisplay = false;
-                    if (text_view_watch_ads != null) {
-                        text_view_watch_ads.setText("WATCH AD TO DOWNLOAD");
-                    }
-                    rewardedAdManager.show();
+                if (!autoDisplay) {
+                    return;
                 }
+                autoDisplay = false;
+                resetWatchAdsLabel();
+                rewardedAdManager.show();
             }
 
             @Override
@@ -535,8 +576,13 @@ public class StickerDetailsActivity extends AppCompatActivity {
                     return;
                 }
                 autoDisplay = false;
-                if (text_view_watch_ads != null) {
-                    text_view_watch_ads.setText("WATCH AD TO DOWNLOAD");
+                resetWatchAdsLabel();
+                // No network had an ad. A download waiting on one is handed over anyway -
+                // the user should not lose a free pack because ad fill was empty.
+                final Runnable pending = takePendingDownload();
+                if (pending != null) {
+                    pending.run();
+                    return;
                 }
                 Toasty.warning(StickerDetailsActivity.this,
                         "No ad available right now, please try again later.").show();
@@ -544,6 +590,11 @@ public class StickerDetailsActivity extends AppCompatActivity {
 
             @Override
             public void onUserRewarded() {
+                final Runnable pending = takePendingDownload();
+                if (pending != null) {
+                    pending.run();
+                    return;
+                }
                 stickerPack.premium = "false";
                 if (dialog != null && dialog.isShowing()) {
                     dialog.dismiss();
@@ -554,6 +605,14 @@ public class StickerDetailsActivity extends AppCompatActivity {
 
             @Override
             public void onAdClosed() {
+                // Still holding the download here means the ad was dismissed before the
+                // reward was earned, which is exactly what the REWARDED setting asks for.
+                final Runnable pending = takePendingDownload();
+                if (pending != null) {
+                    Toasty.info(StickerDetailsActivity.this,
+                            "Watch the whole ad to get this pack.", Toast.LENGTH_SHORT).show();
+                    return;
+                }
                 if (dialog != null && dialog.isShowing() && "false".equals(stickerPack.premium)) {
                     dialog.dismiss();
                 }
@@ -586,15 +645,16 @@ public class StickerDetailsActivity extends AppCompatActivity {
             if (rewardedAdManager == null) {
                 initRewardedAds();
             }
-            if (rewardedAdManager != null && rewardedAdManager.show()) {
+            if (rewardedAdManager == null) {
+                return;
+            }
+            if (rewardedAdManager.show()) {
                 return;
             }
             // Nothing warm yet: keep loading down the waterfall and show the first fill.
             autoDisplay = true;
             text_view_watch_ads.setText("LOADING AD...");
-            if (rewardedAdManager != null) {
-                rewardedAdManager.load();
-            }
+            rewardedAdManager.load();
         });
 
         TextView text_view_go_pro=(TextView) dialog.findViewById(R.id.text_view_go_pro);
@@ -979,6 +1039,9 @@ public class StickerDetailsActivity extends AppCompatActivity {
         }
         if (rewardedAdManager != null) {
             rewardedAdManager.destroy();
+        }
+        if (downloadInterstitial != null) {
+            downloadInterstitial.destroy();
         }
         super.onDestroy();
     }

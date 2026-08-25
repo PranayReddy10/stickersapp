@@ -12,7 +12,9 @@ public enum AdNetwork {
     MAX("MAX_ID"),
     APPLOVIN("APPLOVIN_ID"),
     FACEBOOK("FACEBOOK_ID"),
-    UNITY("UNITY_ID");
+    UNITY("UNITY_ID"),
+    VUNGLE("VUNGLE_ID"),
+    INMOBI("INMOBI_ID");
 
     private final String idSuffix;
 
@@ -45,7 +47,10 @@ public enum AdNetwork {
                 // AppLovin direct has no native ad surface.
                 return format != AdFormat.NATIVE;
             case UNITY:
-                // Unity Ads offers banner, interstitial and rewarded only.
+            case VUNGLE:
+            case INMOBI:
+                // These three offer banner, interstitial and rewarded here; native
+                // stays with AdMob, MAX and Meta.
                 return format != AdFormat.NATIVE;
             default:
                 return false;
@@ -84,6 +89,13 @@ public enum AdNetwork {
             case "UNITYADS":
             case "UNITY_ADS":
                 return UNITY;
+            case "VUNGLE":
+            case "LIFTOFF":
+            case "LIFTOFF_MONETIZE":
+                return VUNGLE;
+            case "INMOBI":
+            case "IN_MOBI":
+                return INMOBI;
             default:
                 return null;
         }

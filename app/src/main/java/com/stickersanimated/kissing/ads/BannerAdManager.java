@@ -26,9 +26,18 @@ import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.LoadAdError;
+import com.inmobi.ads.AdMetaInfo;
+import com.inmobi.ads.InMobiAdRequestStatus;
+import com.inmobi.ads.InMobiBanner;
+import com.inmobi.ads.listeners.BannerAdEventListener;
 import com.unity3d.services.banners.BannerErrorInfo;
 import com.unity3d.services.banners.BannerView;
 import com.unity3d.services.banners.UnityBannerSize;
+import com.vungle.ads.BannerAd;
+import com.vungle.ads.BannerAdListener;
+import com.vungle.ads.BannerAdSize;
+import com.vungle.ads.BaseAd;
+import com.vungle.ads.VungleError;
 
 import java.util.Collections;
 import java.util.List;
@@ -42,6 +51,9 @@ import java.util.List;
 public final class BannerAdManager {
 
     private static final String TAG = "BannerAds";
+
+    private static final int BANNER_WIDTH_DP = 320;
+    private static final int BANNER_HEIGHT_DP = 50;
 
     private final Activity activity;
     private final ViewGroup container;
@@ -116,6 +128,12 @@ public final class BannerAdManager {
                     break;
                 case UNITY:
                     loadUnity(attempt, unitId);
+                    break;
+                case VUNGLE:
+                    loadVungle(attempt, unitId);
+                    break;
+                case INMOBI:
+                    loadInmobi(attempt, unitId);
                     break;
                 default:
                     onFailed(attempt, network, "unsupported network");
@@ -262,6 +280,108 @@ public final class BannerAdManager {
         bannerView.load();
     }
 
+    private void loadVungle(int attempt, String placementId) {
+        AdsInitializer.initializeVungle(activity);
+        if (!AdsInitializer.isVungleReady()) {
+            onFailed(attempt, AdNetwork.VUNGLE, "sdk not initialized");
+            return;
+        }
+        final BannerAd bannerAd = new BannerAd(activity, placementId, BannerAdSize.BANNER);
+        bannerAd.setAdListener(new BannerAdListener() {
+            @Override
+            public void onAdLoaded(@NonNull BaseAd baseAd) {
+                if (destroyed || attempt != attemptId) {
+                    return;
+                }
+                // Vungle only hands over the view once the ad is in, so unlike the other
+                // networks it is attached here rather than before the request.
+                final com.vungle.ads.BannerView view = bannerAd.getBannerView();
+                if (view == null) {
+                    onFailed(attempt, AdNetwork.VUNGLE, "no banner view");
+                    return;
+                }
+                view.setLayoutParams(new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        AppLovinSdkUtils.dpToPx(activity, 50)));
+                attach(view);
+                onLoaded(attempt, AdNetwork.VUNGLE);
+            }
+
+            @Override
+            public void onAdFailedToLoad(@NonNull BaseAd baseAd, @NonNull VungleError error) {
+                onFailed(attempt, AdNetwork.VUNGLE, error.getMessage());
+            }
+
+            @Override
+            public void onAdFailedToPlay(@NonNull BaseAd baseAd, @NonNull VungleError error) {
+                onFailed(attempt, AdNetwork.VUNGLE, error.getMessage());
+            }
+
+            @Override
+            public void onAdStart(@NonNull BaseAd baseAd) {
+            }
+
+            @Override
+            public void onAdImpression(@NonNull BaseAd baseAd) {
+            }
+
+            @Override
+            public void onAdEnd(@NonNull BaseAd baseAd) {
+            }
+
+            @Override
+            public void onAdClicked(@NonNull BaseAd baseAd) {
+            }
+
+            @Override
+            public void onAdLeftApplication(@NonNull BaseAd baseAd) {
+            }
+        });
+        bannerAd.load(null);
+    }
+
+    private void loadInmobi(int attempt, String placementId) {
+        AdsInitializer.initializeInmobi(activity);
+        if (!AdsInitializer.isInmobiReady()) {
+            onFailed(attempt, AdNetwork.INMOBI, "sdk not initialized");
+            return;
+        }
+        final long placement = parsePlacementId(placementId);
+        if (placement == 0L) {
+            onFailed(attempt, AdNetwork.INMOBI, "placement id is not a number");
+            return;
+        }
+        final InMobiBanner banner = new InMobiBanner(activity, placement);
+        banner.setListener(new BannerAdEventListener() {
+            @Override
+            public void onAdLoadSucceeded(@NonNull InMobiBanner ad, @NonNull AdMetaInfo info) {
+                onLoaded(attempt, AdNetwork.INMOBI);
+            }
+
+            @Override
+            public void onAdLoadFailed(@NonNull InMobiBanner ad, @NonNull InMobiAdRequestStatus status) {
+                onFailed(attempt, AdNetwork.INMOBI, status.getMessage());
+            }
+        });
+        banner.setEnableAutoRefresh(false);
+        banner.setBannerSize(BANNER_WIDTH_DP, BANNER_HEIGHT_DP);
+        // InMobi sizes its banner from the layout params, which it reads in pixels.
+        banner.setLayoutParams(new FrameLayout.LayoutParams(
+                AppLovinSdkUtils.dpToPx(activity, BANNER_WIDTH_DP),
+                AppLovinSdkUtils.dpToPx(activity, BANNER_HEIGHT_DP)));
+        attach(banner);
+        banner.load();
+    }
+
+    /** InMobi placements are numeric; anything else means the panel value is wrong. */
+    private static long parsePlacementId(String raw) {
+        try {
+            return Long.parseLong(raw.trim());
+        } catch (RuntimeException e) {
+            return 0L;
+        }
+    }
+
     private void attach(View view) {
         view.setVisibility(View.GONE);
         currentView = view;
@@ -317,6 +437,10 @@ public final class BannerAdManager {
                 ((com.facebook.ads.AdView) view).destroy();
             } else if (view instanceof BannerView) {
                 ((BannerView) view).destroy();
+            } else if (view instanceof com.vungle.ads.BannerView) {
+                ((com.vungle.ads.BannerView) view).finishAd();
+            } else if (view instanceof InMobiBanner) {
+                ((InMobiBanner) view).destroy();
             }
         } catch (Throwable t) {
             Log.w(TAG, "Failed to release banner view", t);

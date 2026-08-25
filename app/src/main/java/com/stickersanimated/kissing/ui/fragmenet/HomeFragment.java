@@ -23,6 +23,7 @@ import com.stickersanimated.kissing.R;
 import com.stickersanimated.kissing.Sticker;
 import com.stickersanimated.kissing.StickerPack;
 import com.stickersanimated.kissing.adapter.StickerAdapter;
+import com.stickersanimated.kissing.ads.AdsConfig;
 import com.stickersanimated.kissing.api.apiClient;
 import com.stickersanimated.kissing.api.apiRest;
 import com.stickersanimated.kissing.entity.CategoryApi;
@@ -107,7 +108,7 @@ public class HomeFragment extends Fragment {
         PrefManager prefManager = new PrefManager(requireContext());
         if (!"FALSE".equals(prefManager.getString("ADMIN_NATIVE_TYPE"))) {
             areNativeAdsEnabled = true;
-            linesBetweenAds = Integer.parseInt(prefManager.getString("ADMIN_NATIVE_LINES"));
+            linesBetweenAds = new AdsConfig(requireContext()).packsBetweenNativeAds();
         }
         if ("TRUE".equals(prefManager.getString("SUBSCRIBED"))) {
             areNativeAdsEnabled = false;
