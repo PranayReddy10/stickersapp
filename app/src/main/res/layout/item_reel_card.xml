@@ -100,19 +100,22 @@
                 android:contentDescription="@null" />
         </LinearLayout>
 
-        <!-- Media. Height is set from the reel's own aspect ratio in the adapter. -->
+        <!-- Media. The height follows the picture's own shape, set in the adapter, so a
+             short picture gets a short card and nothing is ever cropped. -->
         <FrameLayout
             android:id="@+id/frame_layout_card_media"
             android:layout_width="match_parent"
-            android:layout_height="300dp"
+            android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
             android:background="#111317">
 
             <ImageView
                 android:id="@+id/image_view_card_media"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:scaleType="centerCrop"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center"
+                android:adjustViewBounds="true"
+                android:scaleType="fitCenter"
                 android:contentDescription="@null" />
 
             <ImageView

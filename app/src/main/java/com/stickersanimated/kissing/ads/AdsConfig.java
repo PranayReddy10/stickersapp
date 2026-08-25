@@ -50,7 +50,6 @@ public final class AdsConfig {
     private static final String KEY_INTERSTITIAL_CLICKS = "ADMIN_INTERSTITIAL_CLICKS";
     private static final String KEY_NATIVE_LINES = "ADMIN_NATIVE_LINES";
     private static final String KEY_REELS_NATIVE_LINES = "ADMIN_REELS_NATIVE_LINES";
-    private static final String KEY_DOWNLOAD_AD_TYPE = "ADMIN_DOWNLOAD_AD_TYPE";
 
     private static final long DEFAULT_TIMEOUT_MS = 10_000L;
     private static final long MIN_TIMEOUT_MS = 3_000L;
@@ -180,35 +179,6 @@ public final class AdsConfig {
         } catch (NumberFormatException e) {
             return Math.max(MIN_NATIVE_LINES, fallback);
         }
-    }
-
-    /**
-     * What to show when a free pack is added to WhatsApp / Telegram / Signal, from
-     * {@code ADMIN_DOWNLOAD_AD_TYPE}.
-     */
-    public DownloadAd downloadAd() {
-        if (isSubscribed()) {
-            return DownloadAd.NONE;
-        }
-        final String raw = string(KEY_DOWNLOAD_AD_TYPE);
-        if (isDisabledValue(raw)) {
-            return DownloadAd.NONE;
-        }
-        final String value = raw.trim().toUpperCase(Locale.US);
-        if ("REWARDED".equals(value) || "REWARD".equals(value)) {
-            return DownloadAd.REWARDED;
-        }
-        return DownloadAd.INTERSTITIAL;
-    }
-
-    /** The ad the panel wants shown on the download / add-to-app action. */
-    public enum DownloadAd {
-        /** No ad, the pack is added straight away. */
-        NONE,
-        /** Full screen ad; the pack is added whether or not the ad showed. */
-        INTERSTITIAL,
-        /** Rewarded video; the pack is added once the user has earned the reward. */
-        REWARDED
     }
 
     private boolean isFallbackEnabled() {

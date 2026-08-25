@@ -1,6 +1,8 @@
 package com.stickersanimated.kissing.reels;
 
 import android.app.Activity;
+import android.util.DisplayMetrics;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -37,15 +39,16 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     private static final int TYPE_REEL = 1;
     private static final int TYPE_AD = 2;
 
-    /** Used when the reel did not report its own size. */
+    /** Used only until the picture itself arrives and reports its real shape. */
     private static final float DEFAULT_ASPECT = 5f / 4f;
     /**
-     * The clamp only exists to stop one extreme reel taking over the feed, so it is
-     * wide enough that ordinary content lands inside it untouched. A 3:4 floor was
-     * cropping every landscape post, which is the zoom that showed up on screen.
+     * No shape is forced on a card: the height simply follows the picture, so a short
+     * picture gets a short card. This single guard exists so that one freak upload -
+     * a strip several screens tall - cannot swallow the whole feed.
      */
-    private static final float MAX_ASPECT = 16f / 9f;
-    private static final float MIN_ASPECT = 0.5f;
+    private static final float MAX_ASPECT = 3f;
+    /** Card side margins in item_reel_card.xml, used before the card has been measured. */
+    private static final int CARD_MARGIN_DP = 10;
 
     public interface Listener {
         void onOpen(ReelApi reel);
@@ -121,18 +124,15 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         card.views.setText(ReelFormat.count(reel.getViews()));
         card.play.setVisibility(reel.isVideo() ? View.VISIBLE : View.GONE);
 
-        // Size the frame to the reel's own shape so a portrait video is not cropped
-        // and a landscape one is not blown up. Clamped so a very tall or very wide
-        // reel cannot take over the feed.
+        // Give the frame the reel's reported shape straight away so the card does not
+        // jump while the picture loads. Nothing is forced: whatever the picture turns
+        // out to be is what the card becomes below.
         float aspect = DEFAULT_ASPECT;
         if (reel.getWidth() > 0 && reel.getHeight() > 0) {
             aspect = (float) reel.getHeight() / (float) reel.getWidth();
         }
-        aspect = Math.max(MIN_ASPECT, Math.min(MAX_ASPECT, aspect));
-
         resize(card, aspect);
 
-        final boolean knownSize = reel.getWidth() > 0 && reel.getHeight() > 0;
         Glide.with(activity).load(reel.getThumb())
                 .placeholder(R.drawable.sticker_error)
                 .listener(new RequestListener<Drawable>() {
@@ -146,10 +146,10 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
                     public boolean onResourceReady(Drawable resource, Object model,
                                                    Target<Drawable> target, DataSource source,
                                                    boolean isFirstResource) {
-                        // Reels uploaded before the app started recording width and
-                        // height report zeros. Take the shape from the thumbnail itself
-                        // so those cards fit too instead of falling back to a guess.
-                        if (!knownSize && resource.getIntrinsicWidth() > 0) {
+                        // Take the shape from the picture that is actually on screen,
+                        // whatever the reel reported, so it fits exactly - no crop, no
+                        // letterbox, and a small picture gets a small card.
+                        if (resource.getIntrinsicWidth() > 0 && resource.getIntrinsicHeight() > 0) {
                             resize(card, (float) resource.getIntrinsicHeight()
                                     / (float) resource.getIntrinsicWidth());
                         }
@@ -173,16 +173,32 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
                 ReelFollow.toggle(activity, reel, following -> bindFollow(card, reel)));
     }
 
-    /** Sets the media frame's height from an aspect ratio, clamped to sane bounds. */
+    /** Sets the media frame's height so the picture fills its width at its own ratio. */
     private void resize(CardHolder card, float aspect) {
-        final float clamped = Math.max(MIN_ASPECT, Math.min(MAX_ASPECT, aspect));
-        final int width = activity.getResources().getDisplayMetrics().widthPixels;
+        if (aspect <= 0f) {
+            return;
+        }
+        final float ratio = Math.min(MAX_ASPECT, aspect);
         final ViewGroup.LayoutParams params = card.media.getLayoutParams();
-        final int height = (int) (width * clamped);
-        if (params.height != height) {
+        final int height = Math.round(mediaWidth(card) * ratio);
+        if (height > 0 && params.height != height) {
             params.height = height;
             card.media.setLayoutParams(params);
         }
+    }
+
+    /**
+     * The width the picture actually gets. Measured once the card is on screen; until
+     * then the screen width less the card margins, which is the same number.
+     */
+    private int mediaWidth(CardHolder card) {
+        if (card.media.getWidth() > 0) {
+            return card.media.getWidth();
+        }
+        final DisplayMetrics metrics = activity.getResources().getDisplayMetrics();
+        final int margins = Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,
+                CARD_MARGIN_DP * 2, metrics));
+        return Math.max(1, metrics.widthPixels - margins);
     }
 
     private void bindLike(CardHolder card, ReelApi reel) {
