@@ -269,6 +269,30 @@
                 android:background="@color/colorPrimaryDark"
                 android:layout_width="match_parent"
                 android:layout_height="1dp"/>
+
+            <!-- What this profile is showing: its packs or its reels. -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:paddingStart="10dp"
+                android:paddingTop="8dp"
+                android:paddingEnd="10dp"
+                android:paddingBottom="8dp"
+                android:weightSum="2">
+
+                <TextView
+                    android:id="@+id/text_view_profile_tab_packs"
+                    style="@style/ProfileTab"
+                    android:layout_marginEnd="5dp"
+                    android:text="@string/profile_tab_stickers" />
+
+                <TextView
+                    android:id="@+id/text_view_profile_tab_reels"
+                    style="@style/ProfileTab"
+                    android:layout_marginStart="5dp"
+                    android:text="@string/reels" />
+            </LinearLayout>
         </LinearLayout>
     </com.google.android.material.appbar.AppBarLayout>
     <androidx.viewpager.widget.ViewPager

@@ -191,6 +191,8 @@
     <string name="accept_privacy_policy_error">You should accept the privacy policy before login</string>
 
     <string name="reels">Reels</string>
+    <string name="profile_tab_stickers">WhatsApp Stickers</string>
+    <string name="reel_sponsored">SPONSORED</string>
     <string name="reel_share">Share</string>
     <string name="reels_empty">No reels yet</string>
     <string name="reel_caption_hint">Write a caption…</string>

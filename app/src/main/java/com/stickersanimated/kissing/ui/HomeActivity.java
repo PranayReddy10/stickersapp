@@ -67,7 +67,6 @@ import com.stickersanimated.kissing.entity.CategoryApi;
 import com.stickersanimated.kissing.services.BillingSubs;
 import com.stickersanimated.kissing.services.CallBackBilling;
 import com.stickersanimated.kissing.ui.fragmenet.FavoritesFragment;
-import com.stickersanimated.kissing.ui.fragmenet.FollowFragment;
 import com.stickersanimated.kissing.reels.ReelsFragment;
 import com.stickersanimated.kissing.reels.UploadReelActivity;
 import com.stickersanimated.kissing.ui.fragmenet.HomeFragment;
@@ -106,7 +105,6 @@ public class HomeActivity extends AppCompatActivity
     private final List<String> mFragmentTitleList = new ArrayList<>();
     // object
     private ViewPagerAdapter adapter;
-    private FollowFragment followFragment;
 
     //variables
     private  Boolean FromLogin = false;
@@ -337,12 +335,9 @@ public class HomeActivity extends AppCompatActivity
         viewPager = (ViewPager) findViewById(R.id.vp_horizontal_ntb);
         viewPager.setOffscreenPageLimit(100);
         adapter = new ViewPagerAdapter(getSupportFragmentManager());
-        this.followFragment = new FollowFragment();
-
         adapter.addFragment(new HomeFragment());
         adapter.addFragment(new PopularFragment());
         adapter.addFragment(new ReelsFragment());
-        adapter.addFragment(followFragment);
         adapter.addFragment(new FavoritesFragment());
 
         viewPager.setAdapter(adapter);
@@ -405,14 +400,36 @@ public class HomeActivity extends AppCompatActivity
                     viewPager.setCurrentItem(1, true);
                 } else if (id == R.id.bottom_reels) {
                     viewPager.setCurrentItem(2, true);
-                } else if (id == R.id.bottom_sub) {
-                    viewPager.setCurrentItem(3, true);
                 } else if (id == R.id.bottom_fav) {
-                    viewPager.setCurrentItem(4, true);
+                    viewPager.setCurrentItem(3, true);
+                } else if (id == R.id.bottom_profile) {
+                    openMyProfile();
+                    // The profile is a screen of its own, not a page of the pager, so
+                    // the tab the user was on stays selected underneath it.
+                    return false;
                 }
                 return true;
             }
         });
+    }
+
+    /** The signed-in user's own profile page, or the login screen when signed out. */
+    private void openMyProfile() {
+        final PrefManager prefManager = new PrefManager(getApplicationContext());
+        if (!"TRUE".equals(prefManager.getString("LOGGED"))) {
+            startActivity(new Intent(HomeActivity.this, LoginActivity.class));
+            return;
+        }
+        try {
+            final Intent intent = new Intent(getApplicationContext(), UserActivity.class);
+            intent.putExtra("id", Integer.parseInt(prefManager.getString("ID_USER")));
+            intent.putExtra("image", prefManager.getString("IMAGE_USER"));
+            intent.putExtra("name", prefManager.getString("NAME_USER"));
+            startActivity(intent);
+            overridePendingTransition(R.anim.enter, R.anim.exit);
+        } catch (NumberFormatException e) {
+            startActivity(new Intent(HomeActivity.this, LoginActivity.class));
+        }
     }
 
     private void initAction() {
@@ -690,10 +707,6 @@ public class HomeActivity extends AppCompatActivity
             text_view_name_nave_header.setText(getResources().getString(R.string.please_login));
            Picasso.get().load(R.drawable.profile).placeholder(R.drawable.profile).error(R.drawable.profile).resize(200,200).centerCrop().into(circle_image_view_profile_nav_header);
         }
-        /*if (FromLogin){
-            followFragment.Resume();
-            FromLogin = false;
-        }*/
     }
     public void logout(){
         loadCategories();
@@ -720,8 +733,6 @@ public class HomeActivity extends AppCompatActivity
             text_view_name_nave_header.setText(getResources().getString(R.string.please_login));
            Picasso.get().load(R.drawable.profile).placeholder(R.drawable.profile).error(R.drawable.profile).resize(200,200).centerCrop().into(circle_image_view_profile_nav_header);
         }
-
-        followFragment.Resume();
 
         Toast.makeText(getApplicationContext(),getString(R.string.message_logout),Toast.LENGTH_LONG).show();
     }

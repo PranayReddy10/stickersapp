@@ -55,6 +55,8 @@ public class ReelPlayerActivity extends AppCompatActivity
     public static final String EXTRA_REELS = "reels";
     public static final String EXTRA_START = "start";
     public static final String EXTRA_PAGE = "page";
+    /** Set when the player was opened from a profile, so paging stays on that author. */
+    public static final String EXTRA_AUTHOR = "author";
 
     private final List<ReelApi> reels = new ArrayList<>();
     /** Reels already counted this session, so a swipe back does not inflate views. */
@@ -66,6 +68,7 @@ public class ReelPlayerActivity extends AppCompatActivity
     private PrefManager prefManager;
 
     private int page;
+    private int author;
     private int currentPosition = -1;
     private int reelsBetweenAds = 3;
     private boolean adsEnabled;
@@ -87,6 +90,7 @@ public class ReelPlayerActivity extends AppCompatActivity
         final ArrayList<ReelApi> initial =
                 (ArrayList<ReelApi>) getIntent().getSerializableExtra(EXTRA_REELS);
         page = getIntent().getIntExtra(EXTRA_PAGE, 0);
+        author = getIntent().getIntExtra(EXTRA_AUTHOR, 0);
         final int startReel = getIntent().getIntExtra(EXTRA_START, 0);
 
         // Ad pages are null entries, so a page index is also a list index and the
@@ -374,9 +378,13 @@ public class ReelPlayerActivity extends AppCompatActivity
             return;
         }
         loading = true;
-        apiClient.getClient().create(apiRest.class)
-                .reelFeed(page + 1, ReelsFragment.viewerId(prefManager))
-                .enqueue(new Callback<List<ReelApi>>() {
+        final apiRest service = apiClient.getClient().create(apiRest.class);
+        final Integer viewer = ReelsFragment.viewerId(prefManager);
+        // Opened from a profile: keep paging that profile rather than the whole feed.
+        final Call<List<ReelApi>> next = author > 0
+                ? service.reelByUser(page + 1, author, viewer)
+                : service.reelFeed(page + 1, viewer);
+        next.enqueue(new Callback<List<ReelApi>>() {
                     @Override
                     public void onResponse(@NonNull Call<List<ReelApi>> call,
                                            @NonNull Response<List<ReelApi>> response) {

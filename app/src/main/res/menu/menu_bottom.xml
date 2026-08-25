@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- BottomNavigationView refuses a sixth item, so Reels takes the slot Categories
-     had; categories are still reachable from the drawer and from pack pages. -->
+<!-- BottomNavigationView refuses a sixth item. Reels took the slot Categories had,
+     and My profile took the Subscriptions one. Categories are still reachable from the
+     drawer and from pack pages, and a followed user from their own profile page. -->
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
@@ -21,13 +22,15 @@
         android:title="@string/reels" />
 
     <item
-        android:id="@+id/bottom_sub"
-        android:icon="@drawable/ic_tab_subscriptions"
-        android:title="Subscriptons" />
-
-    <item
         android:id="@+id/bottom_fav"
         android:icon="@drawable/ic_tab_favorites"
         android:title="Favorites" />
+
+    <!-- Opens the profile page rather than a pager page, so it is last and the four
+         pager tabs above keep their positions. -->
+    <item
+        android:id="@+id/bottom_profile"
+        android:icon="@drawable/ic_tab_profile"
+        android:title="@string/my_profile" />
 
 </menu>
