@@ -67,6 +67,8 @@ public final class BannerAdManager {
 
     private View currentView;
     private Runnable timeoutRunnable;
+    /** Vungle hands back a view but keeps teardown on the ad object itself. */
+    private BannerAd vungleBannerAd;
 
     private BannerAdManager(Activity activity, ViewGroup container) {
         this.activity = activity;
@@ -303,6 +305,7 @@ public final class BannerAdManager {
                 view.setLayoutParams(new FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         AppLovinSdkUtils.dpToPx(activity, 50)));
+                vungleBannerAd = bannerAd;
                 attach(view);
                 onLoaded(attempt, AdNetwork.VUNGLE);
             }
@@ -422,6 +425,16 @@ public final class BannerAdManager {
     }
 
     private void releaseCurrent() {
+        // Vungle's teardown lives on BannerAd, not on the BannerView it returns, so it
+        // is released here rather than in the view switch below.
+        if (vungleBannerAd != null) {
+            try {
+                vungleBannerAd.finishAd();
+            } catch (Throwable t) {
+                Log.w(TAG, "Failed to release Vungle banner", t);
+            }
+            vungleBannerAd = null;
+        }
         if (currentView == null) {
             return;
         }
@@ -437,8 +450,6 @@ public final class BannerAdManager {
                 ((com.facebook.ads.AdView) view).destroy();
             } else if (view instanceof BannerView) {
                 ((BannerView) view).destroy();
-            } else if (view instanceof com.vungle.ads.BannerView) {
-                ((com.vungle.ads.BannerView) view).finishAd();
             } else if (view instanceof InMobiBanner) {
                 ((InMobiBanner) view).destroy();
             }
