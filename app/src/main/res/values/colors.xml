@@ -11,6 +11,11 @@
          one warm surface with the white cards floating on top. -->
     <color name="app_background">#F1EDE7</color>
 
+    <!-- Rating stars. The empty ones used to be white, which is invisible on a white
+         card - the bar only appeared once a star had been filled in. -->
+    <color name="star_filled">#E49A05</color>
+    <color name="star_empty">#D6CEC2</color>
+
     <color name="menuBackgroun">#25D366</color>
     <color name="menuSelector">#f7214f</color>
     <color name="white">#fff</color>
