@@ -24,10 +24,18 @@ import com.google.android.gms.ads.FullScreenContentCallback;
 import com.google.android.gms.ads.LoadAdError;
 import com.google.android.gms.ads.rewarded.RewardedAd;
 import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
+import com.inmobi.ads.AdMetaInfo;
+import com.inmobi.ads.InMobiAdRequestStatus;
+import com.inmobi.ads.InMobiInterstitial;
+import com.inmobi.ads.listeners.InterstitialAdEventListener;
 import com.unity3d.ads.IUnityAdsLoadListener;
 import com.unity3d.ads.IUnityAdsShowListener;
 import com.unity3d.ads.UnityAds;
 import com.unity3d.ads.UnityAdsShowOptions;
+import com.vungle.ads.AdConfig;
+import com.vungle.ads.BaseAd;
+import com.vungle.ads.RewardedAdListener;
+import com.vungle.ads.VungleError;
 
 import java.util.Collections;
 import java.util.List;
@@ -76,6 +84,8 @@ public final class RewardedAdManager {
     private AppLovinIncentivizedInterstitial applovinAd;
     private com.facebook.ads.RewardedVideoAd facebookAd;
     private String unityPlacementId;
+    private com.vungle.ads.RewardedAd vungleAd;
+    private InMobiInterstitial inmobiAd;
 
     public RewardedAdManager(Activity activity, Listener listener) {
         this.activity = activity;
@@ -136,6 +146,18 @@ public final class RewardedAdManager {
                     return true;
                 case FACEBOOK:
                     return facebookAd != null && facebookAd.isAdLoaded() && facebookAd.show();
+                case VUNGLE:
+                    if (vungleAd == null || !Boolean.TRUE.equals(vungleAd.canPlayAd())) {
+                        return false;
+                    }
+                    vungleAd.play(activity);
+                    return true;
+                case INMOBI:
+                    if (inmobiAd == null || !inmobiAd.isReady()) {
+                        return false;
+                    }
+                    inmobiAd.show();
+                    return true;
                 case UNITY:
                     if (unityPlacementId == null) {
                         return false;
@@ -171,6 +193,8 @@ public final class RewardedAdManager {
         applovinAd = null;
         facebookAd = null;
         unityPlacementId = null;
+        vungleAd = null;
+        inmobiAd = null;
         readyNetwork = null;
     }
 
@@ -205,6 +229,12 @@ public final class RewardedAdManager {
                     break;
                 case UNITY:
                     loadUnity(attempt, unitId);
+                    break;
+                case VUNGLE:
+                    loadVungle(attempt, unitId);
+                    break;
+                case INMOBI:
+                    loadInmobi(attempt, unitId);
                     break;
                 default:
                     onFailed(attempt, network, "unsupported network");
@@ -373,6 +403,126 @@ public final class RewardedAdManager {
                 onFailed(attempt, AdNetwork.UNITY, message);
             }
         });
+    }
+
+    private void loadVungle(int attempt, String placementId) {
+        AdsInitializer.initializeVungle(activity);
+        if (!AdsInitializer.isVungleReady()) {
+            onFailed(attempt, AdNetwork.VUNGLE, "sdk not initialized");
+            return;
+        }
+        final com.vungle.ads.RewardedAd ad =
+                new com.vungle.ads.RewardedAd(activity, placementId, new AdConfig());
+        ad.setAdListener(new RewardedAdListener() {
+            @Override
+            public void onAdLoaded(@NonNull BaseAd baseAd) {
+                if (destroyed || attempt != attemptId) {
+                    return;
+                }
+                vungleAd = ad;
+                onLoaded(attempt, AdNetwork.VUNGLE);
+            }
+
+            @Override
+            public void onAdRewarded(@NonNull BaseAd baseAd) {
+                onRewarded();
+            }
+
+            @Override
+            public void onAdFailedToLoad(@NonNull BaseAd baseAd, @NonNull VungleError error) {
+                onFailed(attempt, AdNetwork.VUNGLE, error.getMessage());
+            }
+
+            @Override
+            public void onAdFailedToPlay(@NonNull BaseAd baseAd, @NonNull VungleError error) {
+                vungleAd = null;
+                onClosed();
+            }
+
+            @Override
+            public void onAdEnd(@NonNull BaseAd baseAd) {
+                vungleAd = null;
+                onClosed();
+            }
+
+            @Override
+            public void onAdStart(@NonNull BaseAd baseAd) {
+            }
+
+            @Override
+            public void onAdImpression(@NonNull BaseAd baseAd) {
+            }
+
+            @Override
+            public void onAdClicked(@NonNull BaseAd baseAd) {
+            }
+
+            @Override
+            public void onAdLeftApplication(@NonNull BaseAd baseAd) {
+            }
+        });
+        ad.load(null);
+    }
+
+    private void loadInmobi(int attempt, String placementId) {
+        AdsInitializer.initializeInmobi(activity);
+        if (!AdsInitializer.isInmobiReady()) {
+            onFailed(attempt, AdNetwork.INMOBI, "sdk not initialized");
+            return;
+        }
+        final long placement = parsePlacementId(placementId);
+        if (placement == 0L) {
+            onFailed(attempt, AdNetwork.INMOBI, "placement id is not a number");
+            return;
+        }
+        // InMobi serves rewarded video through the interstitial class; the placement
+        // itself is what makes it rewarded, and onRewardsUnlocked marks the payout.
+        final InMobiInterstitial ad = new InMobiInterstitial(activity, placement,
+                new InterstitialAdEventListener() {
+                    @Override
+                    public void onAdLoadSucceeded(@NonNull InMobiInterstitial interstitial,
+                                                  @NonNull AdMetaInfo info) {
+                        if (destroyed || attempt != attemptId) {
+                            return;
+                        }
+                        inmobiAd = interstitial;
+                        onLoaded(attempt, AdNetwork.INMOBI);
+                    }
+
+                    @Override
+                    public void onAdLoadFailed(@NonNull InMobiInterstitial interstitial,
+                                               @NonNull InMobiAdRequestStatus status) {
+                        onFailed(attempt, AdNetwork.INMOBI, status.getMessage());
+                    }
+
+                    @Override
+                    public void onRewardsUnlocked(@NonNull InMobiInterstitial interstitial,
+                                                  Map<Object, Object> rewards) {
+                        onRewarded();
+                    }
+
+                    @Override
+                    public void onAdDismissed(@NonNull InMobiInterstitial interstitial) {
+                        inmobiAd = null;
+                        onClosed();
+                    }
+
+                    @Override
+                    public void onAdDisplayFailed(@NonNull InMobiInterstitial interstitial) {
+                        inmobiAd = null;
+                        onClosed();
+                    }
+                });
+        ad.load();
+    }
+
+    /** InMobi placements are numeric; anything else means the panel value is wrong. */
+    private static long parsePlacementId(String raw) {
+        try {
+            return Long.parseLong(raw.trim());
+        } catch (RuntimeException e) {
+            return 0L;
+        }
     }
 
     // ------------------------------------------------------- display listeners

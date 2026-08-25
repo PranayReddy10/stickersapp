@@ -4,15 +4,25 @@ import android.content.Context;
 import android.text.TextUtils;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+
 import com.applovin.sdk.AppLovinMediationProvider;
 import com.applovin.sdk.AppLovinSdk;
 import com.applovin.sdk.AppLovinSdkInitializationConfiguration;
 import com.facebook.ads.AdSettings;
 import com.facebook.ads.AudienceNetworkAds;
 import com.google.android.gms.ads.MobileAds;
+import com.inmobi.sdk.InMobiSdk;
+import com.inmobi.sdk.SdkInitializationListener;
 import com.stickersanimated.kissing.R;
 import com.unity3d.ads.IUnityAdsInitializationListener;
 import com.unity3d.ads.UnityAds;
+import com.vungle.ads.InitializationListener;
+import com.vungle.ads.VungleAds;
+import com.vungle.ads.VungleError;
+
+import org.json.JSONObject;
 
 import java.util.Arrays;
 
@@ -28,6 +38,9 @@ public final class AdsInitializer {
     private static final String TAG = "AdsInitializer";
 
     private static volatile boolean unityRequested;
+    private static volatile boolean vungleRequested;
+    private static volatile boolean inmobiRequested;
+    private static volatile boolean inmobiReady;
 
     private AdsInitializer() {
     }
@@ -38,6 +51,8 @@ public final class AdsInitializer {
         initializeMeta(app);
         initializeAppLovin(app);
         initializeUnity(app);
+        initializeVungle(app);
+        initializeInmobi(app);
     }
 
     private static void initializeAdMob(Context context) {
@@ -116,5 +131,83 @@ public final class AdsInitializer {
         } catch (Throwable t) {
             return false;
         }
+    }
+
+    /**
+     * Liftoff Monetize (Vungle). Only started once the panel has sent an app id.
+     */
+    public static void initializeVungle(Context context) {
+        final String appId = new AdsConfig(context).vungleAppId();
+        if (TextUtils.isEmpty(appId) || vungleRequested) {
+            return;
+        }
+        vungleRequested = true;
+        try {
+            if (VungleAds.Companion.isInitialized()) {
+                return;
+            }
+            VungleAds.Companion.init(context.getApplicationContext(), appId,
+                    new InitializationListener() {
+                        @Override
+                        public void onSuccess() {
+                            Log.d(TAG, "Vungle initialized");
+                        }
+
+                        @Override
+                        public void onError(@NonNull VungleError error) {
+                            vungleRequested = false;
+                            Log.w(TAG, "Vungle failed to initialize: " + error.getMessage());
+                        }
+                    });
+        } catch (Throwable t) {
+            vungleRequested = false;
+            Log.w(TAG, "Vungle failed to initialize", t);
+        }
+    }
+
+    /** True when Vungle can currently be asked for an ad. */
+    public static boolean isVungleReady() {
+        try {
+            return VungleAds.Companion.isInitialized();
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /**
+     * InMobi. Only started once the panel has sent an account id.
+     */
+    public static void initializeInmobi(Context context) {
+        final String accountId = new AdsConfig(context).inmobiAccountId();
+        if (TextUtils.isEmpty(accountId) || inmobiRequested) {
+            return;
+        }
+        inmobiRequested = true;
+        try {
+            final JSONObject consent = new JSONObject();
+            consent.put(InMobiSdk.IM_GDPR_CONSENT_AVAILABLE, true);
+            consent.put("gdpr", "0");
+            InMobiSdk.init(context.getApplicationContext(), accountId, consent,
+                    new SdkInitializationListener() {
+                        @Override
+                        public void onInitializationComplete(@Nullable Error error) {
+                            if (error == null) {
+                                inmobiReady = true;
+                                Log.d(TAG, "InMobi initialized");
+                            } else {
+                                inmobiRequested = false;
+                                Log.w(TAG, "InMobi failed to initialize: " + error.getMessage());
+                            }
+                        }
+                    });
+        } catch (Throwable t) {
+            inmobiRequested = false;
+            Log.w(TAG, "InMobi failed to initialize", t);
+        }
+    }
+
+    /** True when InMobi can currently be asked for an ad. */
+    public static boolean isInmobiReady() {
+        return inmobiReady;
     }
 }

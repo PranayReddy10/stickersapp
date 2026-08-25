@@ -15,9 +15,14 @@ navigation happens with or without an ad.
 | `APPLOVIN` | AppLovin direct | ✅ | — | ✅ | ✅ |
 | `FACEBOOK` | Meta Audience Network | ✅ | ✅ | ✅ | ✅ |
 | `UNITY` | Unity Ads | ✅ | — | ✅ | ✅ |
+| `VUNGLE` | Liftoff Monetize (Vungle) | ✅ | — | ✅ | ✅ |
+| `INMOBI` | InMobi | ✅ | — | ✅ | ✅ |
 
 Aliases accepted for each: `GOOGLE`/`ADMANAGER`, `APPLOVIN_MAX`, `FB`/`META`/`FAN`,
-`UNITYADS`.
+`UNITYADS`, `LIFTOFF`.
+
+Native ads are served by AdMob, AppLovin MAX and Meta only — the others have no
+native format wired up here, and are skipped for that placement.
 
 Networks that cannot serve a format, or that have no unit id configured, are skipped
 automatically, so it is safe to leave a network out.
@@ -38,7 +43,11 @@ now stored, so new keys can be added on the backend without shipping a new APK.
 | `ADMIN_<FORMAT>_APPLOVIN_ID` | AppLovin direct zone id (optional — AppLovin direct works off the SDK key alone). |
 | `ADMIN_<FORMAT>_FACEBOOK_ID` | Meta Audience Network placement id. For native, `ADMIN_NATIVE_BANNER_FACEBOOK_ID` is also accepted. |
 | `ADMIN_<FORMAT>_UNITY_ID` | Unity Ads placement id, e.g. `Interstitial_Android`. |
+| `ADMIN_<FORMAT>_VUNGLE_ID` | Liftoff Monetize (Vungle) placement id. |
+| `ADMIN_<FORMAT>_INMOBI_ID` | InMobi placement id. Numeric — a non-numeric value makes the app skip InMobi for that format. |
 | `ADMIN_UNITY_GAME_ID` | Unity Ads game id. Unity is skipped entirely while this is empty. |
+| `ADMIN_VUNGLE_APP_ID` | Liftoff Monetize app id. Vungle is skipped entirely while this is empty. |
+| `ADMIN_INMOBI_ACCOUNT_ID` | InMobi account id. InMobi is skipped entirely while this is empty. |
 | `ADMIN_AD_FALLBACK` | `TRUE` (default) appends every other configured network after the ones listed. `FALSE` uses only `_ORDER` / `_TYPE`. |
 | `ADMIN_AD_TIMEOUT` | Seconds to wait for one network before moving on. Default `10`, clamped to 3–60. |
 | `ADMIN_INTERSTITIAL_CLICKS` | Clicks between two interstitials (unchanged). |
@@ -48,7 +57,7 @@ now stored, so new keys can be added on the backend without shipping a new APK.
 ### Example
 
 ```
-ADMIN_BANNER_ORDER        = ADMOB,MAX,FACEBOOK,UNITY
+ADMIN_BANNER_ORDER        = ADMOB,MAX,FACEBOOK,UNITY,VUNGLE,INMOBI
 ADMIN_BANNER_ADMOB_ID     = ca-app-pub-xxx/1111111111
 ADMIN_BANNER_MAX_ID       = 0123456789abcdef
 ADMIN_BANNER_FACEBOOK_ID  = 1234567890_1234567890

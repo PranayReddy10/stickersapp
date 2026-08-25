@@ -45,6 +45,8 @@ public final class AdsConfig {
     private static final String KEY_FALLBACK_ENABLED = "ADMIN_AD_FALLBACK";
     private static final String KEY_TIMEOUT_SECONDS = "ADMIN_AD_TIMEOUT";
     private static final String KEY_UNITY_GAME_ID = "ADMIN_UNITY_GAME_ID";
+    private static final String KEY_VUNGLE_APP_ID = "ADMIN_VUNGLE_APP_ID";
+    private static final String KEY_INMOBI_ACCOUNT_ID = "ADMIN_INMOBI_ACCOUNT_ID";
     private static final String KEY_INTERSTITIAL_CLICKS = "ADMIN_INTERSTITIAL_CLICKS";
     private static final String KEY_NATIVE_LINES = "ADMIN_NATIVE_LINES";
     private static final String KEY_DOWNLOAD_AD_TYPE = "ADMIN_DOWNLOAD_AD_TYPE";
@@ -121,6 +123,14 @@ public final class AdsConfig {
         return string(KEY_UNITY_GAME_ID);
     }
 
+    public String vungleAppId() {
+        return string(KEY_VUNGLE_APP_ID);
+    }
+
+    public String inmobiAccountId() {
+        return string(KEY_INMOBI_ACCOUNT_ID);
+    }
+
     /** How long one network may take before the waterfall moves on. */
     public long timeoutMillis() {
         final String raw = string(KEY_TIMEOUT_SECONDS);
@@ -193,7 +203,14 @@ public final class AdsConfig {
     }
 
     private boolean isUsable(AdFormat format, AdNetwork network) {
+        // A network whose account level credential is missing can never serve.
         if (network == AdNetwork.UNITY && TextUtils.isEmpty(unityGameId())) {
+            return false;
+        }
+        if (network == AdNetwork.VUNGLE && TextUtils.isEmpty(vungleAppId())) {
+            return false;
+        }
+        if (network == AdNetwork.INMOBI && TextUtils.isEmpty(inmobiAccountId())) {
             return false;
         }
         return !network.requiresUnitId() || !TextUtils.isEmpty(unitId(format, network));
