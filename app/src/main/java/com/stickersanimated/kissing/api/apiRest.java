@@ -7,6 +7,7 @@ import com.stickersanimated.kissing.config.Config;
 import com.stickersanimated.kissing.entity.ApiResponse;
 import com.stickersanimated.kissing.entity.CategoryApi;
 import com.stickersanimated.kissing.entity.PackApi;
+import com.stickersanimated.kissing.entity.ReelApi;
 import com.stickersanimated.kissing.entity.SlideApi;
 import com.stickersanimated.kissing.entity.TagApi;
 import com.stickersanimated.kissing.entity.UserApi;
@@ -24,6 +25,54 @@ import retrofit2.http.Part;
 import retrofit2.http.Path;
 
 public interface apiRest {
+
+    // ----------------------------------------------------------------- reels
+
+    @GET("reel/feed/{page}/{user}/" + Config.SECURE_KEY + "/")
+    Call<List<ReelApi>> reelFeed(@Path("page") Integer page, @Path("user") Integer user);
+
+    @GET("reel/by/follow/{page}/{user}/" + Config.SECURE_KEY + "/")
+    Call<List<ReelApi>> reelFollowing(@Path("page") Integer page, @Path("user") Integer user);
+
+    @GET("reel/by/user/{page}/{author}/{user}/" + Config.SECURE_KEY + "/")
+    Call<List<ReelApi>> reelByUser(@Path("page") Integer page, @Path("author") Integer author,
+                                   @Path("user") Integer user);
+
+    /**
+     * The reel id is reelId in the path, not id: the server resolves route parameters
+     * before the posted body, so a placeholder called id would shadow the user id below.
+     */
+    @FormUrlEncoded
+    @POST("reel/like/{reelId}/" + Config.SECURE_KEY + "/")
+    Call<JsonObject> reelLike(@Path("reelId") String reelId,
+                              @Field("id") String userId, @Field("key") String key);
+
+    @POST("reel/view/{reelId}/" + Config.SECURE_KEY + "/")
+    Call<JsonObject> reelView(@Path("reelId") String reelId);
+
+    @FormUrlEncoded
+    @POST("reel/delete/{reelId}/" + Config.SECURE_KEY + "/")
+    Call<JsonObject> reelDelete(@Path("reelId") String reelId,
+                                @Field("id") String userId, @Field("key") String key);
+
+    /** Step one of an upload: ask for a short lived URL to PUT the file to. */
+    @FormUrlEncoded
+    @POST("reel/upload/url/" + Config.SECURE_KEY + "/")
+    Call<JsonObject> reelUploadUrl(@Field("id") String userId, @Field("key") String key,
+                                   @Field("type") String type, @Field("ext") String ext,
+                                   @Field("thumbext") String thumbExt);
+
+    /** Step two: the bytes are in the bucket, record the reel. */
+    @FormUrlEncoded
+    @POST("reel/create/" + Config.SECURE_KEY + "/")
+    Call<JsonObject> reelCreate(@Field("id") String userId, @Field("key") String key,
+                                @Field("objectkey") String objectKey,
+                                @Field("thumbkey") String thumbKey,
+                                @Field("type") String type,
+                                @Field("caption") String caption,
+                                @Field("width") Integer width,
+                                @Field("height") Integer height,
+                                @Field("duration") Integer duration);
 
     @GET("stickers/")
     Call<JsonObject> list();

@@ -190,4 +190,10 @@
     <!-- update 3.1 -->
     <string name="accept_privacy_policy_error">You should accept the privacy policy before login</string>
 
+    <string name="reels">Reels</string>
+    <string name="reel_share">Share</string>
+    <string name="reels_empty">No reels yet</string>
+    <string name="reel_caption_hint">Write a caption…</string>
+    <string name="reel_post">POST REEL</string>
+    <string name="reel_pick">Choose a video or photo</string>
 </resources>
