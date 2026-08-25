@@ -21,7 +21,7 @@
                 android:id="@+id/toolbar"
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
-                android:background="@color/colorPrimary"
+                android:background="@color/app_background"
                 style="@style/ActionBar"
                 app:popupTheme="@style/ThemeOverlay.AppCompat.Light"
                 />

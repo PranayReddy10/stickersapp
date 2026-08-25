@@ -30,7 +30,7 @@
                     style="@style/ActionBar"
                     android:layout_width="match_parent"
                     android:layout_height="?attr/actionBarSize"
-                    android:background="@color/colorPrimary"
+                    android:background="@color/app_background"
                     app:elevation="2dp"
                     app:layout_scrollFlags="scroll|enterAlways"
                     app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
@@ -86,7 +86,7 @@
             style="@style/Widget.MaterialComponents.BottomNavigationView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:background="@color/white"
+            android:background="@color/app_background"
             app:itemIconSize="26dp"
             app:elevation="8dp"
             android:elevation="6dp"

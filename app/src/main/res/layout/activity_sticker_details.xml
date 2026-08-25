@@ -20,7 +20,7 @@
             android:id="@+id/toolbar"
             android:layout_width="match_parent"
             android:layout_height="?attr/actionBarSize"
-            android:background="@color/colorPrimary"
+            android:background="@color/app_background"
             app:elevation="2dp"
             android:theme="@style/MyToolbarTheme"
             app:layout_scrollFlags="scroll|enterAlways"
@@ -32,7 +32,7 @@
     <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@color/white"
+        android:background="@color/app_background"
         android:layout_above="@+id/linear_layout_ads"
         android:layout_below="@+id/appBarLayout">
         <ScrollView
