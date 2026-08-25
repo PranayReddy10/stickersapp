@@ -5,7 +5,7 @@
     android:id="@+id/activity_contact"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="?attr/colorSurface"
+    android:background="@color/app_background"
     android:fitsSystemWindows="true"
     tools:layout_editor_absoluteX="8dp"
     tools:layout_editor_absoluteY="8dp">

@@ -1,51 +1,21 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- An ad page between reels in the full screen pager. Dark, so it does not flash
-     white between two videos, and the ad itself sits in a bounded card in the middle
-     rather than being stretched over the whole screen. -->
+<!-- An ad page between reels in the full screen pager. The ad fills the page, the same
+     as a reel does; dark underneath so it never flashes white between two videos. -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#0E0E10">
 
-    <androidx.cardview.widget.CardView
+    <FrameLayout
+        android:id="@+id/frame_layout_fullscreen_ad"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:layout_marginStart="20dp"
-        android:layout_marginEnd="20dp"
-        app:cardBackgroundColor="@color/white"
-        app:cardCornerRadius="18dp"
-        app:cardElevation="0dp">
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="14dp"
-                android:layout_marginTop="12dp"
-                android:letterSpacing="0.08"
-                android:text="@string/reel_sponsored"
-                android:textColor="@color/primary_text_light"
-                android:textSize="11sp"
-                android:textStyle="bold" />
-
-            <FrameLayout
-                android:id="@+id/frame_layout_fullscreen_ad"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
+        android:layout_height="match_parent" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="60dp"
+        android:layout_marginBottom="24dp"
         android:alpha="0.5"
         android:text="@string/reel_swipe_up"
         android:textColor="@android:color/white"
