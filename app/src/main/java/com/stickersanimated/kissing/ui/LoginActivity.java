@@ -10,7 +10,6 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 
-import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Intent;
@@ -54,6 +53,7 @@ import com.google.firebase.auth.PhoneAuthOptions;
 import com.google.firebase.auth.PhoneAuthProvider;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.hbb20.CountryCodePicker;
+import com.stickersanimated.kissing.BuildConfig;
 import com.stickersanimated.kissing.Manager.PrefManager;
 import com.stickersanimated.kissing.R;
 import com.stickersanimated.kissing.api.apiClient;
@@ -95,6 +95,11 @@ public class LoginActivity extends AppCompatActivity {
 
     private FirebaseAuth mAuth;
     private String verificationId;
+
+    /** The account the debug-only test login signs in as. */
+    private static final String TEST_ACCOUNT = "tester-emulator";
+    private static final String TEST_AVATAR =
+            "https://lh3.googleusercontent.com/-XdUIqdMkCWA/AAAAAAAAAAI/AAAAAAAAAAA/4252rscbv5M/photo.jpg";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -146,6 +151,18 @@ public class LoginActivity extends AppCompatActivity {
         this.text_view_login_activity_privacy = (TextView) findViewById(R.id.text_view_login_activity_privacy);
     }
     public void initAction(){
+        // Debug builds only: sign in as a fixed test account. Google sign in needs this
+        // machine's debug signing key registered in the Firebase project, which an
+        // emulator on a fresh checkout will not have; this keeps the upload flows
+        // testable meanwhile. It goes through the same register call as every other
+        // provider, so the account it creates is an ordinary user.
+        final TextView test_login = (TextView) findViewById(R.id.text_view_test_login);
+        if (BuildConfig.DEBUG) {
+            test_login.setVisibility(View.VISIBLE);
+            test_login.setOnClickListener(v -> signUp(TEST_ACCOUNT, TEST_ACCOUNT,
+                    "Test user", "google", TEST_AVATAR));
+        }
+
         this.text_view_login_activity_privacy.setOnClickListener(view -> {
             startActivity(new Intent(LoginActivity.this,PolicyActivity.class));
         });
@@ -288,10 +305,25 @@ public class LoginActivity extends AppCompatActivity {
     ActivityResultLauncher<Intent> mGoogleSignInLauncher = registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),
             result -> {
-                if (result.getResultCode() == Activity.RESULT_OK) {
-                    Intent data = result.getData();
-                    Task<GoogleSignInAccount> task = GoogleSignIn.getSignedInAccountFromIntent(data);
-                    firebaseAuthWithGoogle(task.getResult().getIdToken());
+                final Task<GoogleSignInAccount> task =
+                        GoogleSignIn.getSignedInAccountFromIntent(result.getData());
+                try {
+                    final GoogleSignInAccount account = task.getResult(ApiException.class);
+                    if (account == null || account.getIdToken() == null) {
+                        Toasty.error(getApplicationContext(),
+                                "Google did not return an account", Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    firebaseAuthWithGoogle(account.getIdToken());
+                } catch (ApiException e) {
+                    // Sign in used to fail in silence here, which made it look like the
+                    // button did nothing. The status code says what actually happened:
+                    // 10 is DEVELOPER_ERROR - this build's signing key is not registered
+                    // in the Firebase project - 12501 is the user backing out, 7 network.
+                    Log.w(TAG, "Google sign in failed, status " + e.getStatusCode(), e);
+                    Toasty.error(getApplicationContext(),
+                            "Google sign in failed (code " + e.getStatusCode() + ")",
+                            Toast.LENGTH_LONG).show();
                 }
             });
 
