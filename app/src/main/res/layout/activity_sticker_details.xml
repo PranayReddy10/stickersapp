@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:focusableInTouchMode="true"
-    android:background="?attr/colorSurface"
+    android:background="@color/app_background"
     android:fitsSystemWindows="true"
     tools:context=".ui.StickerDetailsActivity">
 
@@ -227,7 +227,7 @@
                 <androidx.cardview.widget.CardView
                     android:layout_below="@+id/linear_layout_pack_screen_shot"
                     android:id="@+id/card_user"
-                    app:cardBackgroundColor="@color/colorPrimaryDark"
+                    app:cardBackgroundColor="@color/white"
                     app:cardCornerRadius="5dp"
                     app:cardElevation="0dp"
                     android:layout_marginTop="5dp"
@@ -320,7 +320,7 @@
                 <androidx.cardview.widget.CardView
                     android:layout_below="@+id/card_native_details"
                     android:id="@+id/card_add_rate"
-                    app:cardBackgroundColor="@color/colorPrimaryDark"
+                    app:cardBackgroundColor="@color/white"
                     app:cardCornerRadius="5dp"
                     app:cardElevation="0dp"
                     android:layout_marginLeft="10dp"
@@ -361,7 +361,7 @@
                 </androidx.cardview.widget.CardView>
                 <androidx.cardview.widget.CardView
                     android:layout_below="@+id/card_add_rate"
-                    app:cardBackgroundColor="@color/colorPrimaryDark"
+                    app:cardBackgroundColor="@color/white"
                     app:cardCornerRadius="5dp"
                     app:cardElevation="0dp"
                     android:layout_marginLeft="10dp"

@@ -158,7 +158,8 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     class AdHolder extends RecyclerView.ViewHolder {
         AdHolder(@NonNull View itemView) {
             super(itemView);
-            final NativeAdManager manager = NativeAdManager.into(activity,
+            // Full bleed: the creative gets the whole page, like the reel either side.
+            final NativeAdManager manager = NativeAdManager.fullscreen(activity,
                     itemView.findViewById(R.id.frame_layout_fullscreen_ad));
             if (manager != null) {
                 manager.load();

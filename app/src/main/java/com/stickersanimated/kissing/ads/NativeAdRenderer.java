@@ -30,10 +30,10 @@ final class NativeAdRenderer {
     private NativeAdRenderer() {
     }
 
-    /** Inflates {@code R.layout.ad_unified} and binds an AdMob native ad to it. */
-    static NativeAdView renderAdmob(Context context, NativeAd nativeAd) {
-        final NativeAdView adView =
-                (NativeAdView) LayoutInflater.from(context).inflate(R.layout.ad_unified, null);
+    /** Inflates the AdMob native layout and binds an AdMob native ad to it. */
+    static NativeAdView renderAdmob(Context context, NativeAd nativeAd, boolean fullscreen) {
+        final NativeAdView adView = (NativeAdView) LayoutInflater.from(context)
+                .inflate(fullscreen ? R.layout.ad_unified_fullscreen : R.layout.ad_unified, null);
 
         adView.setMediaView(adView.findViewById(R.id.ad_media));
         adView.setHeadlineView(adView.findViewById(R.id.ad_headline));
@@ -86,9 +86,10 @@ final class NativeAdRenderer {
     }
 
     /** The binder shared by every MAX native placement in the app. */
-    static MaxNativeAdView createMaxAdView(Context context) {
+    static MaxNativeAdView createMaxAdView(Context context, boolean fullscreen) {
         final MaxNativeAdViewBinder binder =
-                new MaxNativeAdViewBinder.Builder(R.layout.native_max_ad_view)
+                new MaxNativeAdViewBinder.Builder(fullscreen
+                        ? R.layout.native_max_ad_view_fullscreen : R.layout.native_max_ad_view)
                         .setTitleTextViewId(R.id.title_text_view)
                         .setBodyTextViewId(R.id.body_text_view)
                         .setAdvertiserTextViewId(R.id.advertiser_textView)

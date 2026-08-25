@@ -39,6 +39,8 @@ public final class NativeAdManager {
     private final Activity activity;
     private final ViewGroup container;
     private final AdsConfig config;
+    /** True for the ad page in the reels player, where the ad fills the screen. */
+    private final boolean fullscreen;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     private List<AdNetwork> waterfall = Collections.emptyList();
@@ -52,9 +54,10 @@ public final class NativeAdManager {
     private MaxAd maxAd;
     private NativeBannerAd facebookAd;
 
-    private NativeAdManager(Activity activity, ViewGroup container) {
+    private NativeAdManager(Activity activity, ViewGroup container, boolean fullscreen) {
         this.activity = activity;
         this.container = container;
+        this.fullscreen = fullscreen;
         this.config = new AdsConfig(activity);
     }
 
@@ -63,7 +66,21 @@ public final class NativeAdManager {
         if (activity == null || container == null) {
             return null;
         }
-        return new NativeAdManager(activity, container);
+        return new NativeAdManager(activity, container, false);
+    }
+
+    /**
+     * A native ad that fills its container edge to edge, for the ad page between reels.
+     * Same waterfall, different layout: the creative gets the whole screen and the
+     * headline and call to action sit on a panel over the bottom of it.
+     */
+    @Nullable
+    public static NativeAdManager fullscreen(@Nullable Activity activity,
+                                             @Nullable ViewGroup container) {
+        if (activity == null || container == null) {
+            return null;
+        }
+        return new NativeAdManager(activity, container, true);
     }
 
     public void load() {
@@ -120,7 +137,7 @@ public final class NativeAdManager {
                     }
                     release();
                     admobAd = nativeAd;
-                    show(NativeAdRenderer.renderAdmob(activity, nativeAd));
+                    show(NativeAdRenderer.renderAdmob(activity, nativeAd, fullscreen));
                     onLoaded(attempt, AdNetwork.ADMOB);
                 })
                 .withNativeAdOptions(new NativeAdOptions.Builder()
@@ -163,7 +180,7 @@ public final class NativeAdManager {
             public void onNativeAdClicked(@NonNull MaxAd ad) {
             }
         });
-        loader.loadAd(NativeAdRenderer.createMaxAdView(activity));
+        loader.loadAd(NativeAdRenderer.createMaxAdView(activity, fullscreen));
     }
 
     private void loadFacebook(int attempt, String placementId) {
@@ -203,7 +220,15 @@ public final class NativeAdManager {
 
     private void show(View adView) {
         container.removeAllViews();
-        container.addView(adView);
+        if (fullscreen) {
+            // Meta's native banner has no big creative, so it keeps its own height and
+            // is centred; the AdMob and MAX full screen layouts fill the page.
+            container.addView(adView, new ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT));
+        } else {
+            container.addView(adView);
+        }
         container.setVisibility(View.VISIBLE);
     }
 

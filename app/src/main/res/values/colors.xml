@@ -7,6 +7,10 @@
 
     <color name="colorAccent">#25D366</color>
 
+    <!-- Page background: a soft off white that white cards and the green accent both
+         sit on cleanly, instead of card-on-white with nothing to separate them. -->
+    <color name="app_background">#F4F6FA</color>
+
     <color name="menuBackgroun">#25D366</color>
     <color name="menuSelector">#f7214f</color>
     <color name="white">#fff</color>
