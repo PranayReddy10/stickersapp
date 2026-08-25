@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The icons are no longer tinted, so the label carries the selected state. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_checked="true" android:color="@color/colorAccent" />
+    <item android:color="#9E9E9E" />
+</selector>

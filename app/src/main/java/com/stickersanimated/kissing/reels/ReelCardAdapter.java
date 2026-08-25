@@ -30,8 +30,11 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     private static final int TYPE_REEL = 1;
     private static final int TYPE_AD = 2;
 
-    /** Cards are 4:5, tall enough to read but short enough to show two per screen. */
-    private static final float MEDIA_ASPECT = 5f / 4f;
+    /** Used when the reel did not report its own size. */
+    private static final float DEFAULT_ASPECT = 5f / 4f;
+    /** Nothing taller than this, or one card fills the screen and the feed stops reading as a feed. */
+    private static final float MAX_ASPECT = 16f / 9f;
+    private static final float MIN_ASPECT = 3f / 4f;
 
     public interface Listener {
         void onOpen(ReelApi reel);
@@ -107,9 +110,18 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         card.views.setText(ReelFormat.count(reel.getViews()));
         card.play.setVisibility(reel.isVideo() ? View.VISIBLE : View.GONE);
 
+        // Size the frame to the reel's own shape so a portrait video is not cropped
+        // and a landscape one is not blown up. Clamped so a very tall or very wide
+        // reel cannot take over the feed.
+        float aspect = DEFAULT_ASPECT;
+        if (reel.getWidth() > 0 && reel.getHeight() > 0) {
+            aspect = (float) reel.getHeight() / (float) reel.getWidth();
+        }
+        aspect = Math.max(MIN_ASPECT, Math.min(MAX_ASPECT, aspect));
+
+        final int mediaWidth = activity.getResources().getDisplayMetrics().widthPixels;
         final ViewGroup.LayoutParams mediaParams = card.media.getLayoutParams();
-        mediaParams.height = (int) (activity.getResources().getDisplayMetrics().widthPixels
-                / MEDIA_ASPECT);
+        mediaParams.height = (int) (mediaWidth * aspect);
         card.media.setLayoutParams(mediaParams);
 
         Glide.with(activity).load(reel.getThumb()).placeholder(R.drawable.sticker_error)

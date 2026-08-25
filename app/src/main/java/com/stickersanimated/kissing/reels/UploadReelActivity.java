@@ -7,9 +7,11 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.view.View;
-import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.TextView;
@@ -37,9 +39,13 @@ public class UploadReelActivity extends AppCompatActivity {
     private ImageView preview;
     private LinearLayout pickPrompt;
     private EditText caption;
-    private Button post;
+    private TextView post;
     private ProgressBar progressBar;
     private TextView status;
+    private TextView badge;
+    private TextView change;
+    private TextView captionCount;
+    private FrameLayout previewFrame;
 
     private Uri picked;
     private String type = ReelApi.TYPE_VIDEO;
@@ -74,10 +80,31 @@ public class UploadReelActivity extends AppCompatActivity {
         post = findViewById(R.id.button_post_reel);
         progressBar = findViewById(R.id.progress_bar_upload_reel);
         status = findViewById(R.id.text_view_upload_status);
+        badge = findViewById(R.id.text_view_media_badge);
+        change = findViewById(R.id.text_view_change_media);
+        captionCount = findViewById(R.id.text_view_caption_count);
+        previewFrame = findViewById(R.id.frame_layout_preview);
 
-        preview.setOnClickListener(v -> pickMedia());
+        previewFrame.setOnClickListener(v -> pickMedia());
         pickPrompt.setOnClickListener(v -> pickMedia());
+        change.setOnClickListener(v -> pickMedia());
         post.setOnClickListener(v -> startUpload());
+
+        captionCount.setText(getString(R.string.reel_caption_counter, 0));
+        caption.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                captionCount.setText(getString(R.string.reel_caption_counter, s.length()));
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+            }
+        });
     }
 
     private void pickMedia() {
@@ -105,9 +132,17 @@ public class UploadReelActivity extends AppCompatActivity {
         readDimensions();
 
         pickPrompt.setVisibility(View.GONE);
+        badge.setVisibility(View.VISIBLE);
+        change.setVisibility(View.VISIBLE);
+        previewFrame.setBackgroundColor(0xFF101014);
         Glide.with(this).load(picked).into(preview);
-        status.setText(String.format(Locale.US, "%s · %dx%d%s",
-                type, width, height, duration > 0 ? " · " + duration + "s" : ""));
+
+        badge.setText(ReelApi.TYPE_VIDEO.equals(type)
+                ? getString(R.string.reel_badge_video) : getString(R.string.reel_badge_photo));
+        status.setText(width > 0 && height > 0
+                ? String.format(Locale.US, "%d x %d%s", width, height,
+                        duration > 0 ? "  ·  " + duration + "s" : "")
+                : "");
     }
 
     /**
