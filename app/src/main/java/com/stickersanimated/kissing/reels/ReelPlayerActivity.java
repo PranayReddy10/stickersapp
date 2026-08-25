@@ -82,7 +82,7 @@ public class ReelPlayerActivity extends AppCompatActivity
 
         final AdsConfig adsConfig = new AdsConfig(this);
         adsEnabled = adsConfig.isEnabled(AdFormat.NATIVE);
-        reelsBetweenAds = adsConfig.packsBetweenNativeAds();
+        reelsBetweenAds = adsConfig.reelsBetweenNativeAds();
 
         final ArrayList<ReelApi> initial =
                 (ArrayList<ReelApi>) getIntent().getSerializableExtra(EXTRA_REELS);

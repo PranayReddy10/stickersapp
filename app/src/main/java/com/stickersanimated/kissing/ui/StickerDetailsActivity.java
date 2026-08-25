@@ -96,6 +96,7 @@ public class StickerDetailsActivity extends AppCompatActivity {
     // fill simply hands over to the next configured one.
     private BannerAdManager bannerAdManager;
     private NativeAdManager nativeAdManager;
+    private NativeAdManager detailsNativeAdManager;
     private RewardedAdManager rewardedAdManager;
     private InterstitialAdManager downloadInterstitial;
     /** Set while a rewarded download ad is on screen; run once the reward is earned. */
@@ -1027,6 +1028,13 @@ public class StickerDetailsActivity extends AppCompatActivity {
         if (nativeAdManager != null) {
             nativeAdManager.load();
         }
+        // Second native slot, between the author card and the rating card. It runs
+        // the same waterfall, so both are switched on and off by the panel together.
+        detailsNativeAdManager = NativeAdManager.into(this,
+                findViewById(R.id.frame_layout_details_native));
+        if (detailsNativeAdManager != null) {
+            detailsNativeAdManager.load();
+        }
     }
 
     @Override
@@ -1036,6 +1044,9 @@ public class StickerDetailsActivity extends AppCompatActivity {
         }
         if (nativeAdManager != null) {
             nativeAdManager.destroy();
+        }
+        if (detailsNativeAdManager != null) {
+            detailsNativeAdManager.destroy();
         }
         if (rewardedAdManager != null) {
             rewardedAdManager.destroy();

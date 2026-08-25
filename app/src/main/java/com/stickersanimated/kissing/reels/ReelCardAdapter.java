@@ -39,9 +39,13 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
 
     /** Used when the reel did not report its own size. */
     private static final float DEFAULT_ASPECT = 5f / 4f;
-    /** Nothing taller than this, or one card fills the screen and the feed stops reading as a feed. */
+    /**
+     * The clamp only exists to stop one extreme reel taking over the feed, so it is
+     * wide enough that ordinary content lands inside it untouched. A 3:4 floor was
+     * cropping every landscape post, which is the zoom that showed up on screen.
+     */
     private static final float MAX_ASPECT = 16f / 9f;
-    private static final float MIN_ASPECT = 3f / 4f;
+    private static final float MIN_ASPECT = 0.5f;
 
     public interface Listener {
         void onOpen(ReelApi reel);
