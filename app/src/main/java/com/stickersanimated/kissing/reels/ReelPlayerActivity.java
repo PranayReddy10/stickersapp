@@ -258,6 +258,8 @@ public class ReelPlayerActivity extends AppCompatActivity
             return;
         }
         if (!"TRUE".equals(prefManager.getString("LOGGED"))) {
+            Toasty.info(this, getString(R.string.reel_sign_in_to_like),
+                    Toast.LENGTH_SHORT).show();
             startActivity(new Intent(this, LoginActivity.class));
             return;
         }
@@ -278,7 +280,15 @@ public class ReelPlayerActivity extends AppCompatActivity
                     public void onResponse(@NonNull Call<JsonObject> call,
                                            @NonNull Response<JsonObject> response) {
                         final JsonObject body = response.body();
-                        if (body == null || !body.has("liked")) {
+                        if (!response.isSuccessful() || body == null || !body.has("liked")) {
+                            // Refused: undo the flip instead of showing a like that the
+                            // server never recorded.
+                            reel.setLiked(wasLiked);
+                            reel.setLikes(reel.getLikes() + (wasLiked ? 1 : -1));
+                            refreshLike(position, reel);
+                            Toasty.error(ReelPlayerActivity.this,
+                                    getString(R.string.reel_like_failed),
+                                    Toast.LENGTH_SHORT).show();
                             return;
                         }
                         reel.setLiked("true".equals(body.get("liked").getAsString()));

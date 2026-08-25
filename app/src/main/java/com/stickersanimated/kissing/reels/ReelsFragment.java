@@ -303,6 +303,10 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
     public void onToggleLike(ReelApi reel) {
         final PrefManager prefManager = new PrefManager(requireContext().getApplicationContext());
         if (!"TRUE".equals(prefManager.getString("LOGGED"))) {
+            // Say why before the login screen appears - a tap that silently swaps the
+            // screen reads as a broken button.
+            Toasty.info(requireContext(), getString(R.string.reel_sign_in_to_like),
+                    Toast.LENGTH_SHORT).show();
             startActivity(new Intent(requireContext(), LoginActivity.class));
             return;
         }
@@ -318,8 +322,19 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
                     @Override
                     public void onResponse(@NonNull Call<JsonObject> call,
                                            @NonNull Response<JsonObject> response) {
+                        if (!isAdded()) {
+                            return;
+                        }
                         final JsonObject body = response.body();
-                        if (body == null || !body.has("liked") || !isAdded()) {
+                        if (!response.isSuccessful() || body == null || !body.has("liked")) {
+                            // The server refused it - a rejected sign in key comes back
+                            // as a 404 page, not JSON. Put the heart back rather than
+                            // leaving a like that was never saved.
+                            reel.setLiked(wasLiked);
+                            reel.setLikes(reel.getLikes() + (wasLiked ? 1 : -1));
+                            adapter.notifyDataSetChanged();
+                            Toasty.error(requireContext(), getString(R.string.reel_like_failed),
+                                    Toast.LENGTH_SHORT).show();
                             return;
                         }
                         reel.setLiked("true".equals(body.get("liked").getAsString()));
