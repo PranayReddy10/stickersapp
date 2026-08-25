@@ -64,9 +64,10 @@ import com.stickersanimated.kissing.entity.ApiResponse;
 import com.stickersanimated.kissing.entity.CategoryApi;
 import com.stickersanimated.kissing.services.BillingSubs;
 import com.stickersanimated.kissing.services.CallBackBilling;
-import com.stickersanimated.kissing.ui.fragmenet.CategoriesFragment;
 import com.stickersanimated.kissing.ui.fragmenet.FavoritesFragment;
 import com.stickersanimated.kissing.ui.fragmenet.FollowFragment;
+import com.stickersanimated.kissing.reels.ReelsFragment;
+import com.stickersanimated.kissing.reels.UploadReelActivity;
 import com.stickersanimated.kissing.ui.fragmenet.HomeFragment;
 import com.stickersanimated.kissing.ui.fragmenet.PopularFragment;
 import com.squareup.picasso.Picasso;
@@ -333,10 +334,10 @@ public class HomeActivity extends AppCompatActivity
         adapter = new ViewPagerAdapter(getSupportFragmentManager());
         this.followFragment = new FollowFragment();
 
+        adapter.addFragment(new ReelsFragment());
         adapter.addFragment(new HomeFragment());
         adapter.addFragment(new PopularFragment());
         adapter.addFragment(followFragment);
-        adapter.addFragment(new CategoriesFragment());
         adapter.addFragment(new FavoritesFragment());
 
         viewPager.setAdapter(adapter);
@@ -379,13 +380,13 @@ public class HomeActivity extends AppCompatActivity
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
                 int id = item.getItemId();
-                if (id == R.id.bottom_latest) {
+                if (id == R.id.bottom_reels) {
                     viewPager.setCurrentItem(0, true);
-                } else if (id == R.id.bottom_popular) {
+                } else if (id == R.id.bottom_latest) {
                     viewPager.setCurrentItem(1, true);
-                } else if (id == R.id.bottom_sub) {
+                } else if (id == R.id.bottom_popular) {
                     viewPager.setCurrentItem(2, true);
-                } else if (id == R.id.bottom_cat) {
+                } else if (id == R.id.bottom_sub) {
                     viewPager.setCurrentItem(3, true);
                 } else if (id == R.id.bottom_fav) {
                     viewPager.setCurrentItem(4, true);
@@ -417,7 +418,10 @@ public class HomeActivity extends AppCompatActivity
             public void onClick(View view) {
                     PrefManager prf= new PrefManager(getApplicationContext());
                     if (prf.getString("LOGGED").toString().equals("TRUE")) {
-                        Intent intent = new Intent(getApplicationContext(), UploadActivity.class);
+                        // On the Reels tab the plus posts a reel, everywhere else a pack.
+                        Class<?> target = viewPager.getCurrentItem() == 0
+                                ? UploadReelActivity.class : UploadActivity.class;
+                        Intent intent = new Intent(getApplicationContext(), target);
                        startActivity(intent);
                         overridePendingTransition(R.anim.enter, R.anim.exit);
                     }else{

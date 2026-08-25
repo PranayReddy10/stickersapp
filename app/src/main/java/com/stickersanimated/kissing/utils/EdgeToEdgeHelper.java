@@ -38,6 +38,14 @@ import androidx.core.view.WindowInsetsControllerCompat;
  */
 public final class EdgeToEdgeHelper {
 
+    /**
+     * Marks a screen that wants to paint under the system bars, such as the full
+     * screen reel player. Padding a video feed away from the bars would letterbox it,
+     * so these screens are left alone and position their own controls.
+     */
+    public interface FullBleed {
+    }
+
     private EdgeToEdgeHelper() {
     }
 
@@ -89,6 +97,14 @@ public final class EdgeToEdgeHelper {
      */
     public static void apply(@NonNull Activity activity) {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.VANILLA_ICE_CREAM) {
+            return;
+        }
+        if (activity instanceof FullBleed) {
+            // Light icons, because these screens are dark behind the bars.
+            final WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(
+                    activity.getWindow(), activity.getWindow().getDecorView());
+            controller.setAppearanceLightStatusBars(false);
+            controller.setAppearanceLightNavigationBars(false);
             return;
         }
         final View contentRoot = activity.findViewById(android.R.id.content);

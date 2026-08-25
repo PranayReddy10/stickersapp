@@ -141,6 +141,11 @@ dependencies {
     implementation "com.github.zjupure:webpdecoder:2.7.4.16.0"
     implementation "com.github.bumptech.glide:glide:5.0.5"
     annotationProcessor "com.github.bumptech.glide:compiler:5.0.5"
+    // Reels: vertical pager plus Media3 for video playback.
+    implementation 'androidx.viewpager2:viewpager2:1.1.0'
+    implementation 'androidx.media3:media3-exoplayer:1.4.1'
+    implementation 'androidx.media3:media3-ui:1.4.1'
+
     implementation 'com.android.billingclient:billing:8.2.1'
     //noinspection GradleDependency
     implementation 'androidx.browser:browser:1.8.0'

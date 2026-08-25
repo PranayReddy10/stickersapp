@@ -2,10 +2,15 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android">
 
     <item
-        android:id="@+id/bottom_latest"
-        android:icon="@drawable/ic_home_2"
+        android:id="@+id/bottom_reels"
+        android:icon="@drawable/ic_reels"
         android:enabled="true"
         android:checked="true"
+        android:title="@string/reels" />
+
+    <item
+        android:id="@+id/bottom_latest"
+        android:icon="@drawable/ic_home_2"
         android:title="Latest" />
 
     <item
@@ -17,11 +22,6 @@
         android:id="@+id/bottom_sub"
         android:icon="@drawable/ic_subscriptions_my"
         android:title="Subscriptons" />
-
-    <item
-        android:id="@+id/bottom_cat"
-        android:icon="@drawable/ic_grid"
-        android:title="Categories" />
 
     <item
         android:id="@+id/bottom_fav"
