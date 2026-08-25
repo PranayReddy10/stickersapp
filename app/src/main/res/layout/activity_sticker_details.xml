@@ -306,6 +306,24 @@
 
                 <androidx.cardview.widget.CardView
                     android:layout_below="@+id/card_user"
+                    android:id="@+id/card_native_details"
+                    app:cardBackgroundColor="@color/white"
+                    app:cardCornerRadius="10dp"
+                    app:cardElevation="0dp"
+                    android:layout_marginTop="5dp"
+                    android:layout_marginLeft="10dp"
+                    android:layout_marginRight="10dp"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content">
+
+                    <FrameLayout
+                        android:id="@+id/frame_layout_details_native"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content" />
+                </androidx.cardview.widget.CardView>
+
+                <androidx.cardview.widget.CardView
+                    android:layout_below="@+id/card_native_details"
                     android:id="@+id/card_add_rate"
                     app:cardBackgroundColor="@color/colorPrimaryDark"
                     app:cardCornerRadius="5dp"

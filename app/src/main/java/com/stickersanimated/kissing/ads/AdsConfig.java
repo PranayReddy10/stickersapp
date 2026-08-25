@@ -49,6 +49,7 @@ public final class AdsConfig {
     private static final String KEY_INMOBI_ACCOUNT_ID = "ADMIN_INMOBI_ACCOUNT_ID";
     private static final String KEY_INTERSTITIAL_CLICKS = "ADMIN_INTERSTITIAL_CLICKS";
     private static final String KEY_NATIVE_LINES = "ADMIN_NATIVE_LINES";
+    private static final String KEY_REELS_NATIVE_LINES = "ADMIN_REELS_NATIVE_LINES";
     private static final String KEY_DOWNLOAD_AD_TYPE = "ADMIN_DOWNLOAD_AD_TYPE";
 
     private static final long DEFAULT_TIMEOUT_MS = 10_000L;
@@ -156,16 +157,29 @@ public final class AdsConfig {
      * default instead of crashing the list.
      */
     public int packsBetweenNativeAds() {
-        final String raw = string(KEY_NATIVE_LINES);
-        int lines = DEFAULT_NATIVE_LINES;
-        if (!TextUtils.isEmpty(raw)) {
-            try {
-                lines = Integer.parseInt(raw.trim());
-            } catch (NumberFormatException ignored) {
-                lines = DEFAULT_NATIVE_LINES;
-            }
+        return lines(KEY_NATIVE_LINES, DEFAULT_NATIVE_LINES);
+    }
+
+    /**
+     * Reels between two native ads in the Reels feed and the full screen player.
+     *
+     * The panel can set this separately from the pack lists; when it is left empty
+     * the pack list value is used, so nothing changes until it is filled in.
+     */
+    public int reelsBetweenNativeAds() {
+        return lines(KEY_REELS_NATIVE_LINES, packsBetweenNativeAds());
+    }
+
+    private int lines(String key, int fallback) {
+        final String raw = string(key);
+        if (TextUtils.isEmpty(raw)) {
+            return Math.max(MIN_NATIVE_LINES, fallback);
         }
-        return Math.max(MIN_NATIVE_LINES, lines);
+        try {
+            return Math.max(MIN_NATIVE_LINES, Integer.parseInt(raw.trim()));
+        } catch (NumberFormatException e) {
+            return Math.max(MIN_NATIVE_LINES, fallback);
+        }
     }
 
     /**

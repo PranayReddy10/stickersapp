@@ -84,7 +84,7 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
 
         final AdsConfig adsConfig = new AdsConfig(requireContext());
         adsEnabled = adsConfig.isEnabled(com.stickersanimated.kissing.ads.AdFormat.NATIVE);
-        reelsBetweenAds = adsConfig.packsBetweenNativeAds();
+        reelsBetweenAds = adsConfig.reelsBetweenNativeAds();
 
         adapter = new ReelCardAdapter(requireActivity(), rows, this);
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
