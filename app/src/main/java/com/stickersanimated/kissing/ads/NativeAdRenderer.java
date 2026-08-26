@@ -7,18 +7,21 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.RatingBar;
+import android.widget.FrameLayout;
 import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.applovin.mediation.nativeAds.MaxNativeAdView;
 import com.applovin.mediation.nativeAds.MaxNativeAdViewBinder;
 import com.facebook.ads.AdOptionsView;
+import com.inmobi.ads.InMobiNative;
 import com.facebook.ads.MediaView;
 import com.facebook.ads.NativeAdLayout;
 import com.facebook.ads.NativeBannerAd;
 import com.google.android.gms.ads.VideoController;
 import com.google.android.gms.ads.nativead.NativeAd;
 import com.google.android.gms.ads.nativead.NativeAdView;
+import com.squareup.picasso.Picasso;
 import com.stickersanimated.kissing.R;
 
 import java.util.ArrayList;
@@ -134,6 +137,85 @@ final class NativeAdRenderer {
         nativeBannerAd.registerViewForInteraction(adView, iconView, clickableViews);
 
         return nativeAdLayout;
+    }
+
+    /**
+     * Vungle native. The SDK hands over the parts and fills the media and icon views
+     * itself once the container is registered, so the layout only has to provide them.
+     */
+    static View renderVungle(Context context, com.vungle.ads.NativeAd nativeAd,
+                             boolean fullscreen) {
+        final View view = LayoutInflater.from(context).inflate(fullscreen
+                ? R.layout.network_native_fullscreen : R.layout.item_network_native_ads, null);
+        final FrameLayout root = (FrameLayout) view.findViewById(R.id.frame_layout_native_root);
+        final FrameLayout media = (FrameLayout) view.findViewById(R.id.frame_layout_native_media);
+        final ImageView icon = (ImageView) view.findViewById(R.id.image_view_native_icon);
+        final TextView title = (TextView) view.findViewById(R.id.text_view_native_title);
+        final TextView body = (TextView) view.findViewById(R.id.text_view_native_body);
+        final TextView cta = (TextView) view.findViewById(R.id.text_view_native_cta);
+        final TextView sponsored = (TextView) view.findViewById(R.id.text_view_native_sponsored);
+
+        title.setText(nativeAd.getAdTitle());
+        setTextOrHide(body, nativeAd.getAdBodyText());
+        cta.setText(nativeAd.getAdCallToActionText());
+        cta.setVisibility(nativeAd.hasCallToAction() ? View.VISIBLE : View.INVISIBLE);
+        if (nativeAd.getAdSponsoredText() != null && !nativeAd.getAdSponsoredText().isEmpty()) {
+            sponsored.setText(nativeAd.getAdSponsoredText());
+        }
+
+        final com.vungle.ads.internal.ui.view.MediaView mediaView =
+                new com.vungle.ads.internal.ui.view.MediaView(context);
+        media.removeAllViews();
+        media.addView(mediaView, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        // The privacy button has to stay reachable, so keep it off the media itself.
+        nativeAd.setAdOptionsPosition(com.vungle.ads.NativeAd.TOP_RIGHT);
+
+        final List<View> clickable = new ArrayList<>();
+        clickable.add(cta);
+        clickable.add(title);
+        clickable.add(mediaView);
+        nativeAd.registerViewForInteraction(root, mediaView, icon, clickable);
+        return view;
+    }
+
+    /**
+     * InMobi native. Unlike the others it returns the creative as a view sized to a
+     * width, and the click has to be reported by hand.
+     */
+    static View renderInMobi(Context context, InMobiNative nativeAd, boolean fullscreen, int width) {
+        final View view = LayoutInflater.from(context).inflate(fullscreen
+                ? R.layout.network_native_fullscreen : R.layout.item_network_native_ads, null);
+        final FrameLayout media = (FrameLayout) view.findViewById(R.id.frame_layout_native_media);
+        final ImageView icon = (ImageView) view.findViewById(R.id.image_view_native_icon);
+        final TextView title = (TextView) view.findViewById(R.id.text_view_native_title);
+        final TextView body = (TextView) view.findViewById(R.id.text_view_native_body);
+        final TextView cta = (TextView) view.findViewById(R.id.text_view_native_cta);
+
+        title.setText(nativeAd.getAdTitle());
+        setTextOrHide(body, nativeAd.getAdDescription());
+        setTextOrHide(cta, nativeAd.getAdCtaText());
+
+        final String iconUrl = nativeAd.getAdIconUrl();
+        if (iconUrl != null && !iconUrl.trim().isEmpty()) {
+            Picasso.get().load(iconUrl.trim()).into(icon);
+        } else {
+            icon.setVisibility(View.GONE);
+        }
+
+        final View creative = nativeAd.getPrimaryViewOfWidth(context, null, media, width);
+        media.removeAllViews();
+        if (creative != null) {
+            media.addView(creative, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        }
+
+        final View.OnClickListener open = v -> nativeAd.reportAdClickAndOpenLandingPage();
+        cta.setOnClickListener(open);
+        title.setOnClickListener(open);
+        media.setOnClickListener(open);
+        return view;
     }
 
     private static void setTextOrHide(View view, CharSequence text) {
