@@ -1,24 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One pack, as a compact row: cover, name, a single meta line and a strip of
-     previews. The tall card this replaced was about 300dp, which put two packs on a
-     screen; this is nearer 140dp, so four or five fit. Every id the adapter binds is
-     still here - publisher and size are kept but hidden, since the meta line already
-     carries the name and the pack page shows the rest. -->
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
 
+    <!-- Pack cover image - OLD DESIGN -->
+    <androidx.cardview.widget.CardView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dp"
+        android:layout_marginBottom="4dp"
+        app:cardCornerRadius="25dp"
+        app:cardElevation="2dp">
+
+        <ImageView
+            android:id="@+id/pack_try_image"
+            android:layout_width="80dp"
+            android:layout_height="80dp"
+            android:contentDescription="@null"
+            android:padding="5dp"
+            android:scaleType="fitXY"
+            app:srcCompat="@drawable/sticker_error" />
+
+    </androidx.cardview.widget.CardView>
+
+
+    <!-- Main card - OLD DESIGN -->
     <androidx.cardview.widget.CardView
         android:id="@+id/card_view"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginLeft="8dp"
-        android:layout_marginTop="7dp"
+        android:layout_marginTop="20dp"
         android:layout_marginRight="8dp"
-        android:layout_marginBottom="7dp"
-        app:cardBackgroundColor="@color/white"
-        app:cardCornerRadius="12dp"
+        android:layout_marginBottom="4dp"
+        android:clipChildren="false"
+        android:clipToPadding="false"
+        app:cardCornerRadius="10dp"
         app:cardElevation="1dp"
         app:cardPreventCornerOverlap="false">
 
@@ -26,357 +44,631 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:background="?attr/selectableItemBackground"
-            android:orientation="vertical"
-            android:padding="12dp">
+            android:orientation="vertical">
+
+            <!-- ================= HEADER ================= -->
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal">
+                android:layout_marginTop="0dp"
+                android:layout_marginRight="10dp"
+                android:layout_marginBottom="10dp"
+                android:layout_marginLeft="10dp"
+                android:gravity="center"
+                android:orientation="vertical">
 
-                <ImageView
-                    android:id="@+id/pack_try_image"
-                    android:layout_width="76dp"
-                    android:layout_height="76dp"
-                    android:background="@drawable/sticker_error"
-                    android:padding="4dp"
-                    android:scaleType="fitCenter"
-                    app:srcCompat="@drawable/sticker_error"
-                    android:contentDescription="@null" />
-
-                <LinearLayout
-                    android:layout_width="0dp"
+                <RelativeLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginStart="10dp"
-                    android:layout_weight="1"
-                    android:orientation="vertical">
+                    android:paddingLeft="85dp"
+                    android:paddingStart="85dp">
 
-                    <TextView
-                        android:id="@+id/item_pack_name"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:ellipsize="end"
-                        android:maxLines="1"
-                        android:text="Pack Name"
-                        android:textAppearance="@style/TextAppearance.AppCompat.Body2"
-                        android:textColor="@color/primary_text"
-                        android:textSize="17sp" />
-
+                    <!-- Name / Publisher area -->
                     <LinearLayout
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:layout_marginTop="4dp"
-                        android:gravity="center_vertical"
+                        android:layout_marginRight="70dp"
+                        android:layout_marginEnd="70dp"
                         android:orientation="horizontal">
+
+                        <LinearLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:orientation="vertical">
+
+                            <TextView
+                                android:id="@+id/item_pack_name"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:layout_gravity="start"
+                                android:layout_marginRight="10dp"
+                                android:layout_marginEnd="10dp"
+                                android:ellipsize="end"
+                                android:maxLines="1"
+                                android:text="Pack Name"
+                                android:textAppearance="@style/TextAppearance.AppCompat.Body2"
+                                android:textSize="20sp" />
+
+                            <!-- Keep this ID because adapter may bind it -->
+                            <TextView
+                                android:id="@+id/item_pack_publisher"
+                                android:layout_width="match_parent"
+                                android:layout_height="50dp"
+                                android:layout_gravity="start"
+                                android:ellipsize="end"
+                                android:maxLines="2"
+                                android:text="By publisher"
+                                android:textColor="@color/dark_gray"
+                                android:textSize="17sp" />
+
+                        </LinearLayout>
+
+                    </LinearLayout>
+
+
+                    <!-- Favorite -->
+                    <ImageView
+                        android:id="@+id/image_view_item_pack_fav"
+                        android:layout_width="50dp"
+                        android:layout_height="50dp"
+                        android:layout_alignParentRight="true"
+                        android:layout_alignParentEnd="true"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:clickable="true"
+                        android:focusable="true"
+                        android:padding="8dp"
+                        android:contentDescription="@null"
+                        app:srcCompat="@drawable/ic_favorite_black"
+                        app:tint="@color/menuSelector" />
+
+
+                    <!-- Social icons -->
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentRight="true"
+                        android:layout_alignParentEnd="true"
+                        android:layout_marginTop="50dp"
+                        android:layout_marginRight="10dp"
+                        android:layout_marginEnd="10dp"
+                        android:elevation="10dp"
+                        android:orientation="horizontal">
+
+                        <ImageView
+                            android:id="@+id/image_view_telegram"
+                            android:layout_width="25dp"
+                            android:layout_height="25dp"
+                            android:layout_marginLeft="3dp"
+                            android:layout_marginStart="3dp"
+                            android:contentDescription="@null"
+                            android:padding="4dp"
+                            android:visibility="gone"
+                            app:srcCompat="@drawable/ic_telegram"
+                            app:tint="#0088cc" />
+
+                        <ImageView
+                            android:id="@+id/image_view_whatsapp"
+                            android:layout_width="25dp"
+                            android:layout_height="25dp"
+                            android:layout_marginLeft="3dp"
+                            android:layout_marginStart="3dp"
+                            android:contentDescription="@null"
+                            android:padding="4dp"
+                            android:visibility="gone"
+                            app:srcCompat="@drawable/ic_whatsapp"
+                            app:tint="#25D366" />
+
+                        <ImageView
+                            android:id="@+id/image_view_signal"
+                            android:layout_width="25dp"
+                            android:layout_height="25dp"
+                            android:layout_marginLeft="3dp"
+                            android:layout_marginStart="3dp"
+                            android:contentDescription="@null"
+                            android:padding="0dp"
+                            android:visibility="gone"
+                            app:srcCompat="@drawable/ic_signal"
+                            app:tint="#007bff" />
+
+                    </LinearLayout>
+
+                </RelativeLayout>
+
+
+                <!-- ================= STICKER PREVIEWS ================= -->
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="start"
+                    android:orientation="horizontal"
+                    android:weightSum="5">
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1">
+
+                        <ImageView
+                            android:id="@+id/sticker_one"
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:layout_marginTop="6dp"
+                            android:layout_marginRight="6dp"
+                            android:layout_marginEnd="6dp"
+                            android:layout_marginBottom="6dp"
+                            android:background="@drawable/sticker_error"
+                            android:contentDescription="@null"
+                            android:padding="3dp"
+                            android:scaleType="fitCenter"
+                            app:srcCompat="@drawable/sticker_error" />
+
+                    </LinearLayout>
+
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1">
+
+                        <ImageView
+                            android:id="@+id/sticker_two"
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:layout_margin="6dp"
+                            android:background="@drawable/sticker_error"
+                            android:contentDescription="@null"
+                            android:padding="3dp"
+                            android:scaleType="fitCenter"
+                            app:srcCompat="@drawable/sticker_error" />
+
+                    </LinearLayout>
+
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1">
+
+                        <ImageView
+                            android:id="@+id/sticker_three"
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:layout_margin="6dp"
+                            android:background="@drawable/sticker_error"
+                            android:contentDescription="@null"
+                            android:padding="3dp"
+                            android:scaleType="fitCenter"
+                            app:srcCompat="@drawable/sticker_error" />
+
+                    </LinearLayout>
+
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1">
+
+                        <ImageView
+                            android:id="@+id/sticker_four"
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:layout_margin="6dp"
+                            android:background="@drawable/sticker_error"
+                            android:contentDescription="@null"
+                            android:padding="3dp"
+                            android:scaleType="fitCenter"
+                            app:srcCompat="@drawable/sticker_error" />
+
+                    </LinearLayout>
+
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1">
+
+                        <ImageView
+                            android:id="@+id/sticker_five"
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:layout_margin="6dp"
+                            android:background="@drawable/sticker_error"
+                            android:contentDescription="@null"
+                            android:padding="3dp"
+                            android:scaleType="fitCenter"
+                            app:srcCompat="@drawable/sticker_error" />
+
+                    </LinearLayout>
+
+
+                    <!-- Keep for adapter compatibility -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1">
+
+                        <ImageView
+                            android:id="@+id/sticker_six"
+                            android:layout_width="60dp"
+                            android:layout_height="60dp"
+                            android:layout_margin="6dp"
+                            android:background="@drawable/sticker_error"
+                            android:contentDescription="@null"
+                            android:padding="3dp"
+                            android:scaleType="fitCenter"
+                            android:visibility="gone"
+                            app:srcCompat="@drawable/sticker_error" />
+
+                    </LinearLayout>
+
+                </LinearLayout>
+
+            </LinearLayout>
+
+
+            <!-- Divider -->
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="#66d4d4d4" />
+
+
+            <!-- ================= BOTTOM META ================= -->
+
+            <RelativeLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginRight="40dp"
+                    android:layout_marginEnd="40dp"
+                    android:orientation="horizontal"
+                    android:paddingTop="10dp"
+                    android:paddingBottom="10dp"
+                    android:weightSum="4">
+
+                    <!-- User -->
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="20dp"
+                        android:layout_weight="1"
+                        android:gravity="center"
+                        android:paddingRight="2dp"
+                        android:paddingEnd="2dp">
 
                         <com.github.siyamed.shapeimageview.CircularImageView
                             android:id="@+id/pack_item_image_view_userimage"
                             android:layout_width="16dp"
                             android:layout_height="16dp"
+                            android:layout_marginLeft="5dp"
+                            android:layout_marginStart="5dp"
+                            android:layout_marginRight="2dp"
+                            android:layout_marginEnd="2dp"
+                            android:adjustViewBounds="true"
+                            android:scaleType="fitXY"
                             android:src="@drawable/profile" />
 
                         <TextView
                             android:id="@+id/item_pack_username"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_marginStart="5dp"
-                            android:ellipsize="end"
+                            android:layout_width="match_parent"
+                            android:layout_height="20dp"
+                            android:layout_marginLeft="2dp"
+                            android:layout_marginStart="2dp"
+                            android:ellipsize="marquee"
+                            android:gravity="start|center_vertical"
                             android:maxLines="1"
+                            android:singleLine="true"
                             android:text="username"
                             android:textColor="@color/dark_gray"
-                            android:textSize="12sp" />
+                            android:textSize="10sp"
+                            android:textStyle="bold" />
 
-                        <ImageView
-                            android:layout_width="13dp"
-                            android:layout_height="13dp"
-                            android:layout_marginStart="9dp"
-                            android:layout_marginEnd="3dp"
-                            app:tint="@color/dark_gray"
-                            app:srcCompat="@drawable/ic_file_download"
-                            android:contentDescription="@null" />
-
-                        <TextView
-                            android:id="@+id/item_pack_downloads"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="12.7K"
-                            android:textColor="@color/dark_gray"
-                            android:textSize="12sp" />
-
-                        <ImageView
-                            android:layout_width="13dp"
-                            android:layout_height="13dp"
-                            android:layout_marginStart="9dp"
-                            android:layout_marginEnd="3dp"
-                            app:tint="@color/dark_gray"
-                            app:srcCompat="@drawable/ic_time"
-                            android:contentDescription="@null" />
-
-                        <TextView
-                            android:id="@+id/item_pack_created"
-                            android:layout_width="0dp"
-                            android:layout_height="wrap_content"
-                            android:layout_weight="1"
-                            android:ellipsize="end"
-                            android:maxLines="1"
-                            android:text="2h"
-                            android:textColor="@color/dark_gray"
-                            android:textSize="12sp" />
-
-                        <!-- Still bound by the adapter; the pack page carries them. -->
-                        <TextView
-                            android:id="@+id/item_pack_publisher"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:visibility="gone" />
-
-                        <TextView
-                            android:id="@+id/item_pack_size"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:visibility="gone" />
                     </LinearLayout>
 
-                    <LinearLayout
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="2dp"
-                        android:orientation="horizontal">
 
-                        <ImageView
-                            android:id="@+id/image_view_whatsapp"
-                            android:layout_width="20dp"
-                            android:layout_height="20dp"
-                            android:padding="3dp"
-                            android:visibility="gone"
-                            app:tint="#25D366"
-                            app:srcCompat="@drawable/ic_whatsapp"
-                            android:contentDescription="@null" />
+                    <!-- Downloads -->
+                    <RelativeLayout
+                        android:layout_width="0dp"
+                        android:layout_height="20dp"
+                        android:layout_weight="1"
+                        android:gravity="center">
 
-                        <ImageView
-                            android:id="@+id/image_view_telegram"
-                            android:layout_width="20dp"
+                        <LinearLayout
+                            android:layout_width="wrap_content"
                             android:layout_height="20dp"
-                            android:layout_marginStart="3dp"
-                            android:padding="3dp"
-                            android:visibility="gone"
-                            app:tint="#0088cc"
-                            app:srcCompat="@drawable/ic_telegram"
-                            android:contentDescription="@null" />
+                            android:paddingLeft="2dp"
+                            android:paddingStart="2dp"
+                            android:paddingRight="2dp"
+                            android:paddingEnd="2dp">
 
-                        <ImageView
-                            android:id="@+id/image_view_signal"
-                            android:layout_width="20dp"
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:contentDescription="@null"
+                                android:padding="2dp"
+                                app:srcCompat="@drawable/ic_file_download"
+                                app:tint="@color/dark_gray" />
+
+                            <TextView
+                                android:id="@+id/item_pack_downloads"
+                                android:layout_width="match_parent"
+                                android:layout_height="match_parent"
+                                android:layout_marginLeft="2dp"
+                                android:layout_marginStart="2dp"
+                                android:ellipsize="marquee"
+                                android:gravity="start|center_vertical"
+                                android:maxLines="1"
+                                android:singleLine="true"
+                                android:text="12.7K"
+                                android:textColor="@color/dark_gray"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+
+                        </LinearLayout>
+
+                    </RelativeLayout>
+
+
+                    <!-- Size -->
+                    <RelativeLayout
+                        android:layout_width="0dp"
+                        android:layout_height="20dp"
+                        android:layout_weight="1"
+                        android:gravity="center">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
                             android:layout_height="20dp"
-                            android:layout_marginStart="3dp"
-                            android:visibility="gone"
-                            app:tint="#007bff"
-                            app:srcCompat="@drawable/ic_signal"
-                            android:contentDescription="@null" />
-                    </LinearLayout>
+                            android:paddingLeft="2dp"
+                            android:paddingStart="2dp"
+                            android:paddingRight="2dp"
+                            android:paddingEnd="2dp">
+
+                            <ImageView
+                                android:layout_width="20dp"
+                                android:layout_height="20dp"
+                                android:contentDescription="@null"
+                                android:padding="2dp"
+                                app:srcCompat="@drawable/ic_size"
+                                app:tint="@color/dark_gray" />
+
+                            <TextView
+                                android:id="@+id/item_pack_size"
+                                android:layout_width="match_parent"
+                                android:layout_height="20dp"
+                                android:layout_marginLeft="2dp"
+                                android:layout_marginStart="2dp"
+                                android:ellipsize="marquee"
+                                android:gravity="start|center_vertical"
+                                android:maxLines="1"
+                                android:singleLine="true"
+                                android:text="123 kb"
+                                android:textColor="@color/dark_gray"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+
+                        </LinearLayout>
+
+                    </RelativeLayout>
+
+
+                    <!-- Created -->
+                    <RelativeLayout
+                        android:layout_width="0dp"
+                        android:layout_height="20dp"
+                        android:layout_weight="1"
+                        android:gravity="right"
+                        android:paddingRight="4dp"
+                        android:paddingEnd="4dp">
+
+                        <LinearLayout
+                            android:layout_width="wrap_content"
+                            android:layout_height="20dp"
+                            android:paddingLeft="2dp"
+                            android:paddingStart="2dp"
+                            android:paddingRight="2dp"
+                            android:paddingEnd="2dp">
+
+                            <ImageView
+                                android:layout_width="16dp"
+                                android:layout_height="20dp"
+                                android:contentDescription="@null"
+                                app:srcCompat="@drawable/ic_time"
+                                app:tint="@color/dark_gray" />
+
+                            <TextView
+                                android:id="@+id/item_pack_created"
+                                android:layout_width="match_parent"
+                                android:layout_height="20dp"
+                                android:layout_marginLeft="2dp"
+                                android:layout_marginStart="2dp"
+                                android:ellipsize="marquee"
+                                android:gravity="start|center_vertical"
+                                android:maxLines="1"
+                                android:singleLine="true"
+                                android:text="10 minutes ago"
+                                android:textColor="@color/dark_gray"
+                                android:textSize="10sp"
+                                android:textStyle="bold" />
+
+                        </LinearLayout>
+
+                    </RelativeLayout>
+
                 </LinearLayout>
 
-                <ImageView
-                    android:id="@+id/image_view_item_pack_fav"
-                    android:layout_width="38dp"
-                    android:layout_height="38dp"
-                    android:background="?attr/selectableItemBackgroundBorderless"
-                    android:clickable="true"
-                    android:focusable="true"
-                    android:padding="8dp"
-                    app:tint="@color/menuSelector"
-                    app:srcCompat="@drawable/ic_favorite_black"
-                    android:contentDescription="@null" />
 
+                <!-- Vertical divider -->
+                <RelativeLayout
+                    android:layout_width="1dp"
+                    android:layout_height="20dp"
+                    android:layout_alignParentRight="true"
+                    android:layout_alignParentEnd="true"
+                    android:layout_marginTop="10dp"
+                    android:layout_marginRight="35dp"
+                    android:layout_marginEnd="35dp"
+                    android:layout_marginBottom="10dp"
+                    android:alpha="0.5"
+                    android:background="@color/primary_text_light" />
+
+
+                <!-- More menu -->
                 <androidx.appcompat.widget.AppCompatImageView
                     android:id="@+id/image_view_menu_item"
-                    android:layout_width="32dp"
-                    android:layout_height="32dp"
-                    android:background="?android:attr/selectableItemBackgroundBorderless"
+                    android:layout_width="40dp"
+                    android:layout_height="40dp"
+                    android:layout_alignParentRight="true"
+                    android:layout_alignParentEnd="true"
+                    android:background="?android:attr/selectableItemBackground"
                     android:clickable="true"
+                    android:contentDescription="@null"
                     android:focusable="true"
-                    android:padding="6dp"
-                    app:tint="@color/primary_text_light"
-                    app:srcCompat="@drawable/ic_more" />
-            </LinearLayout>
+                    android:padding="7dp"
+                    app:srcCompat="@drawable/ic_more"
+                    app:tint="@color/primary_text_light" />
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:orientation="horizontal">
-                <ImageView
-                    android:id="@+id/sticker_one"
-                    android:layout_width="0dp"
-                    android:layout_height="72dp"
-                    android:layout_weight="1"
-                    android:background="@drawable/sticker_error"
-                    android:padding="3dp"
-                    android:scaleType="fitCenter"
-                    android:contentDescription="@null" />
+            </RelativeLayout>
 
-                <ImageView
-                    android:id="@+id/sticker_two"
-                    android:layout_width="0dp"
-                    android:layout_height="72dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="5dp"
-                    android:background="@drawable/sticker_error"
-                    android:padding="3dp"
-                    android:scaleType="fitCenter"
-                    android:contentDescription="@null" />
-
-                <ImageView
-                    android:id="@+id/sticker_three"
-                    android:layout_width="0dp"
-                    android:layout_height="72dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="5dp"
-                    android:background="@drawable/sticker_error"
-                    android:padding="3dp"
-                    android:scaleType="fitCenter"
-                    android:contentDescription="@null" />
-
-                <ImageView
-                    android:id="@+id/sticker_four"
-                    android:layout_width="0dp"
-                    android:layout_height="72dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="5dp"
-                    android:background="@drawable/sticker_error"
-                    android:padding="3dp"
-                    android:scaleType="fitCenter"
-                    android:contentDescription="@null" />
-
-                <ImageView
-                    android:id="@+id/sticker_five"
-                    android:layout_width="0dp"
-                    android:layout_height="72dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="5dp"
-                    android:background="@drawable/sticker_error"
-                    android:padding="3dp"
-                    android:scaleType="fitCenter"
-                    android:contentDescription="@null" />
-
-                <ImageView
-                    android:id="@+id/sticker_six"
-                    android:layout_width="0dp"
-                    android:layout_height="72dp"
-                    android:layout_weight="1"
-                    android:layout_marginStart="5dp"
-                    android:background="@drawable/sticker_error"
-                    android:padding="3dp"
-                    android:scaleType="fitCenter"
-                    android:contentDescription="@null" />
-
-            </LinearLayout>
         </LinearLayout>
+
     </androidx.cardview.widget.CardView>
+
+
+    <!-- ================= PREMIUM ================= -->
+
     <RelativeLayout
-        android:visibility="gone"
-        android:elevation="10dp"
-        android:layout_marginLeft="12dp"
-        android:layout_marginTop="2dp"
-        android:layout_alignParentLeft="true"
         android:id="@+id/item_pack_premium"
-        android:paddingLeft="4dp"
-        android:paddingRight="5dp"
-        android:gravity="center"
-        android:background="@drawable/background_size"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginLeft="2dp"
+        android:layout_marginStart="2dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/background_size"
+        android:elevation="10dp"
+        android:gravity="center"
+        android:paddingLeft="4dp"
+        android:paddingStart="4dp"
+        android:paddingRight="5dp"
+        android:paddingEnd="5dp"
+        android:visibility="gone">
 
         <ImageView
-            android:layout_marginTop="3dp"
-            android:layout_marginBottom="3dp"
-            android:padding="1dp"
             android:layout_width="16dp"
             android:layout_height="16dp"
-            app:tint="@color/white"
-            app:srcCompat="@drawable/ic_attach_money" />
+            android:layout_marginTop="3dp"
+            android:layout_marginBottom="3dp"
+            android:contentDescription="@null"
+            android:padding="1dp"
+            app:srcCompat="@drawable/ic_attach_money"
+            app:tint="@color/white" />
+
         <TextView
-            android:layout_marginTop="2dp"
-            android:textAppearance="@style/TextAppearance.AppCompat.Body2"
-            android:gravity="top"
-            android:textColor="@color/white"
-            android:text="Premium"
-            android:textSize="12dp"
-            android:layout_marginLeft="13dp"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="13dp"
+            android:layout_marginStart="13dp"
+            android:layout_marginTop="2dp"
+            android:gravity="top"
+            android:text="Premium"
+            android:textAppearance="@style/TextAppearance.AppCompat.Body2"
+            android:textColor="@color/white"
+            android:textSize="12sp" />
+
     </RelativeLayout>
+
+
+    <!-- ================= DELETE ================= -->
+
     <RelativeLayout
-        android:visibility="gone"
-        android:elevation="10dp"
-        android:layout_marginLeft="12dp"
-        android:layout_marginTop="2dp"
-        android:layout_alignParentLeft="true"
         android:id="@+id/item_pack_delete"
-        android:gravity="center"
-        android:background="@drawable/background_btn_red"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_marginLeft="2dp"
+        android:layout_marginStart="2dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/background_btn_red"
+        android:elevation="10dp"
+        android:gravity="center"
+        android:visibility="gone">
 
         <ImageView
             android:id="@+id/image_view_delete"
             android:layout_width="40dp"
             android:layout_height="40dp"
-            android:layout_alignParentStart="true"
-            android:layout_alignParentLeft="true"
-            android:layout_marginStart="0dp"
-            android:layout_marginLeft="0dp"
             android:background="?attr/selectableItemBackground"
             android:clickable="true"
+            android:contentDescription="@null"
             android:focusable="true"
             android:padding="5dp"
-            app:tint="@color/white"
-            app:srcCompat="@drawable/ic_delete_review" />
-        <TextView
-            android:visibility="gone"
-            android:layout_marginTop="2dp"
-            android:textAppearance="@style/TextAppearance.AppCompat.Body2"
-            android:gravity="top"
-            android:textColor="@color/white"
-            android:text="Delete"
-            android:textSize="12dp"
-            android:layout_marginLeft="17dp"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-    </RelativeLayout>
-    <RelativeLayout
+            app:srcCompat="@drawable/ic_delete_review"
+            app:tint="@color/white" />
 
-        android:visibility="gone"
-        android:elevation="10dp"
-        android:layout_marginRight="12dp"
-        android:layout_marginTop="2dp"
-        android:layout_alignParentRight="true"
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="17dp"
+            android:layout_marginStart="17dp"
+            android:layout_marginTop="2dp"
+            android:gravity="top"
+            android:text="Delete"
+            android:textAppearance="@style/TextAppearance.AppCompat.Body2"
+            android:textColor="@color/white"
+            android:textSize="12sp"
+            android:visibility="gone" />
+
+    </RelativeLayout>
+
+
+    <!-- ================= REVIEW ================= -->
+
+    <RelativeLayout
         android:id="@+id/item_pack_review"
-        android:paddingLeft="4dp"
-        android:paddingRight="5dp"
-        android:gravity="center"
-        android:background="@drawable/background_btn_red"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content">
+        android:layout_height="wrap_content"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentEnd="true"
+        android:layout_marginTop="10dp"
+        android:layout_marginRight="2dp"
+        android:layout_marginEnd="2dp"
+        android:background="@drawable/background_btn_red"
+        android:elevation="10dp"
+        android:gravity="center"
+        android:paddingLeft="4dp"
+        android:paddingStart="4dp"
+        android:paddingRight="5dp"
+        android:paddingEnd="5dp"
+        android:visibility="gone">
 
         <ImageView
-            android:layout_marginTop="3dp"
-            android:layout_marginBottom="3dp"
-            android:padding="1dp"
             android:layout_width="16dp"
             android:layout_height="16dp"
-            app:tint="@color/white"
-            app:srcCompat="@drawable/ic_time" />
+            android:layout_marginTop="3dp"
+            android:layout_marginBottom="3dp"
+            android:contentDescription="@null"
+            android:padding="1dp"
+            app:srcCompat="@drawable/ic_time"
+            app:tint="@color/white" />
+
         <TextView
-            android:layout_marginTop="2dp"
-            android:textAppearance="@style/TextAppearance.AppCompat.Body2"
-            android:gravity="top"
-            android:textColor="@color/white"
-            android:text="On Review"
-            android:textSize="12dp"
-            android:layout_marginLeft="17dp"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="17dp"
+            android:layout_marginStart="17dp"
+            android:layout_marginTop="2dp"
+            android:gravity="top"
+            android:text="On Review"
+            android:textAppearance="@style/TextAppearance.AppCompat.Body2"
+            android:textColor="@color/white"
+            android:textSize="12sp" />
+
     </RelativeLayout>
+
 </RelativeLayout>

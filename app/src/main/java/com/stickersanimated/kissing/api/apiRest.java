@@ -151,9 +151,14 @@ public interface apiRest {
     Call<ApiResponse> uploadPack(@Part MultipartBody.Part file,@Part List<MultipartBody.Part> files, @Part("size") Integer size, @Part("id") String id, @Part("key") String key, @Part("name") String name, @Part("publisher") String publisher,@Part("email") String email,@Part("website") String website,@Part("privacy") String privacy,@Part("license") String license, @Part("categories") String categories);
 
 
-    /** Email and password sign in, used when the panel switches manual accounts on. */
-    @GET("user/login/{username}/{password}/"+ Config.SECURE_KEY+"/"+Config.ITEM_PURCHASE_CODE+"/")
-    Call<ApiResponse> login(@Path("username") String username, @Path("password") String password);
+    /**
+     * Email and password sign in, used when the panel switches manual accounts on. The
+     * address and the password go in the body: in the path they have to survive URL
+     * encoding, and a password in a URL is written to the server's access log.
+     */
+    @FormUrlEncoded
+    @POST("user/signin/"+ Config.SECURE_KEY+"/"+Config.ITEM_PURCHASE_CODE+"/")
+    Call<ApiResponse> login(@Field("username") String username, @Field("password") String password);
 
     @FormUrlEncoded
     @POST("user/register/"+ Config.SECURE_KEY+"/"+Config.ITEM_PURCHASE_CODE+"/")
