@@ -276,7 +276,19 @@ public class LoginActivity extends AppCompatActivity {
         }
     };
     private void verifyCode(String code) {
-        PhoneAuthCredential credential = PhoneAuthProvider.getCredential(verificationId, code);
+        // Firebase throws rather than returning an error when the verification id is
+        // missing, which is what happens if the code never arrived - no Play Services,
+        // a failed send, or Confirm tapped before the SMS landed.
+        if (verificationId == null || verificationId.isEmpty()) {
+            Toasty.error(this, getString(R.string.login_no_code_sent), Toast.LENGTH_LONG).show();
+            return;
+        }
+        if (code == null || code.trim().isEmpty()) {
+            Toasty.error(this, getString(R.string.login_enter_code), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        final PhoneAuthCredential credential =
+                PhoneAuthProvider.getCredential(verificationId, code.trim());
         signInWithCredential(credential);
     }
     private void signInWithCredential(PhoneAuthCredential credential) {
