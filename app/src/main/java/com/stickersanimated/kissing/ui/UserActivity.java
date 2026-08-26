@@ -38,6 +38,7 @@ import com.stickersanimated.kissing.entity.CategoryApi;
 import com.stickersanimated.kissing.entity.PackApi;
 import com.stickersanimated.kissing.entity.UserApi;
 import com.squareup.picasso.Picasso;
+import com.stickersanimated.kissing.reels.Reels;
 import com.stickersanimated.kissing.reels.ReelsFragment;
 import com.stickersanimated.kissing.utils.Images;
 import com.stickersanimated.kissing.ui.fragmenet.UserFragment;
@@ -227,11 +228,21 @@ public class UserActivity extends AppCompatActivity {
 
 
         adapter.addFragment(userFragment, "Stickers");
-        // Same feed as the Reels tab, narrowed to this profile.
-        adapter.addFragment(ReelsFragment.forUser(id), "Reels");
+        // Same feed as the Reels tab, narrowed to this profile - and gone entirely when
+        // the panel has switched reels off.
+        final boolean reelsOn = Reels.enabled(this);
+        if (reelsOn) {
+            adapter.addFragment(ReelsFragment.forUser(id), "Reels");
+        } else {
+            text_view_profile_tab_packs.setVisibility(View.GONE);
+            text_view_profile_tab_reels.setVisibility(View.GONE);
+        }
 
         viewPager.setAdapter(adapter);
         viewPager.setCurrentItem(0);
+        if (!reelsOn) {
+            return;
+        }
         viewPager.addOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
             @Override
             public void onPageSelected(int position) {
