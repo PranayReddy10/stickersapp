@@ -192,6 +192,8 @@
 
     <string name="reels">Reels</string>
     <string name="profile_tab_stickers">WhatsApp Stickers</string>
+    <string name="notification_channel_name">Sticker packs and updates</string>
+    <string name="notification_channel_description">New packs, categories and messages from the app</string>
     <string name="reel_sign_in_to_like">Sign in to like this reel</string>
     <string name="reel_like_failed">Could not save your like, please try again</string>
     <string name="reel_share">Share</string>

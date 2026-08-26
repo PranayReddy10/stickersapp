@@ -2,15 +2,21 @@ package com.stickersanimated.kissing.ui;
 
 import static androidx.fragment.app.FragmentPagerAdapter.BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT;
 
+import android.Manifest;
 import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
+import androidx.core.content.ContextCompat;
 
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
@@ -140,8 +146,32 @@ public class HomeActivity extends AppCompatActivity
         initBuy();
         firebaseSubscribe();
         initGDPR();
+        askForNotificationPermission();
         PrefManager prf= new PrefManager(getApplicationContext());
 
+    }
+
+    private final ActivityResultLauncher<String> notificationPermission =
+            registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
+                if (!granted) {
+                    Log.v("HomeActivity", "Notifications were declined");
+                }
+            });
+
+    /**
+     * From Android 13 a notification is dropped unless the user has granted
+     * POST_NOTIFICATIONS, so nothing the panel sends would ever appear without asking.
+     * Android itself only shows the dialog once and remembers the answer.
+     */
+    private void askForNotificationPermission() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
+            return;
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                == PackageManager.PERMISSION_GRANTED) {
+            return;
+        }
+        notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS);
     }
     private void firebaseSubscribe() {
         FirebaseMessaging.getInstance().subscribeToTopic("StickersAppTopic")
