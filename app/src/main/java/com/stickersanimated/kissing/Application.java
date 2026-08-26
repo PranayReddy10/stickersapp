@@ -15,6 +15,7 @@ import com.google.android.gms.ads.MobileAds;
 import com.orhanobut.hawk.Hawk;
 import com.stickersanimated.kissing.ads.AdsInitializer;
 import com.stickersanimated.kissing.utils.EdgeToEdgeHelper;
+import com.stickersanimated.kissing.utils.Notifications;
 
 import java.util.Arrays;
 
@@ -40,6 +41,10 @@ public class Application extends MultiDexApplication {
         // Android 16 always draws windows edge to edge; this keeps the system bars from
         // covering the app's own content.
         EdgeToEdgeHelper.install(this);
+
+        // The notification channel has to exist before the first message arrives, since
+        // a notification payload is posted by Android without the app's code running.
+        Notifications.ensureChannel(this);
     }
 
     public static Application getInstance() {

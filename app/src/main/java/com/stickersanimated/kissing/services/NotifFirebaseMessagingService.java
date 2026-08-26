@@ -1,6 +1,5 @@
 package com.stickersanimated.kissing.services;
 
-import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
@@ -19,6 +18,10 @@ import com.google.firebase.messaging.FirebaseMessagingService;
 import com.google.firebase.messaging.RemoteMessage;
 import com.stickersanimated.kissing.Manager.PrefManager;
 import com.stickersanimated.kissing.R;
+import com.stickersanimated.kissing.api.apiClient;
+import com.stickersanimated.kissing.api.apiRest;
+import com.stickersanimated.kissing.entity.ApiResponse;
+import com.stickersanimated.kissing.utils.Notifications;
 import com.stickersanimated.kissing.ui.CategoryActivity;
 import com.stickersanimated.kissing.ui.HomeActivity;
 import com.stickersanimated.kissing.ui.LoadActivity;
@@ -28,28 +31,72 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+import androidx.annotation.NonNull;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 
 public class NotifFirebaseMessagingService extends FirebaseMessagingService {
 
     private static final String TAG = "FCM Service";
     Bitmap bitmap;
 
+    /**
+     * FCM hands out a new token on a reinstall, a restore to a new device or a plain
+     * refresh. The server only ever heard the token from the login screen, so a refreshed
+     * device silently stopped receiving anything; it is sent again here.
+     */
+    @Override
+    public void onNewToken(@NonNull String token) {
+        super.onNewToken(token);
+        final PrefManager prefManager = new PrefManager(getApplicationContext());
+        if (!"TRUE".equals(prefManager.getString("LOGGED"))) {
+            // Signed out: the login flow sends the token itself.
+            return;
+        }
+        final int userId;
+        try {
+            userId = Integer.parseInt(prefManager.getString("ID_USER"));
+        } catch (NumberFormatException e) {
+            return;
+        }
+        apiClient.getClient().create(apiRest.class)
+                .editToken(userId, prefManager.getString("TOKEN_USER"), token,
+                        prefManager.getString("NAME_USER"))
+                .enqueue(new Callback<ApiResponse>() {
+                    @Override
+                    public void onResponse(@NonNull Call<ApiResponse> call,
+                                           @NonNull Response<ApiResponse> response) {
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<ApiResponse> call, @NonNull Throwable t) {
+                        Log.w(TAG, "Could not hand the refreshed token to the server", t);
+                    }
+                });
+    }
+
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
 
-        Log.v(TAG,remoteMessage.toString());
-        Log.v(TAG,remoteMessage.getData().get("type"));
-
+        Log.v(TAG, remoteMessage.toString());
 
         String type = remoteMessage.getData().get("type");
         String id = remoteMessage.getData().get("id");
+        if (type == null || id == null) {
+            // A notification-only message, or one from a sender that does not use these
+            // fields. Android posts those itself; there is nothing to build here.
+            return;
+        }
         String title = remoteMessage.getData().get("title");
         String image = remoteMessage.getData().get("image");
         String icon = remoteMessage.getData().get("icon");
         String message = remoteMessage.getData().get("message");
 
         PrefManager prf = new PrefManager(getApplicationContext());
-        if (!prf.getString("notifications").equals("false")) {
+        if (!"false".equals(prf.getString("notifications"))) {
             if (type.equals("pack")){
                 sendNotification(
                         id,
@@ -115,7 +162,7 @@ public class NotifFirebaseMessagingService extends FirebaseMessagingService {
         intent.setAction(Long.toString(System.currentTimeMillis()));
 
 
-        intent.putExtra("id", Integer.parseInt(id));
+        intent.putExtra("id", notificationId(id));
         intent.putExtra("title",category_title);
         intent.putExtra("image",category_image);
         intent.putExtra("from", "notification");
@@ -124,28 +171,15 @@ public class NotifFirebaseMessagingService extends FirebaseMessagingService {
 
         Bitmap largeIcon = BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher);
 
-        int NOTIFICATION_ID = Integer.parseInt(id);
+        int NOTIFICATION_ID = notificationId(id);
 
         NotificationManager notificationManager = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
-        String CHANNEL_ID = "my_channel_01";
-        CharSequence name = "my_channel";
-        String Description = "This is my channel";
-
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-
-            int importance = NotificationManager.IMPORTANCE_HIGH;
-            NotificationChannel mChannel = new NotificationChannel(CHANNEL_ID, name, importance);
-            mChannel.setDescription(Description);
-            mChannel.enableLights(true);
-            mChannel.setLightColor(Color.RED);
-            mChannel.enableVibration(true);
-            mChannel.setVibrationPattern(new long[]{100, 200, 300, 400, 500, 400, 300, 200, 400});
-            mChannel.setShowBadge(false);
-            notificationManager.createNotificationChannel(mChannel);
-        }
+        final String CHANNEL_ID = Notifications.CHANNEL_ID;
+        Notifications.ensureChannel(getApplicationContext());
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID)
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setColor(Color.parseColor("#25D366"))
                 .setContentTitle(title)
                 .setContentText(message)
                 .setAutoCancel(true)
@@ -167,7 +201,7 @@ public class NotifFirebaseMessagingService extends FirebaseMessagingService {
         stackBuilder.addNextIntent(intent);
         PendingIntent resultPendingIntent;
         if (Build.VERSION.SDK_INT>= Build.VERSION_CODES.S){
-            resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_MUTABLE);
+            resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         }else {
             resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
         }
@@ -197,28 +231,15 @@ public class NotifFirebaseMessagingService extends FirebaseMessagingService {
 
         Bitmap largeIcon = BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher);
 
-        int NOTIFICATION_ID = Integer.parseInt(id);
+        int NOTIFICATION_ID = notificationId(id);
 
         NotificationManager notificationManager = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
-        String CHANNEL_ID = "my_channel_01";
-        CharSequence name = "my_channel";
-        String Description = "This is my channel";
-
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-
-            int importance = NotificationManager.IMPORTANCE_HIGH;
-            NotificationChannel mChannel = new NotificationChannel(CHANNEL_ID, name, importance);
-            mChannel.setDescription(Description);
-            mChannel.enableLights(true);
-            mChannel.setLightColor(Color.RED);
-            mChannel.enableVibration(true);
-            mChannel.setVibrationPattern(new long[]{100, 200, 300, 400, 500, 400, 300, 200, 400});
-            mChannel.setShowBadge(false);
-            notificationManager.createNotificationChannel(mChannel);
-        }
+        final String CHANNEL_ID = Notifications.CHANNEL_ID;
+        Notifications.ensureChannel(getApplicationContext());
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID)
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setColor(Color.parseColor("#25D366"))
                 .setContentTitle(title)
                 .setContentText(message)
                 .setAutoCancel(true)
@@ -241,7 +262,7 @@ public class NotifFirebaseMessagingService extends FirebaseMessagingService {
         stackBuilder.addNextIntent(notificationIntent);
         PendingIntent resultPendingIntent;
         if (Build.VERSION.SDK_INT>= Build.VERSION_CODES.S){
-            resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_MUTABLE);
+            resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         }else {
             resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
         }
@@ -271,33 +292,20 @@ public class NotifFirebaseMessagingService extends FirebaseMessagingService {
         Intent intent = new Intent(this, LoadActivity.class);
         intent.setAction(Long.toString(System.currentTimeMillis()));
 
-        intent.putExtra("id", Integer.parseInt(id));
+        intent.putExtra("id", notificationId(id));
         intent.putExtra("from", "notification");
 
         Bitmap largeIcon = BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher);
 
-        int NOTIFICATION_ID = Integer.parseInt(id);
+        int NOTIFICATION_ID = notificationId(id);
 
         NotificationManager notificationManager = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
-        String CHANNEL_ID = "my_channel_01";
-        CharSequence name = "my_channel";
-        String Description = "This is my channel";
-
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-
-            int importance = NotificationManager.IMPORTANCE_HIGH;
-            NotificationChannel mChannel = new NotificationChannel(CHANNEL_ID, name, importance);
-            mChannel.setDescription(Description);
-            mChannel.enableLights(true);
-            mChannel.setLightColor(Color.RED);
-            mChannel.enableVibration(true);
-            mChannel.setVibrationPattern(new long[]{100, 200, 300, 400, 500, 400, 300, 200, 400});
-            mChannel.setShowBadge(false);
-            notificationManager.createNotificationChannel(mChannel);
-        }
+        final String CHANNEL_ID = Notifications.CHANNEL_ID;
+        Notifications.ensureChannel(getApplicationContext());
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID)
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setColor(Color.parseColor("#25D366"))
                 .setContentTitle(title)
                 .setContentText(message)
                 .setAutoCancel(true)
@@ -320,7 +328,7 @@ public class NotifFirebaseMessagingService extends FirebaseMessagingService {
         stackBuilder.addNextIntent(intent);
         PendingIntent resultPendingIntent;
         if (Build.VERSION.SDK_INT>= Build.VERSION_CODES.S){
-            resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_MUTABLE);
+            resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         }else {
             resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
         }
@@ -347,7 +355,7 @@ public class NotifFirebaseMessagingService extends FirebaseMessagingService {
         intent.setAction(Long.toString(System.currentTimeMillis()));
 
 
-        intent.putExtra("id", Integer.parseInt(id));
+        intent.putExtra("id", notificationId(id));
         intent.putExtra("name",name_user);
         intent.putExtra("image",image_user);
         intent.putExtra("from", "notification");
@@ -357,28 +365,15 @@ public class NotifFirebaseMessagingService extends FirebaseMessagingService {
 
         Bitmap largeIcon = BitmapFactory.decodeResource(getResources(), R.mipmap.ic_launcher);
 
-        int NOTIFICATION_ID = Integer.parseInt(id);
+        int NOTIFICATION_ID = notificationId(id);
 
         NotificationManager notificationManager = (NotificationManager) getApplicationContext().getSystemService(Context.NOTIFICATION_SERVICE);
-        String CHANNEL_ID = "my_channel_01";
-        CharSequence name = "my_channel";
-        String Description = "This is my channel";
-
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-
-            int importance = NotificationManager.IMPORTANCE_HIGH;
-            NotificationChannel mChannel = new NotificationChannel(CHANNEL_ID, name, importance);
-            mChannel.setDescription(Description);
-            mChannel.enableLights(true);
-            mChannel.setLightColor(Color.RED);
-            mChannel.enableVibration(true);
-            mChannel.setVibrationPattern(new long[]{100, 200, 300, 400, 500, 400, 300, 200, 400});
-            mChannel.setShowBadge(false);
-            notificationManager.createNotificationChannel(mChannel);
-        }
+        final String CHANNEL_ID = Notifications.CHANNEL_ID;
+        Notifications.ensureChannel(getApplicationContext());
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(getApplicationContext(), CHANNEL_ID)
-                .setSmallIcon(R.mipmap.ic_launcher)
+                .setSmallIcon(R.drawable.ic_notification)
+                .setColor(Color.parseColor("#25D366"))
                 .setContentTitle(title)
                 .setContentText(message)
                 .setAutoCancel(true)
@@ -401,7 +396,7 @@ public class NotifFirebaseMessagingService extends FirebaseMessagingService {
         stackBuilder.addNextIntent(intent);
         PendingIntent resultPendingIntent;
         if (Build.VERSION.SDK_INT>= Build.VERSION_CODES.S){
-            resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_MUTABLE);
+            resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT);
         }else {
             resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
         }
