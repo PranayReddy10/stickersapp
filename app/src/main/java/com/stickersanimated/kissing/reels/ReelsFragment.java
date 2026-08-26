@@ -190,6 +190,21 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
         emptyView.setVisibility(rows.isEmpty() ? View.VISIBLE : View.GONE);
     }
 
+    /**
+     * What actually went wrong, rather than "could not save your like".
+     *
+     * The server answers a refusal with its own message in the body; a rejected sign
+     * in key comes back as a 404 page with no body at all. Both are worth seeing,
+     * along with the reel the app asked about - a reel id of 0 means the database it
+     * came from has no working primary key.
+     */
+    static String likeError(Response<JsonObject> response, JsonObject body, ReelApi reel) {
+        if (body != null && body.has("message")) {
+            return body.get("message").getAsString();
+        }
+        return "Like failed: server said " + response.code() + " for reel " + reel.getId();
+    }
+
     /** True when this is a profile's Reels tab rather than the main feed. */
     private boolean isProfileFeed() {
         return author > 0;
@@ -334,8 +349,8 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
                             reel.setLiked(wasLiked);
                             reel.setLikes(reel.getLikes() + (wasLiked ? 1 : -1));
                             adapter.notifyDataSetChanged();
-                            Toasty.error(requireContext(), getString(R.string.reel_like_failed),
-                                    Toast.LENGTH_SHORT).show();
+                            Toasty.error(requireContext(), likeError(response, body, reel),
+                                    Toast.LENGTH_LONG).show();
                             return;
                         }
                         reel.setLiked("true".equals(body.get("liked").getAsString()));

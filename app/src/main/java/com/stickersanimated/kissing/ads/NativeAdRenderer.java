@@ -193,11 +193,11 @@ final class NativeAdRenderer {
         final TextView body = (TextView) view.findViewById(R.id.text_view_native_body);
         final TextView cta = (TextView) view.findViewById(R.id.text_view_native_cta);
 
-        title.setText(nativeAd.getAdTitle());
-        setTextOrHide(body, nativeAd.getAdDescription());
-        setTextOrHide(cta, nativeAd.getAdCtaText());
+        title.setText(inmobiText(nativeAd, "getAdTitle", ""));
+        setTextOrHide(body, inmobiText(nativeAd, "getAdDescription", ""));
+        setTextOrHide(cta, inmobiText(nativeAd, "getAdCtaText", "OPEN"));
 
-        final String iconUrl = nativeAd.getAdIconUrl();
+        final String iconUrl = inmobiText(nativeAd, "getAdIconUrl", "");
         if (iconUrl != null && !iconUrl.trim().isEmpty()) {
             Picasso.get().load(iconUrl.trim()).into(icon);
         } else {
@@ -216,6 +216,23 @@ final class NativeAdRenderer {
         title.setOnClickListener(open);
         media.setOnClickListener(open);
         return view;
+    }
+
+    /**
+     * One of InMobi's text getters, or the fallback when this SDK build does not have
+     * it. The names have come and gone across InMobi releases - getAdCtaText is absent
+     * from some - and a missing getter is not worth failing the whole ad over.
+     */
+    private static String inmobiText(InMobiNative nativeAd, String getter, String fallback) {
+        try {
+            final Object value = InMobiNative.class.getMethod(getter).invoke(nativeAd);
+            if (value instanceof String && !((String) value).trim().isEmpty()) {
+                return (String) value;
+            }
+        } catch (Throwable ignored) {
+            // Not in this SDK build, or it threw: use the fallback.
+        }
+        return fallback;
     }
 
     private static void setTextOrHide(View view, CharSequence text) {
