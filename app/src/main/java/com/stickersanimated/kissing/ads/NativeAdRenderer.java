@@ -15,6 +15,8 @@ import com.applovin.mediation.nativeAds.MaxNativeAdView;
 import com.applovin.mediation.nativeAds.MaxNativeAdViewBinder;
 import com.facebook.ads.AdOptionsView;
 import com.inmobi.ads.InMobiNative;
+import com.inmobi.media.ads.nativeAd.InMobiNativeImage;
+import com.inmobi.media.ads.nativeAd.InMobiNativeViewData;
 import com.facebook.ads.MediaView;
 import com.facebook.ads.NativeAdLayout;
 import com.facebook.ads.NativeBannerAd;
@@ -184,55 +186,46 @@ final class NativeAdRenderer {
      * InMobi native. Unlike the others it returns the creative as a view sized to a
      * width, and the click has to be reported by hand.
      */
-    static View renderInMobi(Context context, InMobiNative nativeAd, boolean fullscreen, int width) {
+    static View renderInMobi(Context context, InMobiNative nativeAd, boolean fullscreen) {
         final View view = LayoutInflater.from(context).inflate(fullscreen
                 ? R.layout.network_native_fullscreen : R.layout.item_network_native_ads, null);
+        final ViewGroup root = (ViewGroup) view.findViewById(R.id.frame_layout_native_root);
         final FrameLayout media = (FrameLayout) view.findViewById(R.id.frame_layout_native_media);
         final ImageView icon = (ImageView) view.findViewById(R.id.image_view_native_icon);
         final TextView title = (TextView) view.findViewById(R.id.text_view_native_title);
         final TextView body = (TextView) view.findViewById(R.id.text_view_native_body);
         final TextView cta = (TextView) view.findViewById(R.id.text_view_native_cta);
 
-        title.setText(inmobiText(nativeAd, "getAdTitle", ""));
-        setTextOrHide(body, inmobiText(nativeAd, "getAdDescription", ""));
-        setTextOrHide(cta, inmobiText(nativeAd, "getAdCtaText", "OPEN"));
+        title.setText(nativeAd.getAdTitle());
+        setTextOrHide(body, nativeAd.getAdDescription());
+        setTextOrHide(cta, nativeAd.getCtaText());
 
-        final String iconUrl = inmobiText(nativeAd, "getAdIconUrl", "");
+        final InMobiNativeImage iconImage = nativeAd.getAdIcon();
+        final String iconUrl = iconImage == null ? null : iconImage.getUrl();
         if (iconUrl != null && !iconUrl.trim().isEmpty()) {
             Picasso.get().load(iconUrl.trim()).into(icon);
         } else {
             icon.setVisibility(View.GONE);
         }
 
-        final View creative = nativeAd.getPrimaryViewOfWidth(context, null, media, width);
+        final com.inmobi.media.ads.nativeAd.MediaView mediaView = nativeAd.getMediaView();
         media.removeAllViews();
-        if (creative != null) {
-            media.addView(creative, new FrameLayout.LayoutParams(
+        if (mediaView != null) {
+            if (mediaView.getParent() instanceof ViewGroup) {
+                ((ViewGroup) mediaView.getParent()).removeView(mediaView);
+            }
+            media.addView(mediaView, new FrameLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         }
 
-        final View.OnClickListener open = v -> nativeAd.reportAdClickAndOpenLandingPage();
-        cta.setOnClickListener(open);
-        title.setOnClickListener(open);
-        media.setOnClickListener(open);
+        // InMobi wires the clicks itself once it knows which view is which.
+        nativeAd.registerViewForTracking(new InMobiNativeViewData.Builder(root)
+                .setTitleView(title)
+                .setDescriptionView(body)
+                .setIconView(icon)
+                .setCTAView(cta)
+                .build());
         return view;
-    }
-
-    /**
-     * One of InMobi's text getters, or the fallback when this SDK build does not have
-     * it. The names have come and gone across InMobi releases - getAdCtaText is absent
-     * from some - and a missing getter is not worth failing the whole ad over.
-     */
-    private static String inmobiText(InMobiNative nativeAd, String getter, String fallback) {
-        try {
-            final Object value = InMobiNative.class.getMethod(getter).invoke(nativeAd);
-            if (value instanceof String && !((String) value).trim().isEmpty()) {
-                return (String) value;
-            }
-        } catch (Throwable ignored) {
-            // Not in this SDK build, or it threw: use the fallback.
-        }
-        return fallback;
     }
 
     private static void setTextOrHide(View view, CharSequence text) {

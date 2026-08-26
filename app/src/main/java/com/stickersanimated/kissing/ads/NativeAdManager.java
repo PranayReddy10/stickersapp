@@ -284,7 +284,7 @@ public final class NativeAdManager {
                         }
                         release();
                         inmobiAd = ad;
-                        show(NativeAdRenderer.renderInMobi(activity, ad, fullscreen, mediaWidth()));
+                        show(NativeAdRenderer.renderInMobi(activity, ad, fullscreen));
                         onLoaded(attempt, AdNetwork.INMOBI);
                     }
 
@@ -295,15 +295,6 @@ public final class NativeAdManager {
                     }
                 });
         nativeAd.load();
-    }
-
-    /** The width InMobi should render its creative at, in pixels. */
-    private int mediaWidth() {
-        final int measured = container.getWidth();
-        if (measured > 0) {
-            return measured;
-        }
-        return activity.getResources().getDisplayMetrics().widthPixels;
     }
 
     private void show(View adView) {
@@ -365,6 +356,7 @@ public final class NativeAdManager {
                 vungleAd.unregisterView();
             }
             if (inmobiAd != null) {
+                inmobiAd.unTrackViews();
                 inmobiAd.destroy();
             }
         } catch (Throwable t) {
