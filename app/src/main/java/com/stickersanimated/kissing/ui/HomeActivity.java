@@ -64,6 +64,7 @@ import com.google.ads.consent.ConsentStatus;
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.miguelcatalan.materialsearchview.MaterialSearchView;
 import com.stickersanimated.kissing.Manager.PrefManager;
+import com.stickersanimated.kissing.utils.Images;
 import com.stickersanimated.kissing.R;
 import com.stickersanimated.kissing.config.Config;
 import com.stickersanimated.kissing.api.apiClient;
@@ -726,7 +727,7 @@ public class HomeActivity extends AppCompatActivity
             nav_Menu.findItem(R.id.logout).setVisible(true);
             nav_Menu.findItem(R.id.login).setVisible(false);
             text_view_name_nave_header.setText(prf.getString("NAME_USER").toString());
-           Picasso.get().load(prf.getString("IMAGE_USER").toString()).placeholder(R.drawable.profile).error(R.drawable.profile).resize(200,200).centerCrop().into(circle_image_view_profile_nav_header);
+           Images.profile(prf.getString("IMAGE_USER")).placeholder(R.drawable.profile).error(R.drawable.profile).resize(200,200).centerCrop().into(circle_image_view_profile_nav_header);
             if (prf.getString("TYPE_USER").toString().equals("google")){
             }else {
             }
@@ -751,7 +752,7 @@ public class HomeActivity extends AppCompatActivity
         prf.remove("LOGGED");
         if (prf.getString("LOGGED").toString().equals("TRUE")){
             text_view_name_nave_header.setText(prf.getString("NAME_USER").toString());
-           Picasso.get().load(prf.getString("IMAGE_USER").toString()).placeholder(R.drawable.profile).error(R.drawable.profile).resize(200,200).centerCrop().into(circle_image_view_profile_nav_header);
+           Images.profile(prf.getString("IMAGE_USER")).placeholder(R.drawable.profile).error(R.drawable.profile).resize(200,200).centerCrop().into(circle_image_view_profile_nav_header);
             if (prf.getString("TYPE_USER").toString().equals("google")){
             }else {
             }

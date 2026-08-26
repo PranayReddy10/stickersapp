@@ -39,6 +39,7 @@ import com.stickersanimated.kissing.entity.PackApi;
 import com.stickersanimated.kissing.entity.UserApi;
 import com.squareup.picasso.Picasso;
 import com.stickersanimated.kissing.reels.ReelsFragment;
+import com.stickersanimated.kissing.utils.Images;
 import com.stickersanimated.kissing.ui.fragmenet.UserFragment;
 
 import java.util.ArrayList;
@@ -143,7 +144,7 @@ public class UserActivity extends AppCompatActivity {
     private void initUser() {
         text_view_profile_user_activity.setText(name);
         if (!image.isEmpty()) {
-      Picasso.get().load(image).error(R.drawable.profile).placeholder(R.drawable.profile).into(this.image_view_profile_user_activity);
+      Images.profile(image).error(R.drawable.profile).placeholder(R.drawable.profile).into(this.image_view_profile_user_activity);
         } else {
       Picasso.get().load(R.drawable.profile).error(R.drawable.profile).placeholder(R.drawable.profile).into(this.image_view_profile_user_activity);
         }
