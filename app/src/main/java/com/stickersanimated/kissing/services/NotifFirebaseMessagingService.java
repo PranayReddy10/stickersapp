@@ -408,6 +408,15 @@ public class NotifFirebaseMessagingService extends FirebaseMessagingService {
     /*
      *To get a Bitmap image from the URL received
      * */
+    /** Ids come from the server as text; a non numeric one must not crash the service. */
+    private int notificationId(String id) {
+        try {
+            return Integer.parseInt(id);
+        } catch (NumberFormatException e) {
+            return (int) (System.currentTimeMillis() % Integer.MAX_VALUE);
+        }
+    }
+
     public Bitmap getBitmapfromUrl(String imageUrl) {
         try {
             URL url = new URL(imageUrl);
