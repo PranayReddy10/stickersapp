@@ -126,11 +126,12 @@ dependencies {
     implementation 'com.unity3d.ads:unity-ads:4.16.5'
 
     // Liftoff Monetize (Vungle) and InMobi as standalone waterfall networks.
-    // InMobi is declared at a known-good floor; the AppLovin inmobi-adapter above
-    // asks for a newer one and Gradle keeps the highest, so this line only
-    // guarantees the classes are on the compile classpath.
+    // InMobi is pinned to the version the AppLovin inmobi-adapter above is built
+    // against. Declaring an older one did not hold - Gradle keeps the highest, so the
+    // code compiled against whatever the adapter dragged in, and 11.x renamed the
+    // whole native API (getCtaText, getMediaView, registerViewForTracking).
     implementation 'com.vungle:vungle-ads:7.5.0'
-    implementation 'com.inmobi.monetization:inmobi-ads-kotlin:10.8.3'
+    implementation 'com.inmobi.monetization:inmobi-ads-kotlin:11.1.0'
 
     implementation 'com.squareup.picasso:picasso:2.71828'
     //noinspection GradleCompatible
