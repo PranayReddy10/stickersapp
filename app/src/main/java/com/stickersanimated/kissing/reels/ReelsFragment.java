@@ -3,6 +3,7 @@ package com.stickersanimated.kissing.reels;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.TypedValue;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -12,6 +13,8 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -46,6 +49,9 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
 
     /** Argument: show only this author's reels, as on a profile page. */
     private static final String ARG_AUTHOR = "author";
+
+    /** Height of the app's bottom navigation bar, which the button has to clear. */
+    private static final int BOTTOM_BAR_DP = 56;
 
     private static final String FILTER_ALL = "all";
     private static final String FILTER_PHOTO = "photo";
@@ -111,6 +117,7 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
         recyclerView.setAdapter(adapter);
 
         final View uploadButton = view.findViewById(R.id.fab_upload_reel);
+        keepAboveSystemBars(uploadButton);
         final View filters = view.findViewById(R.id.layout_reels_filters);
         if (isProfileFeed()) {
             uploadButton.setVisibility(View.GONE);
@@ -144,6 +151,30 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
 
         load();
         return view;
+    }
+
+    /**
+     * Holds the upload button clear of the bottom bar and the gesture bar.
+     *
+     * The margin used to be a fixed 90dp, which is only right on one phone: on others
+     * the button sat on the gesture bar or floated well above it. The bar's own height
+     * plus whatever the system reserves is measured instead.
+     */
+    private void keepAboveSystemBars(final View button) {
+        final int base = Math.round(TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,
+                BOTTOM_BAR_DP + 16, getResources().getDisplayMetrics()));
+        ViewCompat.setOnApplyWindowInsetsListener(button, (v, insets) -> {
+            final int systemBar = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom;
+            final ViewGroup.MarginLayoutParams params =
+                    (ViewGroup.MarginLayoutParams) v.getLayoutParams();
+            final int wanted = base + systemBar;
+            if (params.bottomMargin != wanted) {
+                params.bottomMargin = wanted;
+                v.setLayoutParams(params);
+            }
+            return insets;
+        });
+        ViewCompat.requestApplyInsets(button);
     }
 
     // ------------------------------------------------------------------ filters

@@ -74,6 +74,7 @@ import com.stickersanimated.kissing.entity.CategoryApi;
 import com.stickersanimated.kissing.services.BillingSubs;
 import com.stickersanimated.kissing.services.CallBackBilling;
 import com.stickersanimated.kissing.ui.fragmenet.FavoritesFragment;
+import com.stickersanimated.kissing.reels.Reels;
 import com.stickersanimated.kissing.reels.ReelsFragment;
 import com.stickersanimated.kissing.reels.UploadReelActivity;
 import com.stickersanimated.kissing.ui.fragmenet.HomeFragment;
@@ -98,7 +99,8 @@ public class HomeActivity extends AppCompatActivity
     private MaterialSearchView searchView;
     private FloatingActionButton fab;
     /** Reels sits third; the plus button posts a reel while it is showing. */
-    private static final int REELS_TAB = 2;
+    /** Menu item ids of the pager's tabs, in order. Reels is only in it when on. */
+    private final java.util.List<Integer> tabIds = new java.util.ArrayList<>();
 
     private ViewPager viewPager;
     private Dialog dialog;
@@ -366,10 +368,21 @@ public class HomeActivity extends AppCompatActivity
         viewPager = (ViewPager) findViewById(R.id.vp_horizontal_ntb);
         viewPager.setOffscreenPageLimit(100);
         adapter = new ViewPagerAdapter(getSupportFragmentManager());
+        // Reels can be switched off from the panel, and then nothing about them is
+        // built: no page, no tab, no upload button. An empty setting counts as on.
+        final boolean reelsOn = Reels.enabled(this);
+
+        tabIds.clear();
         adapter.addFragment(new HomeFragment());
+        tabIds.add(R.id.bottom_latest);
         adapter.addFragment(new PopularFragment());
-        adapter.addFragment(new ReelsFragment());
+        tabIds.add(R.id.bottom_popular);
+        if (reelsOn) {
+            adapter.addFragment(new ReelsFragment());
+            tabIds.add(R.id.bottom_reels);
+        }
         adapter.addFragment(new FavoritesFragment());
+        tabIds.add(R.id.bottom_fav);
 
         viewPager.setAdapter(adapter);
         viewPager.setCurrentItem(0);
@@ -382,14 +395,14 @@ public class HomeActivity extends AppCompatActivity
 
             @Override
             public void onPageSelected(int i) {
-                MenuItem menuItem = bottomNavigationView.getMenu().getItem(i);
-
-                // Set it as checked
-                menuItem.setChecked(true);
+                final MenuItem menuItem = bottomNavigationView.getMenu().findItem(tabIds.get(i));
+                if (menuItem != null) {
+                    menuItem.setChecked(true);
+                }
 
                 // The Reels tab carries its own labelled Upload button, so the
                 // floating one would sit on top of it in the same corner.
-                fab.setVisibility(i == REELS_TAB ? View.GONE : View.VISIBLE);
+                fab.setVisibility(isReelsPage(i) ? View.GONE : View.VISIBLE);
             }
 
             @Override
@@ -408,11 +421,21 @@ public class HomeActivity extends AppCompatActivity
         this.circle_image_view_profile_nav_header=(CircularImageView) headerview.findViewById(R.id.circle_image_view_profile_nav_header);
         initBottomNavigation();
         // onPageSelected does not fire for the page the pager already shows.
-        fab.setVisibility(viewPager.getCurrentItem() == REELS_TAB ? View.GONE : View.VISIBLE);
+        fab.setVisibility(isReelsPage(viewPager.getCurrentItem()) ? View.GONE : View.VISIBLE);
+    }
+
+    /** True when that pager page is the Reels feed. */
+    private boolean isReelsPage(int position) {
+        return position >= 0 && position < tabIds.size()
+                && tabIds.get(position) == R.id.bottom_reels;
     }
 
     public void initBottomNavigation() {
         bottomNavigationView = findViewById(R.id.bottom_navigation);
+        if (!tabIds.contains(R.id.bottom_reels)) {
+            // Four tabs, not five: the bar has no Reels item to select.
+            bottomNavigationView.getMenu().removeItem(R.id.bottom_reels);
+        }
         // Kill tinting outright. The icons are multi-colour, and any tint - from the
         // widget style or the theme - repaints them a single colour, which is why the
         // selected tab was turning white on a white bar.
@@ -425,14 +448,9 @@ public class HomeActivity extends AppCompatActivity
             @Override
             public boolean onNavigationItemSelected(@NonNull MenuItem item) {
                 int id = item.getItemId();
-                if (id == R.id.bottom_latest) {
-                    viewPager.setCurrentItem(0, true);
-                } else if (id == R.id.bottom_popular) {
-                    viewPager.setCurrentItem(1, true);
-                } else if (id == R.id.bottom_reels) {
-                    viewPager.setCurrentItem(2, true);
-                } else if (id == R.id.bottom_fav) {
-                    viewPager.setCurrentItem(3, true);
+                final int page = tabIds.indexOf(id);
+                if (page >= 0) {
+                    viewPager.setCurrentItem(page, true);
                 } else if (id == R.id.bottom_profile) {
                     openMyProfile();
                     // The profile is a screen of its own, not a page of the pager, so
@@ -486,7 +504,7 @@ public class HomeActivity extends AppCompatActivity
                     PrefManager prf= new PrefManager(getApplicationContext());
                     if (prf.getString("LOGGED").toString().equals("TRUE")) {
                         // On the Reels tab the plus posts a reel, everywhere else a pack.
-                        Class<?> target = viewPager.getCurrentItem() == REELS_TAB
+                        Class<?> target = isReelsPage(viewPager.getCurrentItem())
                                 ? UploadReelActivity.class : UploadActivity.class;
                         Intent intent = new Intent(getApplicationContext(), target);
                        startActivity(intent);
