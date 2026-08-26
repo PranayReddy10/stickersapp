@@ -204,6 +204,8 @@
     <string name="login_need_email">Enter a valid email address</string>
     <string name="login_need_password">Your password needs at least 6 characters</string>
     <string name="login_need_name">Enter your name, at least 3 characters</string>
+    <string name="login_no_code_sent">No code was sent to that number yet. Go back and request one again.</string>
+    <string name="login_enter_code">Enter the code from the message</string>
     <string name="notification_channel_name">Sticker packs and updates</string>
     <string name="notification_channel_description">New packs, categories and messages from the app</string>
     <string name="reel_sign_in_to_like">Sign in to like this reel</string>
