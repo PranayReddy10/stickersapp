@@ -95,20 +95,5 @@
         </FrameLayout>
     </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
-        <!-- The bottom margin is set in code from the window insets: a fixed one sat
-             on the gesture bar on some phones and floated above it on others. -->
-        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
-            android:id="@+id/fab_upload_reel"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom|end"
-            android:layout_marginEnd="16dp"
-            android:layout_marginBottom="16dp"
-            android:backgroundTint="@color/colorAccent"
-            android:text="@string/reel_upload"
-            android:textColor="@android:color/white"
-            app:elevation="6dp"
-            app:icon="@drawable/ic_upload_reel"
-            app:iconTint="@android:color/white" />
     </FrameLayout>
 </LinearLayout>

@@ -74,6 +74,35 @@
             app:srcCompat="@drawable/ic_add"
             app:tint="@color/white" />
 
+        <!-- The reels tab's own upload button. It lives here, not in the fragment: the
+             pager is the appbar's scrolling child, so it slides down as the toolbar
+             comes back and takes anything anchored to its bottom off screen with it. -->
+        <com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton
+            android:id="@+id/fab_upload_reel_home"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="@dimen/fab_margin"
+            android:backgroundTint="@color/colorAccent"
+            android:clickable="true"
+            android:focusable="true"
+            android:insetTop="0dp"
+            android:insetBottom="0dp"
+            android:minWidth="0dp"
+            android:minHeight="40dp"
+            android:paddingStart="14dp"
+            android:paddingEnd="16dp"
+            android:text="@string/reel_upload"
+            android:textColor="@android:color/white"
+            android:textSize="12sp"
+            android:visibility="gone"
+            app:elevation="6dp"
+            app:icon="@drawable/ic_upload_reel"
+            app:iconPadding="6dp"
+            app:iconSize="18dp"
+            app:iconTint="@android:color/white"
+            app:layout_constraintBottom_toTopOf="@id/bottom_navigation"
+            app:layout_constraintEnd_toEndOf="parent" />
+
         <RelativeLayout
             android:background="@color/colorPrimaryDark"
             android:layout_width="match_parent"
