@@ -152,6 +152,10 @@ public interface apiRest {
 
 
     @FormUrlEncoded
+    /** Email and password sign in, used when the panel switches manual accounts on. */
+    @GET("user/login/{username}/{password}/"+ Config.SECURE_KEY+"/"+Config.ITEM_PURCHASE_CODE+"/")
+    Call<ApiResponse> login(@Path("username") String username, @Path("password") String password);
+
     @POST("user/register/"+ Config.SECURE_KEY+"/"+Config.ITEM_PURCHASE_CODE+"/")
     Call<ApiResponse> register(@Field("name") String name, @Field("username") String username, @Field("password") String password, @Field("type") String type, @Field("image") String image);
 
