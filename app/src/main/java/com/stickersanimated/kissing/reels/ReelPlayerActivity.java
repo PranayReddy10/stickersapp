@@ -2,6 +2,7 @@ package com.stickersanimated.kissing.reels;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
@@ -52,6 +53,8 @@ import retrofit2.Response;
 @OptIn(markerClass = UnstableApi.class)
 public class ReelPlayerActivity extends AppCompatActivity
         implements ReelPagerAdapter.Listener, EdgeToEdgeHelper.FullBleed {
+
+    private static final String TAG = "ReelPlayer";
 
     public static final String EXTRA_REELS = "reels";
     public static final String EXTRA_START = "start";
@@ -242,11 +245,21 @@ public class ReelPlayerActivity extends AppCompatActivity
                     @Override
                     public void onResponse(@NonNull Call<JsonObject> call,
                                            @NonNull Response<JsonObject> response) {
+                        final JsonObject body = response.body();
+                        if (response.isSuccessful() && body != null && body.has("views")) {
+                            return;
+                        }
+                        // Never shown - a view is only a metric - but logged, because a
+                        // view that does not land means the id the feed handed over is
+                        // not a reel the server can find.
+                        Log.w(TAG, "View not counted for reel " + reel.getId()
+                                + ": server said " + response.code()
+                                + (body != null ? " " + body : ""));
                     }
 
                     @Override
                     public void onFailure(@NonNull Call<JsonObject> call, @NonNull Throwable t) {
-                        // A missed view count is not worth telling the user about.
+                        Log.w(TAG, "View not counted for reel " + reel.getId(), t);
                     }
                 });
     }
@@ -288,8 +301,8 @@ public class ReelPlayerActivity extends AppCompatActivity
                             reel.setLikes(reel.getLikes() + (wasLiked ? 1 : -1));
                             refreshLike(position, reel);
                             Toasty.error(ReelPlayerActivity.this,
-                                    getString(R.string.reel_like_failed),
-                                    Toast.LENGTH_SHORT).show();
+                                    ReelsFragment.likeError(response, body, reel),
+                                    Toast.LENGTH_LONG).show();
                             return;
                         }
                         reel.setLiked("true".equals(body.get("liked").getAsString()));
