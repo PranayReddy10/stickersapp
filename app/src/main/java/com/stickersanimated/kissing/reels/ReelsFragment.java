@@ -11,6 +11,7 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -367,9 +368,75 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
 
     @Override
     public void onMore(ReelApi reel) {
+        // Your own reel is yours to remove; anybody else's can only be reported.
+        if (!isSelf(requireContext(), reel)) {
+            report(reel);
+            return;
+        }
+        new AlertDialog.Builder(requireContext())
+                .setItems(new CharSequence[]{
+                        getString(R.string.reel_delete), getString(R.string.reel_report)},
+                        (dialog, which) -> {
+                            if (which == 0) {
+                                confirmDelete(reel);
+                            } else {
+                                report(reel);
+                            }
+                        })
+                .show();
+    }
+
+    private void report(ReelApi reel) {
         final Intent intent = new Intent(requireContext(), SupportActivity.class);
         intent.putExtra("message", "Hi Admin, please check this reel, id : " + reel.getId());
         startActivity(intent);
+    }
+
+    private void confirmDelete(ReelApi reel) {
+        new AlertDialog.Builder(requireContext())
+                .setTitle(R.string.reel_delete)
+                .setMessage(R.string.reel_delete_confirm)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.reel_delete, (dialog, which) -> delete(reel))
+                .show();
+    }
+
+    private void delete(ReelApi reel) {
+        final PrefManager prefManager = new PrefManager(requireContext().getApplicationContext());
+        apiClient.getClient().create(apiRest.class)
+                .reelDelete(reel.getId(), prefManager.getString("ID_USER"),
+                        prefManager.getString("TOKEN_USER"))
+                .enqueue(new Callback<JsonObject>() {
+                    @Override
+                    public void onResponse(@NonNull Call<JsonObject> call,
+                                           @NonNull Response<JsonObject> response) {
+                        if (!isAdded()) {
+                            return;
+                        }
+                        final JsonObject body = response.body();
+                        final boolean deleted = body != null && body.has("code")
+                                && body.get("code").getAsInt() == 200;
+                        if (!deleted) {
+                            Toasty.error(requireContext(), body != null && body.has("message")
+                                    ? body.get("message").getAsString()
+                                    : getString(R.string.reel_delete_failed),
+                                    Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        loaded.remove(reel);
+                        rebuildRows();
+                        Toasty.success(requireContext(), getString(R.string.reel_deleted),
+                                Toast.LENGTH_SHORT).show();
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<JsonObject> call, @NonNull Throwable t) {
+                        if (isAdded()) {
+                            Toasty.error(requireContext(), getString(R.string.reel_delete_failed),
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    }
+                });
     }
 
     @Override

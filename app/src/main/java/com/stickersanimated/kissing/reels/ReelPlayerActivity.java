@@ -6,6 +6,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.annotation.NonNull;
 import androidx.annotation.OptIn;
 import androidx.appcompat.app.AppCompatActivity;
@@ -358,9 +359,88 @@ public class ReelPlayerActivity extends AppCompatActivity
         if (reel == null) {
             return;
         }
+        // Your own reel is yours to remove; anybody else's can only be reported.
+        if (!ReelsFragment.isSelf(this, reel)) {
+            report(reel);
+            return;
+        }
+        new AlertDialog.Builder(this)
+                .setItems(new CharSequence[]{
+                        getString(R.string.reel_delete), getString(R.string.reel_report)},
+                        (dialog, which) -> {
+                            if (which == 0) {
+                                confirmDelete(position, reel);
+                            } else {
+                                report(reel);
+                            }
+                        })
+                .show();
+    }
+
+    private void report(ReelApi reel) {
         final Intent intent = new Intent(this, SupportActivity.class);
         intent.putExtra("message", "Hi Admin, please check this reel, id : " + reel.getId());
         startActivity(intent);
+    }
+
+    private void confirmDelete(int position, ReelApi reel) {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.reel_delete)
+                .setMessage(R.string.reel_delete_confirm)
+                .setNegativeButton(android.R.string.cancel, null)
+                .setPositiveButton(R.string.reel_delete, (dialog, which) -> delete(position, reel))
+                .show();
+    }
+
+    private void delete(int position, ReelApi reel) {
+        apiClient.getClient().create(apiRest.class)
+                .reelDelete(reel.getId(), prefManager.getString("ID_USER"),
+                        prefManager.getString("TOKEN_USER"))
+                .enqueue(new Callback<JsonObject>() {
+                    @Override
+                    public void onResponse(@NonNull Call<JsonObject> call,
+                                           @NonNull Response<JsonObject> response) {
+                        final JsonObject body = response.body();
+                        final boolean deleted = body != null && body.has("code")
+                                && body.get("code").getAsInt() == 200;
+                        if (!deleted) {
+                            Toasty.error(ReelPlayerActivity.this,
+                                    body != null && body.has("message")
+                                            ? body.get("message").getAsString()
+                                            : getString(R.string.reel_delete_failed),
+                                    Toast.LENGTH_LONG).show();
+                            return;
+                        }
+                        Toasty.success(ReelPlayerActivity.this, getString(R.string.reel_deleted),
+                                Toast.LENGTH_SHORT).show();
+                        removePage(position);
+                    }
+
+                    @Override
+                    public void onFailure(@NonNull Call<JsonObject> call, @NonNull Throwable t) {
+                        Toasty.error(ReelPlayerActivity.this,
+                                getString(R.string.reel_delete_failed), Toast.LENGTH_LONG).show();
+                    }
+                });
+    }
+
+    /** Drops the deleted page, closing the player when it was the only reel left. */
+    private void removePage(int position) {
+        if (position < 0 || position >= reels.size()) {
+            return;
+        }
+        reels.remove(position);
+        adapter.notifyItemRemoved(position);
+        boolean anyReelLeft = false;
+        for (ReelApi remaining : reels) {
+            if (remaining != null) {
+                anyReelLeft = true;
+                break;
+            }
+        }
+        if (!anyReelLeft) {
+            finish();
+        }
     }
 
     @Override
