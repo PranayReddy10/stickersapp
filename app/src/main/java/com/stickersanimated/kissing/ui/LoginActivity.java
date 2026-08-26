@@ -468,8 +468,15 @@ public class LoginActivity extends AppCompatActivity {
                         dismissProgress();
                         final ApiResponse body = response.body();
                         if (body == null) {
+                            // Say which failure it was: a server that answered with
+                            // something other than the expected JSON is a different
+                            // problem from a wrong password, and "operation failed"
+                            // hides that.
+                            Log.w(TAG, "Sign in got HTTP " + response.code()
+                                    + " with no usable body");
                             Toasty.error(getApplicationContext(),
-                                    "Operation has been cancelled!", Toast.LENGTH_SHORT, true).show();
+                                    "Sign in failed (server said " + response.code() + ")",
+                                    Toast.LENGTH_LONG, true).show();
                             return;
                         }
                         if (!Integer.valueOf(200).equals(body.getCode())) {
@@ -483,8 +490,10 @@ public class LoginActivity extends AppCompatActivity {
                     @Override
                     public void onFailure(Call<ApiResponse> call, Throwable t) {
                         dismissProgress();
+                        Log.w(TAG, "Sign in could not reach the server", t);
                         Toasty.error(getApplicationContext(),
-                                "Operation has been cancelled!", Toast.LENGTH_SHORT, true).show();
+                                "Could not reach the server, check your connection",
+                                Toast.LENGTH_LONG, true).show();
                     }
                 });
     }
