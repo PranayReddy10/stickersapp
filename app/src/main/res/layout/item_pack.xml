@@ -14,9 +14,9 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginLeft="8dp"
-        android:layout_marginTop="6dp"
+        android:layout_marginTop="7dp"
         android:layout_marginRight="8dp"
-        android:layout_marginBottom="6dp"
+        android:layout_marginBottom="7dp"
         app:cardBackgroundColor="@color/white"
         app:cardCornerRadius="12dp"
         app:cardElevation="1dp"
@@ -27,7 +27,7 @@
             android:layout_height="wrap_content"
             android:background="?attr/selectableItemBackground"
             android:orientation="vertical"
-            android:padding="10dp">
+            android:padding="12dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
@@ -37,8 +37,8 @@
 
                 <ImageView
                     android:id="@+id/pack_try_image"
-                    android:layout_width="56dp"
-                    android:layout_height="56dp"
+                    android:layout_width="76dp"
+                    android:layout_height="76dp"
                     android:background="@drawable/sticker_error"
                     android:padding="4dp"
                     android:scaleType="fitCenter"
@@ -61,7 +61,7 @@
                         android:text="Pack Name"
                         android:textAppearance="@style/TextAppearance.AppCompat.Body2"
                         android:textColor="@color/primary_text"
-                        android:textSize="16sp" />
+                        android:textSize="17sp" />
 
                     <LinearLayout
                         android:layout_width="match_parent"
@@ -204,12 +204,12 @@
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="9dp"
+                android:layout_marginTop="10dp"
                 android:orientation="horizontal">
                 <ImageView
                     android:id="@+id/sticker_one"
                     android:layout_width="0dp"
-                    android:layout_height="46dp"
+                    android:layout_height="72dp"
                     android:layout_weight="1"
                     android:background="@drawable/sticker_error"
                     android:padding="3dp"
@@ -219,7 +219,7 @@
                 <ImageView
                     android:id="@+id/sticker_two"
                     android:layout_width="0dp"
-                    android:layout_height="46dp"
+                    android:layout_height="72dp"
                     android:layout_weight="1"
                     android:layout_marginStart="5dp"
                     android:background="@drawable/sticker_error"
@@ -230,7 +230,7 @@
                 <ImageView
                     android:id="@+id/sticker_three"
                     android:layout_width="0dp"
-                    android:layout_height="46dp"
+                    android:layout_height="72dp"
                     android:layout_weight="1"
                     android:layout_marginStart="5dp"
                     android:background="@drawable/sticker_error"
@@ -241,7 +241,7 @@
                 <ImageView
                     android:id="@+id/sticker_four"
                     android:layout_width="0dp"
-                    android:layout_height="46dp"
+                    android:layout_height="72dp"
                     android:layout_weight="1"
                     android:layout_marginStart="5dp"
                     android:background="@drawable/sticker_error"
@@ -252,7 +252,7 @@
                 <ImageView
                     android:id="@+id/sticker_five"
                     android:layout_width="0dp"
-                    android:layout_height="46dp"
+                    android:layout_height="72dp"
                     android:layout_weight="1"
                     android:layout_marginStart="5dp"
                     android:background="@drawable/sticker_error"
@@ -263,7 +263,7 @@
                 <ImageView
                     android:id="@+id/sticker_six"
                     android:layout_width="0dp"
-                    android:layout_height="46dp"
+                    android:layout_height="72dp"
                     android:layout_weight="1"
                     android:layout_marginStart="5dp"
                     android:background="@drawable/sticker_error"

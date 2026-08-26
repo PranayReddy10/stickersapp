@@ -453,9 +453,7 @@ public class LoginActivity extends AppCompatActivity {
                 .enqueue(new Callback<ApiResponse>() {
                     @Override
                     public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
-                        if (register_progress.isShowing()) {
-                            register_progress.dismiss();
-                        }
+                        dismissProgress();
                         final ApiResponse body = response.body();
                         if (body == null) {
                             Toasty.error(getApplicationContext(),
@@ -472,17 +470,25 @@ public class LoginActivity extends AppCompatActivity {
 
                     @Override
                     public void onFailure(Call<ApiResponse> call, Throwable t) {
-                        if (register_progress.isShowing()) {
-                            register_progress.dismiss();
-                        }
+                        dismissProgress();
                         Toasty.error(getApplicationContext(),
                                 "Operation has been cancelled!", Toast.LENGTH_SHORT, true).show();
                     }
                 });
     }
 
+    /** An account made with an email address has no picture; fall back to the default. */
+    private static String avatarOr(String url) {
+        return url == null || url.trim().isEmpty() ? DEFAULT_AVATAR : url.trim();
+    }
+
     /** Saves a signed in account and hands the device token to the server, as signUp does. */
     private void storeAccount(ApiResponse body) {
+        if (body.getValues() == null || body.getValues().isEmpty()) {
+            Toasty.error(getApplicationContext(), "Operation has been cancelled!",
+                    Toast.LENGTH_SHORT, true).show();
+            return;
+        }
         String id_user = "0", name_user = "x", salt_user = "0", token_user = "0";
         for (int i = 0; i < body.getValues().size(); i++) {
             final String field = body.getValues().get(i).getName();
@@ -494,7 +500,7 @@ public class LoginActivity extends AppCompatActivity {
                 case "name": name_user = value; break;
                 case "type": prf.setString("TYPE_USER", value); break;
                 case "username": prf.setString("USERN_USER", value); break;
-                case "url": prf.setString("IMAGE_USER", value); break;
+                case "url": prf.setString("IMAGE_USER", avatarOr(value)); break;
             }
         }
         prf.setString("ID_USER", id_user);
@@ -513,6 +519,10 @@ public class LoginActivity extends AppCompatActivity {
         call.enqueue(new Callback<ApiResponse>() {
             @Override
             public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
+                // Close this dialog first: updateToken below opens one of its own, and
+                // whichever field is dismissed afterwards, the other one is left on
+                // screen for good.
+                dismissProgress();
                 if(response.body()!=null){
                     if (response.body().getCode()==200){
                         String id_user="0", name_user="x", salt_user="0", token_user="0";
@@ -524,11 +534,11 @@ public class LoginActivity extends AppCompatActivity {
                                 case "name": name_user = response.body().getValues().get(i).getValue(); break;
                                 case "type": prf.setString("TYPE_USER", response.body().getValues().get(i).getValue()); break;
                                 case "username": prf.setString("USERN_USER", response.body().getValues().get(i).getValue()); break;
-                                case "url": prf.setString("IMAGE_USER", response.body().getValues().get(i).getValue()); break;
+                                case "url": prf.setString("IMAGE_USER", avatarOr(
+                                        response.body().getValues().get(i).getValue())); break;
                                 case "enabled":
                                     if (!Boolean.parseBoolean(response.body().getValues().get(i).getValue())) {
                                         Toasty.error(getApplicationContext(), getResources().getString(R.string.account_disabled), Toast.LENGTH_SHORT, true).show();
-                                        register_progress.dismiss();
                                         return;
                                     }
                                     break;
@@ -552,14 +562,11 @@ public class LoginActivity extends AppCompatActivity {
                 }else{
                     Toasty.error(getApplicationContext(), "Operation has been cancelled!", Toast.LENGTH_SHORT, true).show();
                 }
-                if (register_progress.isShowing()) {
-                    register_progress.dismiss();
-                }
             }
             @Override
             public void onFailure(Call<ApiResponse> call, Throwable t) {
+                dismissProgress();
                 Toasty.error(getApplicationContext(), "Operation has been cancelled!", Toast.LENGTH_SHORT, true).show();
-                register_progress.dismiss();
             }
         });
     }
@@ -576,21 +583,34 @@ public class LoginActivity extends AppCompatActivity {
         call.enqueue(new Callback<ApiResponse>() {
             @Override
             public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
+                // Dismiss before leaving: dismissing a dialog after finish() throws
+                // "View not attached to window manager".
+                dismissProgress();
                 if (response.isSuccessful()){
                     prf.setString("NAME_USER",name );
-                    Toasty.success(getApplicationContext(),response.body().getMessage(), Toast.LENGTH_SHORT, true).show();
+                    final ApiResponse body = response.body();
+                    if (body != null && body.getMessage() != null) {
+                        Toasty.success(getApplicationContext(), body.getMessage(),
+                                Toast.LENGTH_SHORT, true).show();
+                    }
                     Intent intent = new Intent(LoginActivity.this, HomeActivity.class);
                     startActivity(intent);
                     finish();
                 }
-                register_progress.dismiss();
             }
             @Override
             public void onFailure(Call<ApiResponse> call, Throwable t) {
+                dismissProgress();
                 Toasty.error(getApplicationContext(), "Operation has been cancelled!", Toast.LENGTH_SHORT, true).show();
-                register_progress.dismiss();
             }
         });
+    }
+
+    /** Closes the progress dialog if one is up and this screen is still there. */
+    private void dismissProgress() {
+        if (register_progress != null && register_progress.isShowing() && !isFinishing()) {
+            register_progress.dismiss();
+        }
     }
 
     @Override
