@@ -15,14 +15,15 @@ navigation happens with or without an ad.
 | `APPLOVIN` | AppLovin direct | ✅ | — | ✅ | ✅ |
 | `FACEBOOK` | Meta Audience Network | ✅ | ✅ | ✅ | ✅ |
 | `UNITY` | Unity Ads | ✅ | — | ✅ | ✅ |
-| `VUNGLE` | Liftoff Monetize (Vungle) | ✅ | — | ✅ | ✅ |
-| `INMOBI` | InMobi | ✅ | — | ✅ | ✅ |
+| `VUNGLE` | Liftoff Monetize (Vungle) | ✅ | ✅ | ✅ | ✅ |
+| `INMOBI` | InMobi | ✅ | ✅ | ✅ | ✅ |
 
 Aliases accepted for each: `GOOGLE`/`ADMANAGER`, `APPLOVIN_MAX`, `FB`/`META`/`FAN`,
 `UNITYADS`, `LIFTOFF`.
 
-Native ads are served by AdMob, AppLovin MAX and Meta only — the others have no
-native format wired up here, and are skipped for that placement.
+Native ads are served by AdMob, AppLovin MAX, Meta, Vungle and InMobi. AppLovin's
+direct integration and Unity Ads have no native format for publishers to request, so
+they are skipped for that placement.
 
 Networks that cannot serve a format, or that have no unit id configured, are skipped
 automatically, so it is safe to leave a network out.

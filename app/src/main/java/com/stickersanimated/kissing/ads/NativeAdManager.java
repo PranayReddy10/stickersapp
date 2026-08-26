@@ -17,6 +17,10 @@ import com.applovin.mediation.nativeAds.MaxNativeAdLoader;
 import com.applovin.mediation.nativeAds.MaxNativeAdView;
 import com.facebook.ads.NativeAdListener;
 import com.facebook.ads.NativeBannerAd;
+import com.inmobi.ads.AdMetaInfo;
+import com.inmobi.ads.InMobiAdRequestStatus;
+import com.inmobi.ads.InMobiNative;
+import com.inmobi.ads.listeners.NativeAdEventListener;
 import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdLoader;
 import com.google.android.gms.ads.AdRequest;
@@ -53,6 +57,8 @@ public final class NativeAdManager {
     private MaxNativeAdLoader maxLoader;
     private MaxAd maxAd;
     private NativeBannerAd facebookAd;
+    private com.vungle.ads.NativeAd vungleAd;
+    private InMobiNative inmobiAd;
 
     private NativeAdManager(Activity activity, ViewGroup container, boolean fullscreen) {
         this.activity = activity;
@@ -117,6 +123,12 @@ public final class NativeAdManager {
                     break;
                 case FACEBOOK:
                     loadFacebook(attempt, unitId);
+                    break;
+                case VUNGLE:
+                    loadVungle(attempt, unitId);
+                    break;
+                case INMOBI:
+                    loadInMobi(attempt, unitId);
                     break;
                 default:
                     onFailed(attempt, network, "format not supported");
@@ -218,6 +230,82 @@ public final class NativeAdManager {
         nativeBannerAd.loadAd(nativeBannerAd.buildLoadAdConfig().withAdListener(listener).build());
     }
 
+    private void loadVungle(int attempt, String placementId) {
+        final com.vungle.ads.NativeAd nativeAd = new com.vungle.ads.NativeAd(activity, placementId);
+        nativeAd.setAdListener(new com.vungle.ads.NativeAdListener() {
+            @Override
+            public void onAdLoaded(@NonNull com.vungle.ads.BaseAd baseAd) {
+                if (destroyed || attempt != attemptId) {
+                    return;
+                }
+                release();
+                vungleAd = nativeAd;
+                show(NativeAdRenderer.renderVungle(activity, nativeAd, fullscreen));
+                onLoaded(attempt, AdNetwork.VUNGLE);
+            }
+
+            @Override
+            public void onAdFailedToLoad(@NonNull com.vungle.ads.BaseAd baseAd,
+                                         @NonNull com.vungle.ads.VungleError error) {
+                onFailed(attempt, AdNetwork.VUNGLE, error.getLocalizedMessage());
+            }
+
+            @Override
+            public void onAdFailedToPlay(@NonNull com.vungle.ads.BaseAd baseAd,
+                                         @NonNull com.vungle.ads.VungleError error) {
+            }
+
+            @Override public void onAdStart(@NonNull com.vungle.ads.BaseAd baseAd) { }
+            @Override public void onAdImpression(@NonNull com.vungle.ads.BaseAd baseAd) { }
+            @Override public void onAdEnd(@NonNull com.vungle.ads.BaseAd baseAd) { }
+            @Override public void onAdClicked(@NonNull com.vungle.ads.BaseAd baseAd) { }
+            @Override public void onAdLeftApplication(@NonNull com.vungle.ads.BaseAd baseAd) { }
+        });
+        nativeAd.load(null);
+    }
+
+    private void loadInMobi(int attempt, String placementId) {
+        final long placement;
+        try {
+            placement = Long.parseLong(placementId.trim());
+        } catch (NumberFormatException e) {
+            // InMobi placements are numeric; anything else is a mistyped panel field.
+            onFailed(attempt, AdNetwork.INMOBI, "placement id is not a number");
+            return;
+        }
+        final InMobiNative nativeAd = new InMobiNative(activity, placement,
+                new NativeAdEventListener() {
+                    @Override
+                    public void onAdLoadSucceeded(@NonNull InMobiNative ad,
+                                                  @NonNull AdMetaInfo info) {
+                        if (destroyed || attempt != attemptId) {
+                            ad.destroy();
+                            return;
+                        }
+                        release();
+                        inmobiAd = ad;
+                        show(NativeAdRenderer.renderInMobi(activity, ad, fullscreen, mediaWidth()));
+                        onLoaded(attempt, AdNetwork.INMOBI);
+                    }
+
+                    @Override
+                    public void onAdLoadFailed(@NonNull InMobiNative ad,
+                                               @NonNull InMobiAdRequestStatus status) {
+                        onFailed(attempt, AdNetwork.INMOBI, status.getMessage());
+                    }
+                });
+        nativeAd.load();
+    }
+
+    /** The width InMobi should render its creative at, in pixels. */
+    private int mediaWidth() {
+        final int measured = container.getWidth();
+        if (measured > 0) {
+            return measured;
+        }
+        return activity.getResources().getDisplayMetrics().widthPixels;
+    }
+
     private void show(View adView) {
         container.removeAllViews();
         if (fullscreen) {
@@ -273,6 +361,12 @@ public final class NativeAdManager {
             if (facebookAd != null) {
                 facebookAd.destroy();
             }
+            if (vungleAd != null) {
+                vungleAd.unregisterView();
+            }
+            if (inmobiAd != null) {
+                inmobiAd.destroy();
+            }
         } catch (Throwable t) {
             Log.w(TAG, "Failed to release native ad", t);
         } finally {
@@ -280,6 +374,8 @@ public final class NativeAdManager {
             maxLoader = null;
             maxAd = null;
             facebookAd = null;
+            vungleAd = null;
+            inmobiAd = null;
         }
     }
 }

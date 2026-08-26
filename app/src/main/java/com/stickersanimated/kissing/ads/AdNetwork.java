@@ -46,11 +46,13 @@ public enum AdNetwork {
             case APPLOVIN:
                 // AppLovin direct has no native ad surface.
                 return format != AdFormat.NATIVE;
-            case UNITY:
             case VUNGLE:
             case INMOBI:
-                // These three offer banner, interstitial and rewarded here; native
-                // stays with AdMob, MAX and Meta.
+                // Both have a native format of their own, so they take every slot.
+                return true;
+            case UNITY:
+                // Unity's SDK has banner, interstitial and rewarded only - there is no
+                // native ad surface for publishers to request.
                 return format != AdFormat.NATIVE;
             default:
                 return false;
