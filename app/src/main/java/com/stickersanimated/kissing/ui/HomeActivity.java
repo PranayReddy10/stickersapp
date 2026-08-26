@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
 import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.floatingactionbutton.ExtendedFloatingActionButton;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationBarView;
 import com.google.android.material.snackbar.Snackbar;
@@ -101,6 +102,8 @@ public class HomeActivity extends AppCompatActivity
     /** Reels sits third; the plus button posts a reel while it is showing. */
     /** Menu item ids of the pager's tabs, in order. Reels is only in it when on. */
     private final java.util.List<Integer> tabIds = new java.util.ArrayList<>();
+    /** The reels tab's labelled upload button, kept out of the pager so it holds still. */
+    private ExtendedFloatingActionButton uploadReelButton;
 
     private ViewPager viewPager;
     private Dialog dialog;
@@ -365,6 +368,8 @@ public class HomeActivity extends AppCompatActivity
         this.navigationView = (NavigationView) findViewById(R.id.nav_view);
 
         fab = (FloatingActionButton) findViewById(R.id.fab);
+        uploadReelButton = findViewById(R.id.fab_upload_reel_home);
+        uploadReelButton.setOnClickListener(v -> openUpload(UploadReelActivity.class));
         viewPager = (ViewPager) findViewById(R.id.vp_horizontal_ntb);
         viewPager.setOffscreenPageLimit(100);
         adapter = new ViewPagerAdapter(getSupportFragmentManager());
@@ -402,7 +407,7 @@ public class HomeActivity extends AppCompatActivity
 
                 // The Reels tab carries its own labelled Upload button, so the
                 // floating one would sit on top of it in the same corner.
-                fab.setVisibility(isReelsPage(i) ? View.GONE : View.VISIBLE);
+                showButtonsFor(i);
             }
 
             @Override
@@ -421,7 +426,29 @@ public class HomeActivity extends AppCompatActivity
         this.circle_image_view_profile_nav_header=(CircularImageView) headerview.findViewById(R.id.circle_image_view_profile_nav_header);
         initBottomNavigation();
         // onPageSelected does not fire for the page the pager already shows.
-        fab.setVisibility(isReelsPage(viewPager.getCurrentItem()) ? View.GONE : View.VISIBLE);
+        showButtonsFor(viewPager.getCurrentItem());
+    }
+
+    /** Opens an upload screen, or the login screen when nobody is signed in. */
+    private void openUpload(Class<?> target) {
+        final PrefManager prefManager = new PrefManager(getApplicationContext());
+        if (!"TRUE".equals(prefManager.getString("LOGGED"))) {
+            FromLogin = true;
+            startActivity(new Intent(HomeActivity.this, LoginActivity.class));
+            return;
+        }
+        startActivity(new Intent(getApplicationContext(), target));
+        overridePendingTransition(R.anim.enter, R.anim.exit);
+    }
+
+    /**
+     * The round plus posts a pack; the labelled one posts a reel. Only ever one of
+     * them, so they cannot end up stacked in the same corner.
+     */
+    private void showButtonsFor(int position) {
+        final boolean reels = isReelsPage(position);
+        fab.setVisibility(reels ? View.GONE : View.VISIBLE);
+        uploadReelButton.setVisibility(reels ? View.VISIBLE : View.GONE);
     }
 
     /** True when that pager page is the Reels feed. */
@@ -498,24 +525,7 @@ public class HomeActivity extends AppCompatActivity
                 return false;
             }
         });
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                    PrefManager prf= new PrefManager(getApplicationContext());
-                    if (prf.getString("LOGGED").toString().equals("TRUE")) {
-                        // On the Reels tab the plus posts a reel, everywhere else a pack.
-                        Class<?> target = isReelsPage(viewPager.getCurrentItem())
-                                ? UploadReelActivity.class : UploadActivity.class;
-                        Intent intent = new Intent(getApplicationContext(), target);
-                       startActivity(intent);
-                        overridePendingTransition(R.anim.enter, R.anim.exit);
-                    }else{
-                        FromLogin=true;
-                        Intent intent = new Intent(HomeActivity.this,LoginActivity.class);
-                        startActivity(intent);
-                    }
-                }
-        });
+        fab.setOnClickListener(v -> openUpload(UploadActivity.class));
     }
     class ViewPagerAdapter extends FragmentPagerAdapter {
 
