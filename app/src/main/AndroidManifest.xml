@@ -139,7 +139,6 @@
             </intent-filter>
         </activity>
         <activity android:name=".ui.InfosActivity" />
-        <activity android:name=".ui.SlideActivity" />
         <activity android:name=".ui.UploadActivity" />
         <activity android:name=".ui.EditorActivity" />
 

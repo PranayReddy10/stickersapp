@@ -20,6 +20,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.util.Patterns;
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
@@ -95,6 +96,18 @@ public class LoginActivity extends AppCompatActivity {
     private FirebaseAuth mAuth;
     private String verificationId;
 
+    // Email and password accounts, shown only when the panel switches them on.
+    private LinearLayout linear_layout_manual_account;
+    private EditText edit_text_manual_name;
+    private EditText edit_text_manual_email;
+    private EditText edit_text_manual_password;
+    private TextView text_view_manual_submit;
+    private TextView text_view_manual_toggle;
+    /** False while the form signs an existing account in, true while it creates one. */
+    private boolean registering = false;
+    private static final String DEFAULT_AVATAR =
+            "https://lh3.googleusercontent.com/-XdUIqdMkCWA/AAAAAAAAAAI/AAAAAAAAAAA/4252rscbv5M/photo.jpg";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -144,8 +157,16 @@ public class LoginActivity extends AppCompatActivity {
         this.countryCodePicker =      (CountryCodePicker)   findViewById(R.id.CountryCodePicker);
         this.check_box_login_activity_privacy = (CheckBox) findViewById(R.id.check_box_login_activity_privacy);
         this.text_view_login_activity_privacy = (TextView) findViewById(R.id.text_view_login_activity_privacy);
+        this.linear_layout_manual_account = (LinearLayout) findViewById(R.id.linear_layout_manual_account);
+        this.edit_text_manual_name = (EditText) findViewById(R.id.edit_text_manual_name);
+        this.edit_text_manual_email = (EditText) findViewById(R.id.edit_text_manual_email);
+        this.edit_text_manual_password = (EditText) findViewById(R.id.edit_text_manual_password);
+        this.text_view_manual_submit = (TextView) findViewById(R.id.text_view_manual_submit);
+        this.text_view_manual_toggle = (TextView) findViewById(R.id.text_view_manual_toggle);
     }
     public void initAction(){
+        initManualAccount();
+
         this.text_view_login_activity_privacy.setOnClickListener(view -> {
             startActivity(new Intent(LoginActivity.this,PolicyActivity.class));
         });
@@ -362,6 +383,126 @@ public class LoginActivity extends AppCompatActivity {
     @Override
     public void onPause(){
         super.onPause();
+    }
+
+    /**
+     * Email and password sign in and sign up. The whole block stays hidden unless
+     * ADMIN_MANUAL_LOGIN is on in the panel, so turning it off in the panel takes it off
+     * the login screen without shipping a new build.
+     */
+    private void initManualAccount() {
+        if (!"TRUE".equalsIgnoreCase(prf.getString("ADMIN_MANUAL_LOGIN"))) {
+            return;
+        }
+        linear_layout_manual_account.setVisibility(View.VISIBLE);
+        applyManualMode();
+
+        text_view_manual_toggle.setOnClickListener(v -> {
+            registering = !registering;
+            applyManualMode();
+        });
+        text_view_manual_submit.setOnClickListener(v -> submitManualAccount());
+    }
+
+    /** Swaps the form between signing in and creating an account. */
+    private void applyManualMode() {
+        edit_text_manual_name.setVisibility(registering ? View.VISIBLE : View.GONE);
+        text_view_manual_submit.setText(registering
+                ? R.string.login_create_account : R.string.login_sign_in);
+        text_view_manual_toggle.setText(registering
+                ? R.string.login_go_to_sign_in : R.string.login_go_to_register);
+    }
+
+    private void submitManualAccount() {
+        if (!check_box_login_activity_privacy.isChecked()) {
+            check_box_login_activity_privacy.setError(
+                    getResources().getString(R.string.accept_privacy_policy_error));
+            return;
+        }
+        final String email = edit_text_manual_email.getText().toString().trim();
+        final String password = edit_text_manual_password.getText().toString();
+        final String name = edit_text_manual_name.getText().toString().trim();
+
+        if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            edit_text_manual_email.setError(getString(R.string.login_need_email));
+            edit_text_manual_email.requestFocus();
+            return;
+        }
+        if (password.length() < 6) {
+            edit_text_manual_password.setError(getString(R.string.login_need_password));
+            edit_text_manual_password.requestFocus();
+            return;
+        }
+        if (registering) {
+            if (name.length() < 3) {
+                edit_text_manual_name.setError(getString(R.string.login_need_name));
+                edit_text_manual_name.requestFocus();
+                return;
+            }
+            // Same call every other provider ends at; the type marks it as an email account.
+            signUp(email, password, name, "email", DEFAULT_AVATAR);
+            return;
+        }
+        signInWithEmail(email, password);
+    }
+
+    private void signInWithEmail(String email, String password) {
+        register_progress = ProgressDialog.show(this, null,
+                getResources().getString(R.string.operation_progress), true);
+        apiClient.getClient().create(apiRest.class).login(email, password)
+                .enqueue(new Callback<ApiResponse>() {
+                    @Override
+                    public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
+                        if (register_progress.isShowing()) {
+                            register_progress.dismiss();
+                        }
+                        final ApiResponse body = response.body();
+                        if (body == null) {
+                            Toasty.error(getApplicationContext(),
+                                    "Operation has been cancelled!", Toast.LENGTH_SHORT, true).show();
+                            return;
+                        }
+                        if (!Integer.valueOf(200).equals(body.getCode())) {
+                            Toasty.error(getApplicationContext(), body.getMessage(),
+                                    Toast.LENGTH_SHORT, true).show();
+                            return;
+                        }
+                        storeAccount(body);
+                    }
+
+                    @Override
+                    public void onFailure(Call<ApiResponse> call, Throwable t) {
+                        if (register_progress.isShowing()) {
+                            register_progress.dismiss();
+                        }
+                        Toasty.error(getApplicationContext(),
+                                "Operation has been cancelled!", Toast.LENGTH_SHORT, true).show();
+                    }
+                });
+    }
+
+    /** Saves a signed in account and hands the device token to the server, as signUp does. */
+    private void storeAccount(ApiResponse body) {
+        String id_user = "0", name_user = "x", salt_user = "0", token_user = "0";
+        for (int i = 0; i < body.getValues().size(); i++) {
+            final String field = body.getValues().get(i).getName();
+            final String value = body.getValues().get(i).getValue();
+            switch (field) {
+                case "salt": salt_user = value; break;
+                case "token": token_user = value; break;
+                case "id": id_user = value; break;
+                case "name": name_user = value; break;
+                case "type": prf.setString("TYPE_USER", value); break;
+                case "username": prf.setString("USERN_USER", value); break;
+                case "url": prf.setString("IMAGE_USER", value); break;
+            }
+        }
+        prf.setString("ID_USER", id_user);
+        prf.setString("SALT_USER", salt_user);
+        prf.setString("TOKEN_USER", token_user);
+        prf.setString("NAME_USER", name_user);
+        prf.setString("LOGGED", "TRUE");
+        updateToken(Integer.parseInt(id_user), token_user, token, name_user);
     }
 
     public void signUp(String username,String password,String name,String type,String image){

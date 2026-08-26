@@ -192,6 +192,18 @@
 
     <string name="reels">Reels</string>
     <string name="profile_tab_stickers">WhatsApp Stickers</string>
+    <string name="splash_tagline">Stickers for WhatsApp, Telegram and Signal</string>
+    <string name="login_or">or</string>
+    <string name="login_email">Email address</string>
+    <string name="login_password">Password</string>
+    <string name="login_your_name">Your name</string>
+    <string name="login_sign_in">SIGN IN</string>
+    <string name="login_create_account">CREATE ACCOUNT</string>
+    <string name="login_go_to_register">New here? Create an account</string>
+    <string name="login_go_to_sign_in">Already have an account? Sign in</string>
+    <string name="login_need_email">Enter a valid email address</string>
+    <string name="login_need_password">Your password needs at least 6 characters</string>
+    <string name="login_need_name">Enter your name, at least 3 characters</string>
     <string name="notification_channel_name">Sticker packs and updates</string>
     <string name="notification_channel_description">New packs, categories and messages from the app</string>
     <string name="reel_sign_in_to_like">Sign in to like this reel</string>

@@ -1,48 +1,74 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Splash. The logo sits on the app's own background rather than a white sheet, so
+     the first frame already looks like the app, and the wait reads as a thin line
+     under the name instead of two progress spinners stacked on each other. -->
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/activity_intro"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:paddingBottom="@dimen/activity_vertical_margin"
-    android:paddingLeft="@dimen/activity_horizontal_margin"
-    android:paddingRight="@dimen/activity_horizontal_margin"
-    android:paddingTop="@dimen/activity_vertical_margin"
-    android:gravity="center|top"
-    android:orientation="vertical"
-    android:background="@color/white"
+    android:background="@color/app_background"
     tools:context=".ui.SplashActivity">
-    <RelativeLayout
-        android:layout_centerHorizontal="true"
-        android:layout_alignParentBottom="true"
-        android:layout_width="40dp"
-        android:layout_height="40dp">
-    <ProgressBar
-        android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true"
-        android:progress="1"
-        android:max="100"
-        android:padding="5dp"
-        style="?android:attr/progressBarStyleLarge"
-        android:layout_width="30dp"
-        android:layout_height="30dp" />
-    <ProgressBar
-        android:layout_centerHorizontal="true"
-        android:layout_centerVertical="true"
-        android:progress="1"
-        android:padding="5dp"
-        style="?android:attr/progressBarStyleLargeInverse"
-        android:layout_width="40dp"
-        android:layout_height="40dp" />
-    </RelativeLayout>
-    <ImageView
-        android:padding="30dp"
-        android:layout_width="200dp"
-        android:layout_height="200dp"
-        app:srcCompat="@drawable/logo"
-        android:id="@+id/logo_Secur"
-        android:layout_centerInParent="true"
-        android:layout_centerHorizontal="true" />
 
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:gravity="center_horizontal"
+        android:orientation="vertical"
+        android:paddingStart="32dp"
+        android:paddingEnd="32dp">
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="120dp"
+            android:layout_height="120dp"
+            app:cardBackgroundColor="@color/white"
+            app:cardCornerRadius="30dp"
+            app:cardElevation="3dp">
+
+            <ImageView
+                android:id="@+id/logo_Secur"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:padding="18dp"
+                android:scaleType="fitCenter"
+                app:srcCompat="@drawable/logo"
+                android:contentDescription="@null" />
+        </androidx.cardview.widget.CardView>
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="22dp"
+            android:text="@string/app_name"
+            android:textColor="@color/primary_text"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:gravity="center"
+            android:text="@string/splash_tagline"
+            android:textColor="@color/primary_text_light"
+            android:textSize="14sp" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="46dp"
+        android:gravity="center_horizontal"
+        android:orientation="vertical">
+
+        <ProgressBar
+            android:layout_width="150dp"
+            android:layout_height="wrap_content"
+            android:indeterminate="true"
+            android:indeterminateTint="@color/colorAccent"
+            style="?android:attr/progressBarStyleHorizontal" />
+    </LinearLayout>
 </RelativeLayout>
