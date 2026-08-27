@@ -78,6 +78,7 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     private final Activity activity;
     private final List<Row> rows;
     private final Listener listener;
+    private final List<NativeAdManager> nativeAdManagers = new java.util.ArrayList<>();
 
     public ReelCardAdapter(Activity activity, List<Row> rows, Listener listener) {
         this.activity = activity;
@@ -265,8 +266,19 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             final NativeAdManager manager = NativeAdManager.into(activity,
                     itemView.findViewById(R.id.frame_layout_reel_ad));
             if (manager != null) {
+                nativeAdManagers.add(manager);
                 manager.load();
             }
         }
+    }
+
+    /** Releases the ad slots, which hold the activity and the network's ad object. */
+    @Override
+    public void onDetachedFromRecyclerView(@NonNull RecyclerView recyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView);
+        for (NativeAdManager manager : nativeAdManagers) {
+            manager.destroy();
+        }
+        nativeAdManagers.clear();
     }
 }

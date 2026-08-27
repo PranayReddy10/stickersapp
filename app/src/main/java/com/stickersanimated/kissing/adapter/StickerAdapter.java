@@ -87,6 +87,8 @@ public class StickerAdapter extends  RecyclerView.Adapter<RecyclerView.ViewHolde
 
     private InterstitialAdManager interstitialAdManager;
 
+    private final java.util.List<NativeAdManager> nativeAdManagers = new java.util.ArrayList<>();
+
     private String sanitizeImageUrl(String raw) {
 
         if (raw == null) return "";
@@ -513,9 +515,23 @@ public class StickerAdapter extends  RecyclerView.Adapter<RecyclerView.ViewHolde
             final NativeAdManager manager =
                     NativeAdManager.into(activity, itemView.findViewById(R.id.fl_adplaceholder));
             if (manager != null) {
+                nativeAdManagers.add(manager);
                 manager.load();
             }
         }
+    }
+
+    /**
+     * Every in-feed ad slot this adapter has filled. They hold on to the activity and to the
+     * network's ad object, so they are released when the list goes away.
+     */
+    @Override
+    public void onDetachedFromRecyclerView(@NonNull RecyclerView recyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView);
+        for (NativeAdManager manager : nativeAdManagers) {
+            manager.destroy();
+        }
+        nativeAdManagers.clear();
     }
 
     public boolean checkSUBSCRIBED() {
