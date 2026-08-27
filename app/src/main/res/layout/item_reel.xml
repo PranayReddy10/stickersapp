@@ -30,6 +30,17 @@
         android:layout_gravity="center"
         android:indeterminateTint="@android:color/white" />
 
+    <!-- Shown while playback is paused, hidden while it plays. -->
+    <ImageView
+        android:id="@+id/image_view_reel_pause"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:layout_gravity="center"
+        android:alpha="0.9"
+        android:src="@drawable/ic_play_circle"
+        android:visibility="gone"
+        android:contentDescription="@null" />
+
     <!-- Fills in on double tap, then fades out. -->
     <ImageView
         android:id="@+id/image_view_burst"

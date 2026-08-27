@@ -45,6 +45,12 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         void onAuthor(int position);
 
         void onToggleFollow(int position);
+
+        /** The page's views are on screen and can hold the player now. */
+        void onPageReady(int position);
+
+        /** A single tap on the video: pause it, or start it again. */
+        void onTogglePlayback(int position);
     }
 
     private final Activity activity;
@@ -110,11 +116,21 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         holder.authorImage.setOnClickListener(v -> listener.onAuthor(holder.getBindingAdapterPosition()));
         holder.author.setOnClickListener(v -> listener.onAuthor(holder.getBindingAdapterPosition()));
 
-        // Double tap to like, the gesture everyone already expects here.
+        // Double tap to like, the gesture everyone already expects here; a single tap
+        // pauses, which is the other one.
         final GestureDetector detector = new GestureDetector(activity,
                 new GestureDetector.SimpleOnGestureListener() {
                     @Override
                     public boolean onDown(MotionEvent e) {
+                        return true;
+                    }
+
+                    @Override
+                    public boolean onSingleTapConfirmed(MotionEvent e) {
+                        final int at = holder.getBindingAdapterPosition();
+                        if (at != RecyclerView.NO_POSITION) {
+                            listener.onTogglePlayback(at);
+                        }
                         return true;
                     }
 
@@ -150,6 +166,17 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     }
 
     @Override
+    public void onViewAttachedToWindow(@NonNull RecyclerView.ViewHolder holder) {
+        super.onViewAttachedToWindow(holder);
+        final int position = holder.getBindingAdapterPosition();
+        if (holder instanceof ReelHolder && position != RecyclerView.NO_POSITION) {
+            // The very first page is attached after the pager has already been told to
+            // play it, so the player had nowhere to draw: sound, no picture.
+            listener.onPageReady(position);
+        }
+    }
+
+    @Override
     public int getItemCount() {
         return reels.size();
     }
@@ -171,6 +198,7 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         public final PlayerView playerView;
         public final ImageView poster;
         public final ProgressBar progressBar;
+        public final ImageView pause;
         final ImageView burst;
         final ImageView like;
         final ImageView share;
@@ -187,6 +215,7 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             playerView = itemView.findViewById(R.id.player_view_reel);
             poster = itemView.findViewById(R.id.image_view_reel);
             progressBar = itemView.findViewById(R.id.progress_bar_reel);
+            pause = itemView.findViewById(R.id.image_view_reel_pause);
             burst = itemView.findViewById(R.id.image_view_burst);
             like = itemView.findViewById(R.id.image_view_like);
             share = itemView.findViewById(R.id.image_view_share_reel);

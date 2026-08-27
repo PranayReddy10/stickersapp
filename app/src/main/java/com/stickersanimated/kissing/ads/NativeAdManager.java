@@ -91,8 +91,12 @@ public final class NativeAdManager {
 
     public void load() {
         if (destroyed || !config.isEnabled(AdFormat.NATIVE)) {
+            collapse();
             return;
         }
+        // Nothing is shown until a network fills: an empty slot would otherwise leave a
+        // blank card sitting in the layout with its margins and elevation.
+        collapse();
         waterfall = config.waterfall(AdFormat.NATIVE);
         index = 0;
         loadNext();
@@ -105,7 +109,12 @@ public final class NativeAdManager {
     }
 
     private void loadNext() {
-        if (destroyed || activity.isFinishing() || index >= waterfall.size()) {
+        if (destroyed || activity.isFinishing()) {
+            return;
+        }
+        if (index >= waterfall.size()) {
+            // Every network passed on this slot: keep it collapsed.
+            collapse();
             return;
         }
         final AdNetwork network = waterfall.get(index++);
@@ -309,6 +318,37 @@ public final class NativeAdManager {
             container.addView(adView);
         }
         container.setVisibility(View.VISIBLE);
+        final ViewGroup frame = cardParent();
+        if (frame != null) {
+            frame.setVisibility(View.VISIBLE);
+        }
+    }
+
+    /**
+     * Hides the slot while it is empty. The container usually sits alone inside a card, and
+     * that card carries the margins and the background, so it has to go too.
+     */
+    private void collapse() {
+        container.setVisibility(View.GONE);
+        final ViewGroup frame = cardParent();
+        if (frame != null) {
+            frame.setVisibility(View.GONE);
+        }
+    }
+
+    /** The card wrapping this slot, when the container is the only thing inside it. */
+    @Nullable
+    private ViewGroup cardParent() {
+        if (fullscreen) {
+            return null;
+        }
+        final View parent = container.getParent() instanceof View
+                ? (View) container.getParent() : null;
+        if (parent instanceof androidx.cardview.widget.CardView
+                && ((ViewGroup) parent).getChildCount() == 1) {
+            return (ViewGroup) parent;
+        }
+        return null;
     }
 
     private void onLoaded(int attempt, AdNetwork network) {
