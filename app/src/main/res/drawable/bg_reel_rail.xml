@@ -1,0 +1,7 @@
+<!-- The panel the like / share / views controls sit on, so a white glyph never has to
+     survive on its own over a pale sticker. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#57121210" />
+    <corners android:radius="24dp" />
+</shape>

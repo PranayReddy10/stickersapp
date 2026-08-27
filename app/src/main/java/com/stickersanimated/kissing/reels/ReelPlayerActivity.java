@@ -2,9 +2,12 @@ package com.stickersanimated.kissing.reels;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -26,6 +29,7 @@ import com.stickersanimated.kissing.R;
 import com.stickersanimated.kissing.api.apiClient;
 import com.stickersanimated.kissing.ads.AdFormat;
 import com.stickersanimated.kissing.ads.AdsConfig;
+import com.stickersanimated.kissing.ads.BannerAdManager;
 import com.stickersanimated.kissing.api.apiRest;
 import com.stickersanimated.kissing.entity.ReelApi;
 import com.stickersanimated.kissing.ui.LoginActivity;
@@ -69,10 +73,23 @@ public class ReelPlayerActivity extends AppCompatActivity
     /** Reels already counted this session, so a swipe back does not inflate views. */
     private final Set<String> counted = new HashSet<>();
 
+    /** How often the segment on top of the current reel is redrawn. */
+    private static final long PROGRESS_TICK_MS = 60L;
+    /** Remembers sound off between reels and between sessions. */
+    private static final String KEY_MUTED = "REELS_MUTED";
+
     private ViewPager2 viewPager;
     private ReelPagerAdapter adapter;
     private ExoPlayer player;
     private PrefManager prefManager;
+    private ReelProgressBar progressBar;
+    private ImageView muteButton;
+    private BannerAdManager bannerAdManager;
+    private final Handler progressHandler = new Handler(Looper.getMainLooper());
+    private Runnable progressTick;
+    private boolean muted;
+    private boolean bannerFilled;
+    private int navInset;
 
     private int page;
     private int author;
@@ -139,6 +156,12 @@ public class ReelPlayerActivity extends AppCompatActivity
             startActivity(new Intent(this, UploadReelActivity.class));
         });
 
+        progressBar = findViewById(R.id.reel_progress);
+        muteButton = findViewById(R.id.image_view_reel_mute);
+        muted = "TRUE".equals(prefManager.getString(KEY_MUTED));
+        showMuteState();
+        muteButton.setOnClickListener(v -> toggleMute());
+
         // The pages draw under the bars, so the row moves itself clear of the status
         // bar rather than the whole screen being padded away from it.
         final View topBar = findViewById(R.id.layout_reel_top_bar);
@@ -151,6 +174,7 @@ public class ReelPlayerActivity extends AppCompatActivity
 
         player = new ExoPlayer.Builder(this).build();
         player.setRepeatMode(Player.REPEAT_MODE_ONE);
+        player.setVolume(muted ? 0f : 1f);
         player.addListener(new Player.Listener() {
             @Override
             public void onPlaybackStateChanged(int state) {
@@ -171,6 +195,9 @@ public class ReelPlayerActivity extends AppCompatActivity
         viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
             @Override
             public void onPageSelected(int position) {
+                // The block is drawn first: it clears the segment fills, and playAt is
+                // what fills the one belonging to a photo or an ad page.
+                showProgressFor(position);
                 playAt(position);
                 if (position >= reels.size() - 3) {
                     loadMore();
@@ -178,11 +205,14 @@ public class ReelPlayerActivity extends AppCompatActivity
             }
         });
 
+        showBanner();
+
         // start is reassigned while the ad pages are folded in, so it cannot be
         // captured by the lambda directly.
         final int startPage = start;
         viewPager.post(() -> {
             viewPager.setCurrentItem(startPage, false);
+            showProgressFor(startPage);
             playAt(startPage);
         });
     }
@@ -196,6 +226,10 @@ public class ReelPlayerActivity extends AppCompatActivity
         final ReelApi reel = reels.get(position);
         if (reel == null) {
             player.stop();
+            stopProgressTicks();
+            if (progressBar != null) {
+                progressBar.setProgress(position, 1f);
+            }
             return;
         }
 
@@ -219,6 +253,10 @@ public class ReelPlayerActivity extends AppCompatActivity
                 holder.poster.setVisibility(View.VISIBLE);
                 holder.progressBar.setVisibility(View.GONE);
             }
+            stopProgressTicks();
+            if (progressBar != null) {
+                progressBar.setProgress(position, 1f);
+            }
             countView(reel);
             return;
         }
@@ -233,6 +271,7 @@ public class ReelPlayerActivity extends AppCompatActivity
         player.setMediaItem(MediaItem.fromUri(reel.getUrl()));
         player.prepare();
         player.setPlayWhenReady(true);
+        startProgressTicks();
         countView(reel);
     }
 
@@ -276,6 +315,115 @@ public class ReelPlayerActivity extends AppCompatActivity
         final ReelPagerAdapter.ReelHolder holder = holderAt(position);
         if (holder != null) {
             holder.pause.setVisibility(paused ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    // --------------------------------------------------------------- sound
+
+    private void toggleMute() {
+        muted = !muted;
+        prefManager.setString(KEY_MUTED, muted ? "TRUE" : "FALSE");
+        if (player != null) {
+            player.setVolume(muted ? 0f : 1f);
+        }
+        showMuteState();
+    }
+
+    private void showMuteState() {
+        muteButton.setImageResource(muted
+                ? R.drawable.ic_reel_volume_off : R.drawable.ic_reel_volume_on);
+        muteButton.setContentDescription(getString(muted
+                ? R.string.reel_sound_off : R.string.reel_sound_on));
+    }
+
+    // ------------------------------------------------------------ progress
+
+    /** Redraws the block of segments the given page belongs to. */
+    private void showProgressFor(int position) {
+        if (progressBar == null) {
+            return;
+        }
+        progressBar.showBlockFor(position, reels.size());
+    }
+
+    /**
+     * Runs the fill on the current segment. Photos and ad pages have no clock of their
+     * own, so their segment is simply shown as complete.
+     */
+    private void startProgressTicks() {
+        stopProgressTicks();
+        progressTick = new Runnable() {
+            @Override
+            public void run() {
+                if (player != null && progressBar != null) {
+                    final long duration = player.getDuration();
+                    if (duration > 0) {
+                        progressBar.setProgress(currentPosition,
+                                player.getCurrentPosition() / (float) duration);
+                    }
+                }
+                progressHandler.postDelayed(this, PROGRESS_TICK_MS);
+            }
+        };
+        progressHandler.post(progressTick);
+    }
+
+    private void stopProgressTicks() {
+        if (progressTick != null) {
+            progressHandler.removeCallbacks(progressTick);
+            progressTick = null;
+        }
+    }
+
+    // -------------------------------------------------------------- banner
+
+    /**
+     * Banner across the bottom of the player.
+     *
+     * The slot has no height of its own: the ad view is added hidden and only shown once
+     * a network fills, so nothing but a filled banner ever pushes the reel's controls up.
+     */
+    private void showBanner() {
+        final ViewGroup slot = findViewById(R.id.frame_layout_reels_banner);
+        if (slot == null) {
+            return;
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(slot, (v, insets) -> {
+            navInset = insets.getInsets(WindowInsetsCompat.Type.systemBars()).bottom;
+            layoutBanner(slot);
+            return insets;
+        });
+        slot.getViewTreeObserver().addOnGlobalLayoutListener(() -> layoutBanner(slot));
+
+        if (new AdsConfig(this).isSubscribed()) {
+            return;
+        }
+        bannerAdManager = BannerAdManager.into(this, slot);
+        if (bannerAdManager != null) {
+            bannerAdManager.load();
+        }
+    }
+
+    /** Gives the slot its backing and tells the pages how much room it is taking. */
+    private void layoutBanner(ViewGroup slot) {
+        boolean filled = false;
+        for (int i = 0; i < slot.getChildCount(); i++) {
+            if (slot.getChildAt(i).getVisibility() == View.VISIBLE) {
+                filled = true;
+                break;
+            }
+        }
+        if (filled != bannerFilled) {
+            bannerFilled = filled;
+            slot.setBackgroundColor(filled ? 0xB3000000 : 0x00000000);
+        }
+        final int padding = filled ? dp(4) : 0;
+        final int bottom = filled ? navInset + dp(4) : 0;
+        if (slot.getPaddingTop() != padding || slot.getPaddingBottom() != bottom) {
+            slot.setPadding(0, padding, 0, bottom);
+        }
+        if (adapter != null) {
+            adapter.setBottomInset(filled ? slot.getHeight() : 0);
         }
     }
 
@@ -616,6 +764,7 @@ public class ReelPlayerActivity extends AppCompatActivity
     @Override
     protected void onPause() {
         super.onPause();
+        stopProgressTicks();
         if (player != null) {
             player.setPlayWhenReady(false);
         }
@@ -628,11 +777,16 @@ public class ReelPlayerActivity extends AppCompatActivity
         // Coming back does not undo a tap: a reel the viewer paused stays paused.
         if (player != null && current != null && current.isVideo() && !paused) {
             player.setPlayWhenReady(true);
+            startProgressTicks();
         }
     }
 
     @Override
     protected void onDestroy() {
+        stopProgressTicks();
+        if (bannerAdManager != null) {
+            bannerAdManager.destroy();
+        }
         if (player != null) {
             player.release();
             player = null;

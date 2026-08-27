@@ -10,46 +10,81 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- Back on the left, post a reel on the right. The row carries the status bar
-         inset itself, since the pages draw under the bars. -->
+    <!-- Progress across the block of reels, then the controls under it. Both carry the
+         status bar inset themselves, since the pages draw under the bars. -->
     <LinearLayout
         android:id="@+id/layout_reel_top_bar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="top"
-        android:gravity="center_vertical"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:paddingStart="12dp"
         android:paddingTop="8dp"
         android:paddingEnd="12dp"
         android:paddingBottom="8dp">
 
-        <ImageView
-            android:id="@+id/image_view_close_reels"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@drawable/bg_reel_top_button"
-            android:clickable="true"
-            android:focusable="true"
-            android:padding="9dp"
-            android:src="@drawable/ic_arrow_back"
-            app:tint="@android:color/white"
-            android:contentDescription="@null" />
+        <com.stickersanimated.kissing.reels.ReelProgressBar
+            android:id="@+id/reel_progress"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="2dp"
+            android:layout_marginEnd="2dp" />
 
-        <View
-            android:layout_width="0dp"
-            android:layout_height="1dp"
-            android:layout_weight="1" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="10dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
-        <ImageView
-            android:id="@+id/image_view_reel_camera"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:background="@drawable/bg_reel_top_button"
-            android:clickable="true"
-            android:focusable="true"
-            android:padding="9dp"
-            android:src="@drawable/ic_reel_camera"
-            android:contentDescription="@null" />
+            <ImageView
+                android:id="@+id/image_view_close_reels"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_reel_top_button"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="9dp"
+                android:src="@drawable/ic_arrow_back"
+                app:tint="@android:color/white"
+                android:contentDescription="@null" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <!-- Sound off is the control people reach for first in a feed like this. -->
+            <ImageView
+                android:id="@+id/image_view_reel_mute"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="10dp"
+                android:background="@drawable/bg_reel_top_button"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="9dp"
+                android:src="@drawable/ic_reel_volume_on"
+                android:contentDescription="@string/reel_sound_on" />
+
+            <ImageView
+                android:id="@+id/image_view_reel_camera"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="@drawable/bg_reel_top_button"
+                android:clickable="true"
+                android:focusable="true"
+                android:padding="9dp"
+                android:src="@drawable/ic_reel_camera"
+                android:contentDescription="@string/reel_upload" />
+        </LinearLayout>
     </LinearLayout>
+
+    <!-- Banner across the bottom of the player. It stays out of the way of the reel's own
+         controls: the pages are told how much room it takes and move their overlays up. -->
+    <FrameLayout
+        android:id="@+id/frame_layout_reels_banner"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom" />
 </FrameLayout>
