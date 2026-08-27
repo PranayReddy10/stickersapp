@@ -30,6 +30,7 @@ import com.stickersanimated.kissing.api.apiClient;
 import com.stickersanimated.kissing.ads.AdFormat;
 import com.stickersanimated.kissing.ads.AdsConfig;
 import com.stickersanimated.kissing.ads.BannerAdManager;
+import com.stickersanimated.kissing.ads.NativeAdManager;
 import com.stickersanimated.kissing.api.apiRest;
 import com.stickersanimated.kissing.entity.ReelApi;
 import com.stickersanimated.kissing.ui.LoginActivity;
@@ -85,6 +86,7 @@ public class ReelPlayerActivity extends AppCompatActivity
     private ReelProgressBar progressBar;
     private ImageView muteButton;
     private BannerAdManager bannerAdManager;
+    private NativeAdManager barAdManager;
     private final Handler progressHandler = new Handler(Looper.getMainLooper());
     private Runnable progressTick;
     private boolean muted;
@@ -396,18 +398,26 @@ public class ReelPlayerActivity extends AppCompatActivity
         if (config.isSubscribed()) {
             return;
         }
-        if (!config.isEnabled(AdFormat.BANNER)) {
-            // Nothing is wrong with the screen in this case: the panel has either switched
-            // banners off or left every banner unit id empty, so there is nothing to load.
-            Log.d(TAG, "No banner on the reel player: ADMIN_BANNER_TYPE="
-                    + prefManager.getString("ADMIN_BANNER_TYPE")
-                    + ", usable networks=" + config.waterfall(AdFormat.BANNER));
-            return;
-        }
         Log.d(TAG, "Reel banner waterfall: " + config.waterfall(AdFormat.BANNER));
         bannerAdManager = BannerAdManager.into(this, slot);
-        if (bannerAdManager != null) {
-            bannerAdManager.load();
+        if (bannerAdManager == null) {
+            return;
+        }
+        // Banner demand is thin on this app: the networks either have no unit id or pass on
+        // the request. Rather than leave the strip empty, the same slot then asks the native
+        // waterfall - which does fill - for an ad laid out as a bar.
+        bannerAdManager.onEmpty(() -> showNativeBar(slot)).load();
+    }
+
+    /** Native ad in the banner's place, when no banner network had anything to show. */
+    private void showNativeBar(ViewGroup slot) {
+        if (isFinishing() || barAdManager != null) {
+            return;
+        }
+        barAdManager = NativeAdManager.bar(this, slot);
+        if (barAdManager != null) {
+            Log.d(TAG, "No banner filled, falling back to a native bar");
+            barAdManager.load();
         }
     }
 
@@ -793,6 +803,9 @@ public class ReelPlayerActivity extends AppCompatActivity
         stopProgressTicks();
         if (bannerAdManager != null) {
             bannerAdManager.destroy();
+        }
+        if (barAdManager != null) {
+            barAdManager.destroy();
         }
         if (player != null) {
             player.release();

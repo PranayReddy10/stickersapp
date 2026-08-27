@@ -66,6 +66,8 @@ public final class BannerAdManager {
     private boolean destroyed;
 
     private View currentView;
+    /** Run when the format is off or no network filled, so the caller can try something else. */
+    private Runnable onEmpty;
     private Runnable timeoutRunnable;
     /** Vungle hands back a view but keeps teardown on the ad object itself. */
     private BannerAd vungleBannerAd;
@@ -85,9 +87,23 @@ public final class BannerAdManager {
         return new BannerAdManager(activity, container);
     }
 
+    /**
+     * Called once when this slot ends up with no banner: banners are switched off, or every
+     * network passed. Lets the caller fall back to another format rather than leave a gap.
+     */
+    public BannerAdManager onEmpty(@Nullable Runnable action) {
+        this.onEmpty = action;
+        return this;
+    }
+
     /** Starts the waterfall. Does nothing for subscribers or when banners are switched off. */
     public void load() {
-        if (destroyed || !config.isEnabled(AdFormat.BANNER)) {
+        if (destroyed) {
+            return;
+        }
+        if (!config.isEnabled(AdFormat.BANNER)) {
+            Log.d(TAG, "Banners are off or have no configured network");
+            reportEmpty();
             return;
         }
         waterfall = config.waterfall(AdFormat.BANNER);
@@ -106,6 +122,7 @@ public final class BannerAdManager {
         if (destroyed || activity.isFinishing() || index >= waterfall.size()) {
             if (index >= waterfall.size()) {
                 Log.d(TAG, "No banner network filled");
+                reportEmpty();
             }
             return;
         }
@@ -382,6 +399,15 @@ public final class BannerAdManager {
             return Long.parseLong(raw.trim());
         } catch (RuntimeException e) {
             return 0L;
+        }
+    }
+
+    /** Fires the empty callback once, and only once. */
+    private void reportEmpty() {
+        final Runnable action = onEmpty;
+        onEmpty = null;
+        if (action != null && !destroyed) {
+            action.run();
         }
     }
 

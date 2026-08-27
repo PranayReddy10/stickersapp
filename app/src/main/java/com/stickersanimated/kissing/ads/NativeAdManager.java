@@ -43,8 +43,8 @@ public final class NativeAdManager {
     private final Activity activity;
     private final ViewGroup container;
     private final AdsConfig config;
-    /** True for the ad page in the reels player, where the ad fills the screen. */
-    private final boolean fullscreen;
+    /** How much room this placement has, which decides the layout used. */
+    private final NativeStyle style;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     private List<AdNetwork> waterfall = Collections.emptyList();
@@ -60,10 +60,10 @@ public final class NativeAdManager {
     private com.vungle.ads.NativeAd vungleAd;
     private InMobiNative inmobiAd;
 
-    private NativeAdManager(Activity activity, ViewGroup container, boolean fullscreen) {
+    private NativeAdManager(Activity activity, ViewGroup container, NativeStyle style) {
         this.activity = activity;
         this.container = container;
-        this.fullscreen = fullscreen;
+        this.style = style;
         this.config = new AdsConfig(activity);
     }
 
@@ -72,7 +72,7 @@ public final class NativeAdManager {
         if (activity == null || container == null) {
             return null;
         }
-        return new NativeAdManager(activity, container, false);
+        return new NativeAdManager(activity, container, NativeStyle.INLINE);
     }
 
     /**
@@ -86,7 +86,20 @@ public final class NativeAdManager {
         if (activity == null || container == null) {
             return null;
         }
-        return new NativeAdManager(activity, container, true);
+        return new NativeAdManager(activity, container, NativeStyle.FULLSCREEN);
+    }
+
+    /**
+     * A native ad laid out as a strip, for the bottom of a screen a creative would
+     * otherwise cover - the reel player's ad bar. Same waterfall, compact layout.
+     */
+    @Nullable
+    public static NativeAdManager bar(@Nullable Activity activity,
+                                      @Nullable ViewGroup container) {
+        if (activity == null || container == null) {
+            return null;
+        }
+        return new NativeAdManager(activity, container, NativeStyle.BAR);
     }
 
     public void load() {
@@ -158,7 +171,7 @@ public final class NativeAdManager {
                     }
                     release();
                     admobAd = nativeAd;
-                    show(NativeAdRenderer.renderAdmob(activity, nativeAd, fullscreen));
+                    show(NativeAdRenderer.renderAdmob(activity, nativeAd, style));
                     onLoaded(attempt, AdNetwork.ADMOB);
                 })
                 .withNativeAdOptions(new NativeAdOptions.Builder()
@@ -201,7 +214,7 @@ public final class NativeAdManager {
             public void onNativeAdClicked(@NonNull MaxAd ad) {
             }
         });
-        loader.loadAd(NativeAdRenderer.createMaxAdView(activity, fullscreen));
+        loader.loadAd(NativeAdRenderer.createMaxAdView(activity, style));
     }
 
     private void loadFacebook(int attempt, String placementId) {
@@ -249,7 +262,7 @@ public final class NativeAdManager {
                 }
                 release();
                 vungleAd = nativeAd;
-                show(NativeAdRenderer.renderVungle(activity, nativeAd, fullscreen));
+                show(NativeAdRenderer.renderVungle(activity, nativeAd, style));
                 onLoaded(attempt, AdNetwork.VUNGLE);
             }
 
@@ -293,7 +306,7 @@ public final class NativeAdManager {
                         }
                         release();
                         inmobiAd = ad;
-                        show(NativeAdRenderer.renderInMobi(activity, ad, fullscreen));
+                        show(NativeAdRenderer.renderInMobi(activity, ad, style));
                         onLoaded(attempt, AdNetwork.INMOBI);
                     }
 
@@ -308,12 +321,18 @@ public final class NativeAdManager {
 
     private void show(View adView) {
         container.removeAllViews();
-        if (fullscreen) {
+        if (style == NativeStyle.FULLSCREEN) {
             // Meta's native banner has no big creative, so it keeps its own height and
             // is centred; the AdMob and MAX full screen layouts fill the page.
             container.addView(adView, new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT));
+        } else if (style == NativeStyle.BAR) {
+            // A bar spans the screen; inflating with no parent leaves the view without the
+            // layout params its own root asked for, so it would otherwise shrink to fit.
+            container.addView(adView, new ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
         } else {
             container.addView(adView);
         }
@@ -339,7 +358,7 @@ public final class NativeAdManager {
     /** The card wrapping this slot, when the container is the only thing inside it. */
     @Nullable
     private ViewGroup cardParent() {
-        if (fullscreen) {
+        if (style != NativeStyle.INLINE) {
             return null;
         }
         final View parent = container.getParent() instanceof View
