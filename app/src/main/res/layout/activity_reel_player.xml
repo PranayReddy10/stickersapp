@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/black">
@@ -9,13 +10,46 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <ImageView
-        android:id="@+id/image_view_close_reels"
-        android:layout_width="42dp"
-        android:layout_height="42dp"
-        android:layout_gravity="top|start"
-        android:layout_margin="10dp"
-        android:padding="10dp"
-        android:src="@drawable/ic_close"
-        android:contentDescription="@null" />
+    <!-- Back on the left, post a reel on the right. The row carries the status bar
+         inset itself, since the pages draw under the bars. -->
+    <LinearLayout
+        android:id="@+id/layout_reel_top_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="12dp"
+        android:paddingTop="8dp"
+        android:paddingEnd="12dp"
+        android:paddingBottom="8dp">
+
+        <ImageView
+            android:id="@+id/image_view_close_reels"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_reel_top_button"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="9dp"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@android:color/white"
+            android:contentDescription="@null" />
+
+        <View
+            android:layout_width="0dp"
+            android:layout_height="1dp"
+            android:layout_weight="1" />
+
+        <ImageView
+            android:id="@+id/image_view_reel_camera"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:background="@drawable/bg_reel_top_button"
+            android:clickable="true"
+            android:focusable="true"
+            android:padding="9dp"
+            android:src="@drawable/ic_reel_camera"
+            android:contentDescription="@null" />
+    </LinearLayout>
 </FrameLayout>

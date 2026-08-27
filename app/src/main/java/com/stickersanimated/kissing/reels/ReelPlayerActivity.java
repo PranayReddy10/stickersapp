@@ -56,6 +56,9 @@ public class ReelPlayerActivity extends AppCompatActivity
 
     private static final String TAG = "ReelPlayer";
 
+    /** Ceiling on the wrapped-around feed, so endless swiping cannot grow it forever. */
+    private static final int MAX_PAGES = 300;
+
     public static final String EXTRA_REELS = "reels";
     public static final String EXTRA_START = "start";
     public static final String EXTRA_PAGE = "page";
@@ -78,6 +81,8 @@ public class ReelPlayerActivity extends AppCompatActivity
     private boolean adsEnabled;
     private boolean loading;
     private boolean reachedEnd;
+    /** True while the viewer has tapped to hold this reel still. */
+    private boolean paused;
 
     @SuppressWarnings("unchecked")
     @Override
@@ -125,16 +130,22 @@ public class ReelPlayerActivity extends AppCompatActivity
         viewPager.setAdapter(adapter);
         viewPager.setOffscreenPageLimit(1);
 
-        final View close = findViewById(R.id.image_view_close_reels);
-        close.setOnClickListener(v -> finish());
-        // This screen draws under the bars, so the close button moves itself clear of
-        // the status bar rather than the whole page being padded away from it.
-        ViewCompat.setOnApplyWindowInsetsListener(close, (v, insets) -> {
+        findViewById(R.id.image_view_close_reels).setOnClickListener(v -> finish());
+        findViewById(R.id.image_view_reel_camera).setOnClickListener(v -> {
+            if (!"TRUE".equals(prefManager.getString("LOGGED"))) {
+                startActivity(new Intent(this, LoginActivity.class));
+                return;
+            }
+            startActivity(new Intent(this, UploadReelActivity.class));
+        });
+
+        // The pages draw under the bars, so the row moves itself clear of the status
+        // bar rather than the whole screen being padded away from it.
+        final View topBar = findViewById(R.id.layout_reel_top_bar);
+        ViewCompat.setOnApplyWindowInsetsListener(topBar, (v, insets) -> {
             final int top = insets.getInsets(WindowInsetsCompat.Type.systemBars()).top;
-            final ViewGroup.MarginLayoutParams params =
-                    (ViewGroup.MarginLayoutParams) v.getLayoutParams();
-            params.topMargin = top;
-            v.setLayoutParams(params);
+            v.setPadding(v.getPaddingLeft(), top + dp(8), v.getPaddingRight(),
+                    v.getPaddingBottom());
             return insets;
         });
 
@@ -214,12 +225,62 @@ public class ReelPlayerActivity extends AppCompatActivity
 
         if (holder != null) {
             holder.playerView.setPlayer(player);
+            holder.playerView.setVisibility(View.VISIBLE);
             holder.progressBar.setVisibility(View.VISIBLE);
+            holder.pause.setVisibility(View.GONE);
         }
+        paused = false;
         player.setMediaItem(MediaItem.fromUri(reel.getUrl()));
         player.prepare();
         player.setPlayWhenReady(true);
         countView(reel);
+    }
+
+    /**
+     * The page's views exist now.
+     *
+     * The first page is attached after the pager has been told to play it, so the
+     * player had no surface to draw on - sound, and a black screen, until a swipe
+     * bound a page the hard way. Attaching here is what makes the first reel show.
+     */
+    @Override
+    public void onPageReady(int position) {
+        if (position != currentPosition || player == null) {
+            return;
+        }
+        final ReelApi reel = reelAt(position);
+        if (reel == null || !reel.isVideo()) {
+            return;
+        }
+        final ReelPagerAdapter.ReelHolder holder = holderAt(position);
+        if (holder == null || holder.playerView.getPlayer() == player) {
+            return;
+        }
+        holder.playerView.setPlayer(player);
+        holder.playerView.setVisibility(View.VISIBLE);
+        holder.pause.setVisibility(paused ? View.VISIBLE : View.GONE);
+    }
+
+    /** Single tap: pause, or pick up where it stopped. */
+    @Override
+    public void onTogglePlayback(int position) {
+        if (player == null || position != currentPosition) {
+            return;
+        }
+        final ReelApi reel = reelAt(position);
+        if (reel == null || !reel.isVideo()) {
+            return;
+        }
+        paused = !paused;
+        player.setPlayWhenReady(!paused);
+        final ReelPagerAdapter.ReelHolder holder = holderAt(position);
+        if (holder != null) {
+            holder.pause.setVisibility(paused ? View.VISIBLE : View.GONE);
+        }
+    }
+
+    private int dp(int value) {
+        return Math.round(value * getResources().getDisplayMetrics().density);
     }
 
     private ReelPagerAdapter.ReelHolder holderAt(int position) {
@@ -437,6 +498,38 @@ public class ReelPlayerActivity extends AppCompatActivity
                 });
     }
 
+    /**
+     * Starts the feed again once the server has nothing more to give.
+     *
+     * The reels seen so far are appended a second time, so swiping past the last one
+     * carries on into the first rather than stopping dead. Capped, so somebody who
+     * keeps swiping does not grow the list without end.
+     */
+    private void wrapAround() {
+        if (reels.size() >= MAX_PAGES) {
+            return;
+        }
+        final List<ReelApi> again = new ArrayList<>();
+        for (ReelApi reel : reels) {
+            if (reel != null) {
+                again.add(reel);
+            }
+        }
+        if (again.isEmpty()) {
+            return;
+        }
+        final int from = reels.size();
+        int sinceAd = 0;
+        for (ReelApi reel : again) {
+            reels.add(reel);
+            if (adsEnabled && ++sinceAd >= reelsBetweenAds) {
+                sinceAd = 0;
+                reels.add(null);
+            }
+        }
+        adapter.notifyItemRangeInserted(from, reels.size() - from);
+    }
+
     /** Drops the deleted page, closing the player when it was the only reel left. */
     private void removePage(int position) {
         if (position < 0 || position >= reels.size()) {
@@ -495,6 +588,7 @@ public class ReelPlayerActivity extends AppCompatActivity
                         final List<ReelApi> batch = response.body();
                         if (batch == null || batch.isEmpty()) {
                             reachedEnd = true;
+                            wrapAround();
                             return;
                         }
                         page++;
@@ -531,7 +625,8 @@ public class ReelPlayerActivity extends AppCompatActivity
     protected void onResume() {
         super.onResume();
         final ReelApi current = reelAt(currentPosition);
-        if (player != null && current != null && current.isVideo()) {
+        // Coming back does not undo a tap: a reel the viewer paused stays paused.
+        if (player != null && current != null && current.isVideo() && !paused) {
             player.setPlayWhenReady(true);
         }
     }
