@@ -23,8 +23,10 @@
         android:paddingEnd="12dp"
         android:paddingBottom="8dp">
 
-        <com.stickersanimated.kissing.reels.ReelProgressBar
-            android:id="@+id/reel_progress"
+        <!-- The segments are added by the activity. A custom view tag would have to name
+             its package here, and this project is built under more than one. -->
+        <FrameLayout
+            android:id="@+id/frame_layout_reel_progress"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="2dp"

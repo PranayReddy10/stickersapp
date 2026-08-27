@@ -156,7 +156,12 @@ public class ReelPlayerActivity extends AppCompatActivity
             startActivity(new Intent(this, UploadReelActivity.class));
         });
 
-        progressBar = findViewById(R.id.reel_progress);
+        // Built here rather than named in the layout: an XML tag for a custom view has to
+        // spell out its package, and this app is built under more than one of them.
+        final ViewGroup progressSlot = findViewById(R.id.frame_layout_reel_progress);
+        progressBar = new ReelProgressBar(this);
+        progressSlot.addView(progressBar, new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         muteButton = findViewById(R.id.image_view_reel_mute);
         muted = "TRUE".equals(prefManager.getString(KEY_MUTED));
         showMuteState();
