@@ -76,6 +76,12 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
      */
     private ExoPlayer feedPlayer;
     private int playingPosition = RecyclerView.NO_POSITION;
+    /**
+     * Feed sound. It starts off - a list that talks the moment it is opened is the
+     * fastest way to make somebody close an app - and stays however the viewer last
+     * set it while the tab is open.
+     */
+    private boolean feedMuted = true;
 
     /** 0 for the main feed, otherwise the profile whose reels are being shown. */
     private int author;
@@ -346,16 +352,41 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
         if (feedPlayer == null) {
             feedPlayer = new ExoPlayer.Builder(requireContext()).build();
             feedPlayer.setRepeatMode(Player.REPEAT_MODE_ONE);
-            feedPlayer.setVolume(0f);
         }
+        feedPlayer.setVolume(feedMuted ? 0f : 1f);
         playingPosition = position;
         holder.playerView.setPlayer(feedPlayer);
         holder.playerView.setVisibility(View.VISIBLE);
         holder.play.setVisibility(View.GONE);
         holder.muted.setVisibility(View.VISIBLE);
+        showSoundState(holder);
         feedPlayer.setMediaItem(MediaItem.fromUri(rows.get(position).reel.getUrl()));
         feedPlayer.prepare();
         feedPlayer.setPlayWhenReady(true);
+    }
+
+    /**
+     * Sound on, or off again, for the card that is playing. The speaker only appears on
+     * that card, so this is always about the reel the viewer is looking at.
+     */
+    @Override
+    public void onToggleSound() {
+        feedMuted = !feedMuted;
+        if (feedPlayer != null) {
+            feedPlayer.setVolume(feedMuted ? 0f : 1f);
+        }
+        final ReelCardAdapter.CardHolder holder = cardAt(playingPosition);
+        if (holder != null) {
+            showSoundState(holder);
+        }
+    }
+
+    /** The speaker shows what a tap will do: crossed out while the sound is off. */
+    private void showSoundState(ReelCardAdapter.CardHolder holder) {
+        holder.muted.setImageResource(feedMuted
+                ? R.drawable.ic_reel_volume_off : R.drawable.ic_reel_volume_on);
+        holder.muted.setContentDescription(getString(feedMuted
+                ? R.string.reel_sound_off : R.string.reel_sound_on));
     }
 
     /** Puts the playing card back to its still picture. */
@@ -531,11 +562,7 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
 
     @Override
     public void onShare(ReelApi reel) {
-        final Intent intent = new Intent(Intent.ACTION_SEND);
-        intent.setType("text/plain");
-        intent.putExtra(Intent.EXTRA_TEXT, reel.getCaption().isEmpty()
-                ? reel.getUrl() : reel.getCaption() + "\n\n" + reel.getUrl());
-        startActivity(Intent.createChooser(intent, getString(R.string.reel_share)));
+        ReelShare.start(requireContext(), reel);
     }
 
     @Override

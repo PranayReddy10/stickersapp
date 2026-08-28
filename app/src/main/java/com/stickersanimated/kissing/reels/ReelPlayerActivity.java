@@ -584,12 +584,8 @@ public class ReelPlayerActivity extends AppCompatActivity
         if (reel == null) {
             return;
         }
-        final Intent intent = new Intent(Intent.ACTION_SEND);
-        intent.setType("text/plain");
-        intent.putExtra(Intent.EXTRA_TEXT, reel.getCaption().isEmpty()
-                ? reel.getUrl()
-                : reel.getCaption() + "\n\n" + reel.getUrl());
-        startActivity(Intent.createChooser(intent, getString(R.string.reel_share)));
+        // The reel's page on the site, never the file on storage.
+        ReelShare.start(this, reel);
     }
 
     @Override
