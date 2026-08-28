@@ -2,6 +2,7 @@ package com.stickersanimated.kissing.ads;
 
 import android.content.Context;
 import android.text.TextUtils;
+import android.util.Log;
 
 import com.stickersanimated.kissing.Manager.PrefManager;
 
@@ -40,6 +41,8 @@ import java.util.Locale;
  * exactly as before, except that a failing network now hands over to the next one.
  */
 public final class AdsConfig {
+
+    private static final String TAG = "AdsConfig";
 
     private static final String KEY_SUBSCRIBED = "SUBSCRIBED";
     private static final String KEY_FALLBACK_ENABLED = "ADMIN_AD_FALLBACK";
@@ -99,9 +102,16 @@ public final class AdsConfig {
 
         final List<AdNetwork> usable = new ArrayList<>(ordered.size());
         for (AdNetwork network : ordered) {
-            if (network.supports(format) && isUsable(format, network)) {
-                usable.add(network);
+            if (!network.supports(format)) {
+                continue; // the network has no such ad format at all
             }
+            if (!isUsable(format, network)) {
+                // The commonest reason an ad never appears: the panel field is empty.
+                Log.d(TAG, network + " skipped for " + format + ": "
+                        + missingCredential(format, network));
+                continue;
+            }
+            usable.add(network);
         }
         return usable;
     }
@@ -110,8 +120,13 @@ public final class AdsConfig {
     public String unitId(AdFormat format, AdNetwork network) {
         String id = string(format.unitIdKey(network));
         if (TextUtils.isEmpty(id) && network == AdNetwork.MAX) {
-            // Older panels stored the MAX unit id under the AdMob key.
-            id = string(format.unitIdKey(AdNetwork.ADMOB));
+            // Older panels stored the MAX unit id under the AdMob key - but only a MAX id
+            // may be borrowed that way. Handing MAX an AdMob unit ("ca-app-pub-...") costs
+            // the slot a full timeout on a request that can never fill.
+            final String admobId = string(format.unitIdKey(AdNetwork.ADMOB));
+            if (admobId != null && !admobId.trim().startsWith("ca-app-pub-")) {
+                id = admobId;
+            }
         }
         if (TextUtils.isEmpty(id) && format == AdFormat.NATIVE && network == AdNetwork.FACEBOOK) {
             id = string("ADMIN_NATIVE_BANNER_FACEBOOK_ID");
@@ -184,6 +199,20 @@ public final class AdsConfig {
     private boolean isFallbackEnabled() {
         final String raw = string(KEY_FALLBACK_ENABLED);
         return TextUtils.isEmpty(raw) || !"FALSE".equalsIgnoreCase(raw.trim());
+    }
+
+    /** Which panel field a network is waiting on, for the log line above. */
+    private String missingCredential(AdFormat format, AdNetwork network) {
+        if (network == AdNetwork.UNITY && TextUtils.isEmpty(unityGameId())) {
+            return KEY_UNITY_GAME_ID + " is empty";
+        }
+        if (network == AdNetwork.VUNGLE && TextUtils.isEmpty(vungleAppId())) {
+            return KEY_VUNGLE_APP_ID + " is empty";
+        }
+        if (network == AdNetwork.INMOBI && TextUtils.isEmpty(inmobiAccountId())) {
+            return KEY_INMOBI_ACCOUNT_ID + " is empty";
+        }
+        return format.unitIdKey(network) + " is empty";
     }
 
     private boolean isUsable(AdFormat format, AdNetwork network) {

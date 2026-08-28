@@ -28,6 +28,34 @@ they are skipped for that placement.
 Networks that cannot serve a format, or that have no unit id configured, are skipped
 automatically, so it is safe to leave a network out.
 
+### When AdMob or Meta is unavailable
+
+Native ads then come from `MAX`, `VUNGLE` and `INMOBI` only — those are the remaining
+networks with a native format. Each needs two things filled in on the Ads page, and an ad
+never appears if either is missing:
+
+| Network | Unit id key | Account level key |
+|---|---|---|
+| `MAX` | `ADMIN_NATIVE_MAX_ID` (a MAX **native** ad unit, not an AdMob one) | AppLovin SDK key, shipped in the app |
+| `VUNGLE` | `ADMIN_NATIVE_VUNGLE_ID` | `ADMIN_VUNGLE_APP_ID` |
+| `INMOBI` | `ADMIN_NATIVE_INMOBI_ID` (numeric placement) | `ADMIN_INMOBI_ACCOUNT_ID` |
+
+Set `ADMIN_NATIVE_ORDER` to the networks that can actually serve (for example
+`MAX,VUNGLE,INMOBI`) and `ADMIN_AD_FALLBACK` to `FALSE`, so a slot does not spend a
+timeout on a network that cannot fill before reaching one that can.
+
+Every network skipped for a format is logged with the field it is waiting on:
+
+```
+AdsConfig: VUNGLE skipped for NATIVE: ADMIN_VUNGLE_APP_ID is empty
+NativeAds: Native waterfall [MAX, INMOBI], 10000ms per network
+```
+
+Unity, Vungle and InMobi are started from credentials the panel sends, which are not
+present when the process starts. They are started again as soon as the settings call
+returns, and an ad request that arrives while an SDK is still coming up waits for it
+rather than being counted as a failure.
+
 ## Settings the panel can send
 
 The settings endpoint returns `name` / `value` pairs. **Any** name starting with `ADMIN_` is

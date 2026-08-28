@@ -16,6 +16,7 @@ import android.widget.Toast;
 
 
 import com.stickersanimated.kissing.Manager.PrefManager;
+import com.stickersanimated.kissing.ads.AdsInitializer;
 import com.stickersanimated.kissing.R;
 import com.stickersanimated.kissing.config.Config;
 import com.stickersanimated.kissing.api.apiClient;
@@ -252,6 +253,11 @@ public class SplashActivity extends AppCompatActivity {
                                     prf.setString("ADMIN_NATIVE_TYPE",response.body().getValues().get(i).getValue());
                             }
                         }
+
+                        // The network SDKs are started from the app id, game id and account
+                        // id that have only just arrived: at process start they were empty,
+                        // so nothing but AdMob and Meta was running.
+                        AdsInitializer.initialize(getApplicationContext());
 
                         if (response.body().getCode().equals(200)) {
                             // Straight to the home screen: the welcome slides are gone.

@@ -50,6 +50,9 @@ public final class RewardedAdManager {
 
     private static final String TAG = "RewardedAds";
 
+    /** How long to wait before asking again whether a network's SDK has come up. */
+    private static final long SDK_RETRY_MS = 400L;
+
     /** Callbacks for the screen that asked for a rewarded ad. */
     public interface Listener {
         /** An ad is warm and {@link #show()} will work. */
@@ -381,9 +384,7 @@ public final class RewardedAdManager {
     }
 
     private void loadUnity(int attempt, String placementId) {
-        AdsInitializer.initializeUnity(activity);
-        if (!AdsInitializer.isUnityReady()) {
-            onFailed(attempt, AdNetwork.UNITY, "sdk not initialized");
+        if (!sdkReady(attempt, AdNetwork.UNITY, () -> loadUnity(attempt, placementId))) {
             return;
         }
         UnityAds.load(placementId, new IUnityAdsLoadListener() {
@@ -406,9 +407,7 @@ public final class RewardedAdManager {
     }
 
     private void loadVungle(int attempt, String placementId) {
-        AdsInitializer.initializeVungle(activity);
-        if (!AdsInitializer.isVungleReady()) {
-            onFailed(attempt, AdNetwork.VUNGLE, "sdk not initialized");
+        if (!sdkReady(attempt, AdNetwork.VUNGLE, () -> loadVungle(attempt, placementId))) {
             return;
         }
         final com.vungle.ads.RewardedAd ad =
@@ -465,9 +464,7 @@ public final class RewardedAdManager {
     }
 
     private void loadInmobi(int attempt, String placementId) {
-        AdsInitializer.initializeInmobi(activity);
-        if (!AdsInitializer.isInmobiReady()) {
-            onFailed(attempt, AdNetwork.INMOBI, "sdk not initialized");
+        if (!sdkReady(attempt, AdNetwork.INMOBI, () -> loadInmobi(attempt, placementId))) {
             return;
         }
         final long placement = parsePlacementId(placementId);
@@ -597,6 +594,26 @@ public final class RewardedAdManager {
         if (listener != null) {
             handler.post(listener::onAdReady);
         }
+    }
+
+    /**
+     * True when {@code network} can be asked right now. When its SDK is still starting the
+     * request is tried again in a moment instead of being written off - the SDKs the panel
+     * configures are not up yet when the first ad of a session is asked for. The timeout
+     * already running for this network is what eventually moves the waterfall on.
+     */
+    private boolean sdkReady(int attempt, AdNetwork network, Runnable retry) {
+        if (AdsSdks.isReady(network)) {
+            return true;
+        }
+        AdsSdks.start(activity, network);
+        Log.d(TAG, network + " SDK is still starting, retrying shortly");
+        handler.postDelayed(() -> {
+            if (!destroyed && attempt == attemptId) {
+                retry.run();
+            }
+        }, SDK_RETRY_MS);
+        return false;
     }
 
     private void onFailed(int attempt, AdNetwork network, String reason) {
