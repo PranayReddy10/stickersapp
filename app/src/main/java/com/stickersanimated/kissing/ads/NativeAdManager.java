@@ -40,6 +40,9 @@ public final class NativeAdManager {
 
     private static final String TAG = "NativeAds";
 
+    /** How long to wait before asking again whether a network's SDK has come up. */
+    private static final long SDK_RETRY_MS = 400L;
+
     private final Activity activity;
     /** Null while the ad is being loaded ahead of the row that will show it. */
     @Nullable
@@ -296,6 +299,9 @@ public final class NativeAdManager {
     }
 
     private void loadVungle(int attempt, String placementId) {
+        if (!sdkReady(attempt, AdNetwork.VUNGLE, () -> loadVungle(attempt, placementId))) {
+            return;
+        }
         final com.vungle.ads.NativeAd nativeAd = new com.vungle.ads.NativeAd(activity, placementId);
         nativeAd.setAdListener(new com.vungle.ads.NativeAdListener() {
             @Override
@@ -330,6 +336,9 @@ public final class NativeAdManager {
     }
 
     private void loadInMobi(int attempt, String placementId) {
+        if (!sdkReady(attempt, AdNetwork.INMOBI, () -> loadInMobi(attempt, placementId))) {
+            return;
+        }
         final long placement;
         try {
             placement = Long.parseLong(placementId.trim());
@@ -360,6 +369,26 @@ public final class NativeAdManager {
                     }
                 });
         nativeAd.load();
+    }
+
+    /**
+     * True when {@code network} can be asked right now. When its SDK is still starting the
+     * request is tried again in a moment instead of being written off - the SDKs the panel
+     * configures are not up yet when the first ad of a session is asked for. The timeout
+     * already running for this network is what eventually moves the waterfall on.
+     */
+    private boolean sdkReady(int attempt, AdNetwork network, Runnable retry) {
+        if (AdsSdks.isReady(network)) {
+            return true;
+        }
+        AdsSdks.start(activity, network);
+        Log.d(TAG, network + " SDK is still starting, retrying shortly");
+        handler.postDelayed(() -> {
+            if (!destroyed && attempt == attemptId) {
+                retry.run();
+            }
+        }, SDK_RETRY_MS);
+        return false;
     }
 
     private void show(View view) {

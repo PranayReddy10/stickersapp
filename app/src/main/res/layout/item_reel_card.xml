@@ -5,9 +5,9 @@
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:layout_marginStart="10dp"
-    android:layout_marginTop="6dp"
+    android:layout_marginTop="5dp"
     android:layout_marginEnd="10dp"
-    android:layout_marginBottom="6dp"
+    android:layout_marginBottom="5dp"
     app:cardBackgroundColor="@color/white"
     app:cardCornerRadius="16dp"
     app:cardElevation="1dp">
@@ -16,29 +16,29 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:paddingTop="12dp"
-        android:paddingBottom="10dp">
+        android:paddingTop="9dp"
+        android:paddingBottom="8dp">
 
-        <!-- Author row -->
+        <!-- Author row. Tighter than a profile header: the reel is the point. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingStart="12dp"
-            android:paddingEnd="8dp">
+            android:paddingEnd="12dp">
 
             <com.github.siyamed.shapeimageview.CircularImageView
                 android:id="@+id/image_view_card_avatar"
-                android:layout_width="42dp"
-                android:layout_height="42dp"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
                 android:src="@drawable/profile"
                 android:contentDescription="@null" />
 
             <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="10dp"
+                android:layout_marginStart="9dp"
                 android:layout_weight="1"
                 android:orientation="vertical">
 
@@ -55,13 +55,13 @@
                         android:ellipsize="end"
                         android:maxLines="1"
                         android:textColor="@color/primary_text"
-                        android:textSize="15sp"
+                        android:textSize="14sp"
                         android:textStyle="bold" />
 
                     <ImageView
                         android:id="@+id/image_view_card_verified"
-                        android:layout_width="14dp"
-                        android:layout_height="14dp"
+                        android:layout_width="13dp"
+                        android:layout_height="13dp"
                         android:layout_marginStart="4dp"
                         android:src="@drawable/ic_verified_reel"
                         android:visibility="gone"
@@ -73,69 +73,81 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:textColor="@color/primary_text_light"
-                    android:textSize="12sp" />
+                    android:textSize="11sp" />
             </LinearLayout>
 
+            <!-- Follow is a word, not a slab: it should not out-shout the reel. -->
             <TextView
                 android:id="@+id/text_view_card_follow"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:background="@drawable/bg_follow_button"
-                android:paddingStart="14dp"
+                android:paddingStart="10dp"
                 android:paddingTop="6dp"
-                android:paddingEnd="14dp"
+                android:paddingEnd="4dp"
                 android:paddingBottom="6dp"
                 android:text="@string/reel_follow"
-                android:textColor="@android:color/white"
-                android:textSize="12sp"
+                android:textColor="@color/green"
+                android:textSize="13sp"
                 android:textStyle="bold" />
-
-            <ImageView
-                android:id="@+id/image_view_card_more"
-                android:layout_width="30dp"
-                android:layout_height="30dp"
-                android:layout_marginStart="4dp"
-                android:padding="4dp"
-                android:src="@drawable/ic_more"
-                android:contentDescription="@null" />
         </LinearLayout>
 
-        <!-- Media. The height follows the picture's own shape, set in the adapter, so a
-             short picture gets a short card and nothing is ever cropped. -->
+        <!-- Media, always 4:5. Two cards then fit a screen, and the next reel is always
+             part way into view - which is what keeps a feed moving. Portrait clips are
+             cropped to the frame rather than sitting in black bars. -->
         <FrameLayout
             android:id="@+id/frame_layout_card_media"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="12dp"
+            android:layout_marginTop="9dp"
             android:background="#111317">
 
             <ImageView
                 android:id="@+id/image_view_card_media"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_gravity="center"
-                android:adjustViewBounds="true"
-                android:scaleType="fitCenter"
+                android:layout_height="match_parent"
+                android:scaleType="centerCrop"
                 android:contentDescription="@null" />
+
+            <androidx.media3.ui.PlayerView
+                android:id="@+id/player_view_card"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:visibility="gone"
+                app:resize_mode="zoom"
+                app:use_controller="false" />
 
             <ImageView
                 android:id="@+id/image_view_card_play"
-                android:layout_width="56dp"
-                android:layout_height="56dp"
+                android:layout_width="54dp"
+                android:layout_height="54dp"
                 android:layout_gravity="center"
                 android:src="@drawable/ic_play_badge"
                 android:contentDescription="@null" />
+
+            <!-- Sound is off while a card plays in the feed; the player is where it is on. -->
+            <ImageView
+                android:id="@+id/image_view_card_muted"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:layout_gravity="bottom|end"
+                android:layout_margin="10dp"
+                android:background="@drawable/bg_reel_top_button"
+                android:padding="6dp"
+                android:src="@drawable/ic_reel_volume_off"
+                android:visibility="gone"
+                android:contentDescription="@null" />
         </FrameLayout>
 
-        <!-- Actions -->
+        <!-- Actions. Counts sit beside their icon, and the overflow is pushed to the far
+             right so a stray tap never opens the report sheet. -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:gravity="center_vertical"
             android:orientation="horizontal"
             android:paddingStart="12dp"
-            android:paddingTop="10dp"
-            android:paddingEnd="12dp">
+            android:paddingTop="9dp"
+            android:paddingEnd="8dp">
 
             <ImageView
                 android:id="@+id/image_view_card_like"
@@ -149,9 +161,10 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
-                android:layout_marginEnd="20dp"
+                android:layout_marginEnd="18dp"
                 android:textColor="@color/primary_text"
-                android:textSize="13sp" />
+                android:textSize="13sp"
+                android:textStyle="bold" />
 
             <ImageView
                 android:id="@+id/image_view_card_share"
@@ -160,14 +173,10 @@
                 android:src="@drawable/ic_reel_send"
                 android:contentDescription="@null" />
 
-            <View
-                android:layout_width="0dp"
-                android:layout_height="1dp"
-                android:layout_weight="1" />
-
             <ImageView
                 android:layout_width="20dp"
                 android:layout_height="20dp"
+                android:layout_marginStart="18dp"
                 android:src="@drawable/ic_reel_views"
                 android:contentDescription="@null" />
 
@@ -178,6 +187,19 @@
                 android:layout_marginStart="6dp"
                 android:textColor="@color/primary_text_light"
                 android:textSize="13sp" />
+
+            <View
+                android:layout_width="0dp"
+                android:layout_height="1dp"
+                android:layout_weight="1" />
+
+            <ImageView
+                android:id="@+id/image_view_card_more"
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                android:padding="5dp"
+                android:src="@drawable/ic_more"
+                android:contentDescription="@null" />
         </LinearLayout>
 
         <TextView
@@ -185,7 +207,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginStart="12dp"
-            android:layout_marginTop="8dp"
+            android:layout_marginTop="7dp"
             android:layout_marginEnd="12dp"
             android:ellipsize="end"
             android:maxLines="2"
