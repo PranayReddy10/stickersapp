@@ -59,6 +59,8 @@ public final class NativeAdManager {
     private Runnable timeoutRunnable;
     /** The rendered ad, kept so a recycled row gets it back instead of loading again. */
     private View adView;
+    /** Run once when no network fills, so the caller can try another format. */
+    private Runnable onEmpty;
 
     private NativeAd admobAd;
     private MaxNativeAdLoader maxLoader;
@@ -144,9 +146,21 @@ public final class NativeAdManager {
         }
     }
 
+    /**
+     * Called once when this slot ends up with no native ad: the format is off, or every
+     * network passed. With AdMob and Meta out of the picture only three networks sell
+     * native at all, so the callers use this to ask for an MREC instead.
+     */
+    public NativeAdManager onEmpty(@Nullable Runnable action) {
+        this.onEmpty = action;
+        return this;
+    }
+
     public void load() {
         if (destroyed || !config.isEnabled(AdFormat.NATIVE)) {
             collapse();
+            Log.d(TAG, "Native is off or has no configured network");
+            reportEmpty();
             return;
         }
         // Nothing is shown until a network fills: an empty slot would otherwise leave a
@@ -172,8 +186,11 @@ public final class NativeAdManager {
             return;
         }
         if (index >= waterfall.size()) {
-            // Every network passed on this slot: keep it collapsed.
+            // Every network passed on this slot: keep it collapsed, and let the caller
+            // fall back to a format the networks will actually fill.
+            Log.d(TAG, "No native network filled");
             collapse();
+            reportEmpty();
             return;
         }
         final AdNetwork network = waterfall.get(index++);
@@ -389,6 +406,15 @@ public final class NativeAdManager {
             }
         }, SDK_RETRY_MS);
         return false;
+    }
+
+    /** Fires the empty callback once, and only once. */
+    private void reportEmpty() {
+        final Runnable action = onEmpty;
+        onEmpty = null;
+        if (action != null && !destroyed) {
+            action.run();
+        }
     }
 
     private void show(View view) {

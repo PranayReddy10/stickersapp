@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
 import com.stickersanimated.kissing.R;
+import com.stickersanimated.kissing.ads.BannerAdManager;
 import com.stickersanimated.kissing.ads.NativeAdManager;
 import com.stickersanimated.kissing.entity.ReelApi;
 
@@ -63,6 +64,9 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     /** Room the banner takes at the bottom of the player, in pixels. */
     private int bottomInset;
     private RecyclerView recyclerView;
+    /** The ad pages this feed has built, released with the list. */
+    private final java.util.List<NativeAdManager> managers = new java.util.ArrayList<>();
+    private final java.util.List<BannerAdManager> banners = new java.util.ArrayList<>();
 
     public ReelPagerAdapter(Activity activity, List<ReelApi> reels, Listener listener) {
         this.activity = activity;
@@ -105,6 +109,14 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     public void onDetachedFromRecyclerView(@NonNull RecyclerView view) {
         super.onDetachedFromRecyclerView(view);
         recyclerView = null;
+        for (NativeAdManager manager : managers) {
+            manager.destroy();
+        }
+        managers.clear();
+        for (BannerAdManager banner : banners) {
+            banner.destroy();
+        }
+        banners.clear();
     }
 
     @Override
@@ -239,12 +251,22 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     class AdHolder extends RecyclerView.ViewHolder {
         AdHolder(@NonNull View itemView) {
             super(itemView);
+            final ViewGroup slot = itemView.findViewById(R.id.frame_layout_fullscreen_ad);
             // Full bleed: the creative gets the whole page, like the reel either side.
-            final NativeAdManager manager = NativeAdManager.fullscreen(activity,
-                    itemView.findViewById(R.id.frame_layout_fullscreen_ad));
-            if (manager != null) {
-                manager.load();
+            final NativeAdManager manager = NativeAdManager.fullscreen(activity, slot);
+            if (manager == null) {
+                return;
             }
+            managers.add(manager);
+            // A page with nothing on it is worse than a smaller ad: when no network has a
+            // native ad, the 300x250 block sits in the middle of the page instead.
+            manager.onEmpty(() -> {
+                final BannerAdManager banner = BannerAdManager.mrec(activity, slot);
+                if (banner != null) {
+                    banners.add(banner);
+                    banner.load();
+                }
+            }).load();
         }
     }
 

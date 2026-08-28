@@ -51,6 +51,23 @@ AdsConfig: VUNGLE skipped for NATIVE: ADMIN_VUNGLE_APP_ID is empty
 NativeAds: Native waterfall [MAX, INMOBI], 10000ms per network
 ```
 
+### When a slot cannot be filled with the format it asked for
+
+Native is the format with the fewest sellers, so every native slot has a second chance:
+
+| Slot | First choice | Falls back to |
+|---|---|---|
+| In-feed row (home, popular, search, category, follows, profile) | native | 300x250 MREC banner |
+| Sticker pack page | native | 300x250 MREC banner |
+| Reels feed card | native | 300x250 MREC banner |
+| Ad page between reels | full screen native | 300x250 MREC banner, centred |
+| Bar under the reels player | banner | native laid out as a bar |
+
+The MREC is the one shape every network sells - AdMob, MAX, AppLovin, Meta, Unity, Vungle
+and InMobi all have it - so a slot that no network will fill with a native ad usually
+fills with this. It uses the **banner** unit ids (`ADMIN_BANNER_<NETWORK>_ID`), so those
+are worth filling in even on screens that show no strip.
+
 Unity, Vungle and InMobi are started from credentials the panel sends, which are not
 present when the process starts. They are started again as soon as the settings call
 returns, and an ad request that arrives while an SDK is still coming up waits for it

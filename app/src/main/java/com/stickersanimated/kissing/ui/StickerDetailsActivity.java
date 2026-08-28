@@ -94,6 +94,7 @@ public class StickerDetailsActivity extends AppCompatActivity {
     // fill simply hands over to the next configured one.
     private BannerAdManager bannerAdManager;
     private NativeAdManager detailsNativeAdManager;
+    private BannerAdManager detailsMrecAdManager;
     private RewardedAdManager rewardedAdManager;
     private boolean autoDisplay = false;
     private TextView text_view_watch_ads;
@@ -947,10 +948,17 @@ public class StickerDetailsActivity extends AppCompatActivity {
         }
         // A single native slot on the pack page, between the author card and the rating
         // card. It runs the same waterfall as every other placement.
-        detailsNativeAdManager = NativeAdManager.into(this,
-                findViewById(R.id.frame_layout_details_native));
+        final ViewGroup slot = findViewById(R.id.frame_layout_details_native);
+        detailsNativeAdManager = NativeAdManager.into(this, slot);
         if (detailsNativeAdManager != null) {
-            detailsNativeAdManager.load();
+            // Nothing bid for a native ad here: ask for the 300x250 block instead, which
+            // every network sells, rather than leaving the slot empty.
+            detailsNativeAdManager.onEmpty(() -> {
+                detailsMrecAdManager = BannerAdManager.mrec(this, slot);
+                if (detailsMrecAdManager != null) {
+                    detailsMrecAdManager.load();
+                }
+            }).load();
         }
     }
 
@@ -961,6 +969,9 @@ public class StickerDetailsActivity extends AppCompatActivity {
         }
         if (detailsNativeAdManager != null) {
             detailsNativeAdManager.destroy();
+        }
+        if (detailsMrecAdManager != null) {
+            detailsMrecAdManager.destroy();
         }
         if (rewardedAdManager != null) {
             rewardedAdManager.destroy();

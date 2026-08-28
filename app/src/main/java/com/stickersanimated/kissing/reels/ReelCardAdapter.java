@@ -26,6 +26,7 @@ import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.GlideException;
 import com.stickersanimated.kissing.R;
+import com.stickersanimated.kissing.ads.BannerAdManager;
 import com.stickersanimated.kissing.ads.NativeAdManager;
 import com.stickersanimated.kissing.entity.ReelApi;
 
@@ -85,6 +86,7 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     private final List<Row> rows;
     private final Listener listener;
     private final List<NativeAdManager> nativeAdManagers = new java.util.ArrayList<>();
+    private final List<BannerAdManager> bannerAdManagers = new java.util.ArrayList<>();
 
     public ReelCardAdapter(Activity activity, List<Row> rows, Listener listener) {
         this.activity = activity;
@@ -268,11 +270,19 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     class AdHolder extends RecyclerView.ViewHolder {
         AdHolder(@NonNull View itemView) {
             super(itemView);
-            final NativeAdManager manager = NativeAdManager.into(activity,
-                    itemView.findViewById(R.id.frame_layout_reel_ad));
+            final ViewGroup slot = itemView.findViewById(R.id.frame_layout_reel_ad);
+            final NativeAdManager manager = NativeAdManager.into(activity, slot);
             if (manager != null) {
                 nativeAdManagers.add(manager);
-                manager.load();
+                // No native ad for this card: ask for the 300x250 block, the one shape
+                // every network sells.
+                manager.onEmpty(() -> {
+                    final BannerAdManager banner = BannerAdManager.mrec(activity, slot);
+                    if (banner != null) {
+                        bannerAdManagers.add(banner);
+                        banner.load();
+                    }
+                }).load();
             }
         }
     }
@@ -285,5 +295,9 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             manager.destroy();
         }
         nativeAdManagers.clear();
+        for (BannerAdManager banner : bannerAdManagers) {
+            banner.destroy();
+        }
+        bannerAdManagers.clear();
     }
 }
