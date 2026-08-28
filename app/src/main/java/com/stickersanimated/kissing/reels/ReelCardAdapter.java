@@ -12,6 +12,9 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.OptIn;
+import androidx.media3.common.util.UnstableApi;
+import androidx.media3.ui.PlayerView;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.graphics.drawable.Drawable;
@@ -34,19 +37,18 @@ import java.util.List;
  * Ads are rows in the same list rather than a separate view, so they scroll with
  * the feed and inherit its spacing.
  */
+@OptIn(markerClass = UnstableApi.class)
 public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
 
     private static final int TYPE_REEL = 1;
     private static final int TYPE_AD = 2;
 
-    /** Used only until the picture itself arrives and reports its real shape. */
-    private static final float DEFAULT_ASPECT = 5f / 4f;
     /**
-     * No shape is forced on a card: the height simply follows the picture, so a short
-     * picture gets a short card. This single guard exists so that one freak upload -
-     * a strip several screens tall - cannot swallow the whole feed.
+     * Every card is 4:5, so two of them fit a screen and the next reel is always part
+     * way into view. Portrait media is cropped to the frame instead of being letterboxed;
+     * the full shape is what the player is for.
      */
-    private static final float MAX_ASPECT = 3f;
+    private static final float CARD_ASPECT = 5f / 4f;
     /** Card side margins in item_reel_card.xml, used before the card has been measured. */
     private static final int CARD_MARGIN_DP = 10;
 
@@ -125,38 +127,21 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         card.views.setText(ReelFormat.count(reel.getViews()));
         card.play.setVisibility(reel.isVideo() ? View.VISIBLE : View.GONE);
 
-        // Give the frame the reel's reported shape straight away so the card does not
-        // jump while the picture loads. Nothing is forced: whatever the picture turns
-        // out to be is what the card becomes below.
-        float aspect = DEFAULT_ASPECT;
-        if (reel.getWidth() > 0 && reel.getHeight() > 0) {
-            aspect = (float) reel.getHeight() / (float) reel.getWidth();
-        }
-        resize(card, aspect);
+        // Every card the same 4:5 frame, decided before the picture arrives so nothing
+        // jumps while it loads.
+        resize(card);
+        // A card that was playing before it was recycled starts again as a still.
+        card.playerView.setVisibility(View.GONE);
+        card.playerView.setPlayer(null);
+        card.muted.setVisibility(View.GONE);
+        card.thumb.setVisibility(View.VISIBLE);
+        // A picture that is wider than the frame is fitted rather than cropped to a
+        // sliver of itself; anything taller fills it.
+        card.thumb.setScaleType(isWide(reel)
+                ? ImageView.ScaleType.FIT_CENTER : ImageView.ScaleType.CENTER_CROP);
 
         Glide.with(activity).load(reel.getThumb())
                 .placeholder(R.drawable.sticker_error)
-                .listener(new RequestListener<Drawable>() {
-                    @Override
-                    public boolean onLoadFailed(@Nullable GlideException e, Object model,
-                                                Target<Drawable> target, boolean isFirstResource) {
-                        return false;
-                    }
-
-                    @Override
-                    public boolean onResourceReady(Drawable resource, Object model,
-                                                   Target<Drawable> target, DataSource source,
-                                                   boolean isFirstResource) {
-                        // Take the shape from the picture that is actually on screen,
-                        // whatever the reel reported, so it fits exactly - no crop, no
-                        // letterbox, and a small picture gets a small card.
-                        if (resource.getIntrinsicWidth() > 0 && resource.getIntrinsicHeight() > 0) {
-                            resize(card, (float) resource.getIntrinsicHeight()
-                                    / (float) resource.getIntrinsicWidth());
-                        }
-                        return false;
-                    }
-                })
                 .into(card.thumb);
         Glide.with(activity).load(reel.getUserimage()).placeholder(R.drawable.profile)
                 .into(card.avatar);
@@ -174,18 +159,20 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
                 ReelFollow.toggle(activity, reel, following -> bindFollow(card, reel)));
     }
 
-    /** Sets the media frame's height so the picture fills its width at its own ratio. */
-    private void resize(CardHolder card, float aspect) {
-        if (aspect <= 0f) {
-            return;
-        }
-        final float ratio = Math.min(MAX_ASPECT, aspect);
+    /** Gives the media frame the feed's one shape. */
+    private void resize(CardHolder card) {
         final ViewGroup.LayoutParams params = card.media.getLayoutParams();
-        final int height = Math.round(mediaWidth(card) * ratio);
+        final int height = Math.round(mediaWidth(card) * CARD_ASPECT);
         if (height > 0 && params.height != height) {
             params.height = height;
             card.media.setLayoutParams(params);
         }
+    }
+
+    /** True when the reel is wider than the card's frame, so cropping would gut it. */
+    private static boolean isWide(ReelApi reel) {
+        return reel.getWidth() > 0 && reel.getHeight() > 0
+                && (float) reel.getHeight() / (float) reel.getWidth() < 1f;
     }
 
     /**
@@ -211,10 +198,8 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     private void bindFollow(CardHolder card, ReelApi reel) {
         final boolean following = reel.isFollowing();
         card.follow.setText(following ? R.string.reel_following : R.string.reel_follow);
-        card.follow.setBackgroundResource(following
-                ? R.drawable.bg_following_button : R.drawable.bg_follow_button);
         card.follow.setTextColor(activity.getResources().getColor(following
-                ? R.color.primary_text : android.R.color.white));
+                ? R.color.primary_text_light : R.color.green));
         // Nothing to follow when the reel is the viewer's own or has no author.
         card.follow.setVisibility(ReelsFragment.isSelf(activity, reel) ? View.GONE : View.VISIBLE);
     }
@@ -239,6 +224,8 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         final TextView views;
         final TextView caption;
         final FrameLayout media;
+        final PlayerView playerView;
+        final ImageView muted;
 
         CardHolder(@NonNull View itemView) {
             super(itemView);
@@ -256,6 +243,8 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             views = itemView.findViewById(R.id.text_view_card_views);
             caption = itemView.findViewById(R.id.text_view_card_caption);
             media = itemView.findViewById(R.id.frame_layout_card_media);
+            playerView = itemView.findViewById(R.id.player_view_card);
+            muted = itemView.findViewById(R.id.image_view_card_muted);
         }
     }
 

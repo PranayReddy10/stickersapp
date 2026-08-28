@@ -6,13 +6,45 @@
     android:background="@color/app_background"
     android:orientation="vertical">
 
+    <!-- Title row. The grid button opens the same feed as a wall of thumbnails, for
+         finding something to watch rather than reading down the cards. -->
+    <LinearLayout
+        android:id="@+id/layout_reels_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingTop="12dp"
+        android:paddingEnd="8dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="@string/reels"
+            android:textColor="@color/primary_text"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <ImageView
+            android:id="@+id/image_view_reels_grid"
+            android:layout_width="38dp"
+            android:layout_height="38dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/reels_browse"
+            android:padding="8dp"
+            android:src="@drawable/ic_reel_grid"
+            app:tint="@color/primary_text" />
+    </LinearLayout>
+
     <!-- All / Photos / Videos -->
     <HorizontalScrollView
         android:id="@+id/layout_reels_filters"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:paddingStart="10dp"
-        android:paddingTop="10dp"
+        android:paddingTop="8dp"
         android:paddingEnd="10dp"
         android:paddingBottom="4dp"
         android:scrollbars="none">

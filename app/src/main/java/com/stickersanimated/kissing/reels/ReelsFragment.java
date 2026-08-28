@@ -14,6 +14,11 @@ import android.widget.Toast;
 import androidx.appcompat.app.AlertDialog;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.OptIn;
+import androidx.media3.common.MediaItem;
+import androidx.media3.common.Player;
+import androidx.media3.common.util.UnstableApi;
+import androidx.media3.exoplayer.ExoPlayer;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
@@ -42,6 +47,7 @@ import retrofit2.Response;
  * The Reels tab: a card feed with All / Photos / Videos filters and a native ad
  * card every few reels. Tapping a card's media opens the full screen player.
  */
+@OptIn(markerClass = UnstableApi.class)
 public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener {
 
     /** Argument: show only this author's reels, as on a profile page. */
@@ -64,6 +70,12 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
     private TextView chipPhotos;
     private TextView chipVideos;
     private ReelCardAdapter adapter;
+    /**
+     * One player for the whole feed, moved onto whichever card is most on screen. A
+     * player per card would run the device out of video decoders in a few scrolls.
+     */
+    private ExoPlayer feedPlayer;
+    private int playingPosition = RecyclerView.NO_POSITION;
 
     /** 0 for the main feed, otherwise the profile whose reels are being shown. */
     private int author;
@@ -113,9 +125,14 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
         // The upload button belongs to HomeActivity - see app_bar_home.xml - so it
         // cannot slide away with the pager.
         final View filters = view.findViewById(R.id.layout_reels_filters);
+        final View header = view.findViewById(R.id.layout_reels_header);
         if (isProfileFeed()) {
             filters.setVisibility(View.GONE);
+            // A profile page already says whose reels these are, and has its own tabs.
+            header.setVisibility(View.GONE);
         } else {
+            view.findViewById(R.id.image_view_reels_grid).setOnClickListener(v ->
+                    startActivity(new Intent(requireContext(), ReelsGridActivity.class)));
             chipAll.setOnClickListener(v -> applyFilter(FILTER_ALL));
             chipPhotos.setOnClickListener(v -> applyFilter(FILTER_PHOTO));
             chipVideos.setOnClickListener(v -> applyFilter(FILTER_VIDEO));
@@ -132,6 +149,15 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
                 final LinearLayoutManager manager = (LinearLayoutManager) rv.getLayoutManager();
                 if (manager != null && manager.findLastVisibleItemPosition() >= rows.size() - 2) {
                     load();
+                }
+            }
+
+            @Override
+            public void onScrollStateChanged(@NonNull RecyclerView rv, int state) {
+                // Only once the scroll settles: starting a clip mid-flick would mean
+                // preparing a file per card the finger passes.
+                if (state == RecyclerView.SCROLL_STATE_IDLE) {
+                    playMostVisible();
                 }
             }
         });
@@ -182,6 +208,8 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
         }
         adapter.notifyDataSetChanged();
         emptyView.setVisibility(rows.isEmpty() ? View.VISIBLE : View.GONE);
+        stopPlayback();
+        recyclerView.post(this::playMostVisible);
     }
 
     /**
@@ -287,6 +315,141 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
         final PrefManager prefManager = new PrefManager(context.getApplicationContext());
         return "TRUE".equals(prefManager.getString("LOGGED"))
                 && reel.getUserid().equals(prefManager.getString("ID_USER"));
+    }
+
+    // ---------------------------------------------------------------- autoplay
+
+    /**
+     * Plays the video card that is most on screen, muted, and stops whichever was
+     * playing before. Sound belongs to the full screen player; a feed that starts
+     * talking on its own is the fastest way to make somebody close an app.
+     */
+    private void playMostVisible() {
+        if (!isAdded() || recyclerView == null) {
+            return;
+        }
+        final int position = mostVisibleVideo();
+        if (position == RecyclerView.NO_POSITION) {
+            stopPlayback();
+            return;
+        }
+        if (position == playingPosition && feedPlayer != null) {
+            feedPlayer.setPlayWhenReady(true);
+            return;
+        }
+        final ReelCardAdapter.CardHolder holder = cardAt(position);
+        if (holder == null) {
+            return;
+        }
+        stopPlayback();
+
+        if (feedPlayer == null) {
+            feedPlayer = new ExoPlayer.Builder(requireContext()).build();
+            feedPlayer.setRepeatMode(Player.REPEAT_MODE_ONE);
+            feedPlayer.setVolume(0f);
+        }
+        playingPosition = position;
+        holder.playerView.setPlayer(feedPlayer);
+        holder.playerView.setVisibility(View.VISIBLE);
+        holder.play.setVisibility(View.GONE);
+        holder.muted.setVisibility(View.VISIBLE);
+        feedPlayer.setMediaItem(MediaItem.fromUri(rows.get(position).reel.getUrl()));
+        feedPlayer.prepare();
+        feedPlayer.setPlayWhenReady(true);
+    }
+
+    /** Puts the playing card back to its still picture. */
+    private void stopPlayback() {
+        if (feedPlayer != null) {
+            feedPlayer.stop();
+        }
+        final ReelCardAdapter.CardHolder holder = cardAt(playingPosition);
+        if (holder != null) {
+            holder.playerView.setPlayer(null);
+            holder.playerView.setVisibility(View.GONE);
+            holder.play.setVisibility(View.VISIBLE);
+            holder.muted.setVisibility(View.GONE);
+        }
+        playingPosition = RecyclerView.NO_POSITION;
+    }
+
+    /** The video row showing the most of itself, or NO_POSITION when none is. */
+    private int mostVisibleVideo() {
+        final LinearLayoutManager manager = (LinearLayoutManager) recyclerView.getLayoutManager();
+        if (manager == null) {
+            return RecyclerView.NO_POSITION;
+        }
+        final int first = manager.findFirstVisibleItemPosition();
+        final int last = manager.findLastVisibleItemPosition();
+        int best = RecyclerView.NO_POSITION;
+        int bestVisible = 0;
+        for (int position = first; position <= last && position >= 0; position++) {
+            if (position >= rows.size()) {
+                break;
+            }
+            final ReelApi reel = rows.get(position).reel;
+            if (reel == null || !reel.isVideo()
+                    || reel.getUrl() == null || reel.getUrl().isEmpty()) {
+                continue;
+            }
+            final ReelCardAdapter.CardHolder holder = cardAt(position);
+            if (holder == null) {
+                continue;
+            }
+            final int visible = visibleHeight(holder.media);
+            // Half of the frame has to be on screen before it is worth playing.
+            if (visible > bestVisible && visible * 2 >= holder.media.getHeight()) {
+                bestVisible = visible;
+                best = position;
+            }
+        }
+        return best;
+    }
+
+    private int visibleHeight(View view) {
+        final android.graphics.Rect bounds = new android.graphics.Rect();
+        if (!view.getGlobalVisibleRect(bounds)) {
+            return 0;
+        }
+        return bounds.height();
+    }
+
+    @Nullable
+    private ReelCardAdapter.CardHolder cardAt(int position) {
+        if (position == RecyclerView.NO_POSITION || recyclerView == null) {
+            return null;
+        }
+        final RecyclerView.ViewHolder holder =
+                recyclerView.findViewHolderForAdapterPosition(position);
+        return holder instanceof ReelCardAdapter.CardHolder
+                ? (ReelCardAdapter.CardHolder) holder : null;
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        if (feedPlayer != null) {
+            feedPlayer.setPlayWhenReady(false);
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        // Coming back from the full screen player, the card under the finger picks up.
+        if (recyclerView != null) {
+            recyclerView.post(this::playMostVisible);
+        }
+    }
+
+    @Override
+    public void onDestroyView() {
+        stopPlayback();
+        if (feedPlayer != null) {
+            feedPlayer.release();
+            feedPlayer = null;
+        }
+        super.onDestroyView();
     }
 
     // ------------------------------------------------------------- card actions

@@ -149,6 +149,7 @@
         <activity
             android:name=".reels.UploadReelActivity"
             android:windowSoftInputMode="adjustResize" />
+        <activity android:name=".reels.ReelsGridActivity" />
 
         <activity
             android:name="com.facebook.CustomTabActivity"
