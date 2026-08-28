@@ -77,11 +77,11 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
     private ExoPlayer feedPlayer;
     private int playingPosition = RecyclerView.NO_POSITION;
     /**
-     * Feed sound. It starts off - a list that talks the moment it is opened is the
-     * fastest way to make somebody close an app - and stays however the viewer last
-     * set it while the tab is open.
+     * Feed sound, on unless the viewer turns it off with the speaker on the playing
+     * card. It only ever plays while the Reels tab is the page in front of them: the
+     * pager resumes one page at a time, so leaving the tab pauses the reel.
      */
-    private boolean feedMuted = true;
+    private boolean feedMuted = false;
 
     /** 0 for the main feed, otherwise the profile whose reels are being shown. */
     private int author;
@@ -332,6 +332,12 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
      */
     private void playMostVisible() {
         if (!isAdded() || recyclerView == null) {
+            return;
+        }
+        // The pager builds the next tab before it is reached, and that tab's first
+        // response arrives while another one is still in front: nothing plays until
+        // this fragment is the page the viewer is actually on.
+        if (!isResumed()) {
             return;
         }
         final int position = mostVisibleVideo();
