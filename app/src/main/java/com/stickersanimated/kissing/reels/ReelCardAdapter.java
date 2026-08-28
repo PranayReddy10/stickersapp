@@ -62,6 +62,9 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         void onMore(ReelApi reel);
 
         void onAuthor(ReelApi reel);
+
+        /** The speaker on the playing card: sound on, or off again. */
+        void onToggleSound();
     }
 
     /** A row in the feed: either a reel or an ad slot. */
@@ -150,6 +153,9 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         bindFollow(card, reel);
 
         card.media.setOnClickListener(v -> listener.onOpen(reel));
+        // The speaker sits on top of the media, and swallows the tap: it changes the
+        // sound here rather than opening the reel full screen.
+        card.muted.setOnClickListener(v -> listener.onToggleSound());
         card.like.setOnClickListener(v -> listener.onToggleLike(reel));
         card.share.setOnClickListener(v -> listener.onShare(reel));
         card.more.setOnClickListener(v -> listener.onMore(reel));

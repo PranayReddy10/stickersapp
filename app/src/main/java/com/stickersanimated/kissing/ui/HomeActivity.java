@@ -371,7 +371,6 @@ public class HomeActivity extends AppCompatActivity
         uploadReelButton = findViewById(R.id.fab_upload_reel_home);
         uploadReelButton.setOnClickListener(v -> openUpload(UploadReelActivity.class));
         viewPager = (ViewPager) findViewById(R.id.vp_horizontal_ntb);
-        viewPager.setOffscreenPageLimit(100);
         adapter = new ViewPagerAdapter(getSupportFragmentManager());
         // Reels can be switched off from the panel, and then nothing about them is
         // built: no page, no tab, no upload button. An empty setting counts as on.
@@ -391,8 +390,6 @@ public class HomeActivity extends AppCompatActivity
 
         viewPager.setAdapter(adapter);
         viewPager.setCurrentItem(0);
-
-        viewPager.setAdapter(adapter);
         viewPager.addOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
             public void onPageScrolled(int i, float v, int i1) {
@@ -415,7 +412,9 @@ public class HomeActivity extends AppCompatActivity
 
             }
         });
-        viewPager.setOffscreenPageLimit(BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT);
+        // One page either side is kept built; the constant that used to sit here is a
+        // lifecycle behaviour, not a page count.
+        viewPager.setOffscreenPageLimit(1);
 
         PrefManager prf= new PrefManager(getApplicationContext());
         if (!prf.getString("SUBSCRIBED").equals("FALSE")) {
@@ -530,7 +529,10 @@ public class HomeActivity extends AppCompatActivity
     class ViewPagerAdapter extends FragmentPagerAdapter {
 
         public ViewPagerAdapter(FragmentManager manager) {
-            super(manager);
+            // Only the page on screen is resumed. The default keeps every loaded page
+            // resumed, so a tab the viewer has left carries on as if it were in front
+            // of them - which is how the reels feed kept playing over another tab.
+            super(manager, BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT);
         }
 
         @Override

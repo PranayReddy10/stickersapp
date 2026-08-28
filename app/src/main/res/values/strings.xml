@@ -216,6 +216,7 @@
     <string name="reel_delete_failed">Could not delete this reel, please try again</string>
     <string name="reel_like_failed">Could not save your like, please try again</string>
     <string name="reel_share">Share</string>
+    <string name="reel_share_subject">A reel by %1$s</string>
     <string name="reel_sound_on">Sound on</string>
     <string name="reel_sound_off">Sound off</string>
     <string name="reels_empty">No reels yet</string>
