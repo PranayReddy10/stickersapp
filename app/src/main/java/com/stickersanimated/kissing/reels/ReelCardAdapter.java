@@ -20,6 +20,7 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.graphics.drawable.Drawable;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.target.Target;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.load.DataSource;
@@ -143,10 +144,18 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         card.thumb.setScaleType(isWide(reel)
                 ? ImageView.ScaleType.FIT_CENTER : ImageView.ScaleType.CENTER_CROP);
 
+        // Decoded straight to the size the card shows, kept on disk, and swapped in
+        // without a fade: three things that each cost a frame or two mid scroll.
         Glide.with(activity).load(reel.getThumb())
+                .override(mediaWidth(card), Math.round(mediaWidth(card) * CARD_ASPECT))
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .dontAnimate()
                 .placeholder(R.drawable.sticker_error)
                 .into(card.thumb);
-        Glide.with(activity).load(reel.getUserimage()).placeholder(R.drawable.profile)
+        Glide.with(activity).load(reel.getUserimage())
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .dontAnimate()
+                .placeholder(R.drawable.profile)
                 .into(card.avatar);
 
         bindLike(card, reel);
@@ -195,7 +204,8 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         return Math.max(1, metrics.widthPixels - margins);
     }
 
-    private void bindLike(CardHolder card, ReelApi reel) {
+    /** Refreshes just the heart, so a like never rebinds the card that is playing. */
+    void bindLike(CardHolder card, ReelApi reel) {
         card.like.setImageResource(reel.isLiked()
                 ? R.drawable.ic_reel_heart_filled : R.drawable.ic_reel_heart_outline);
         card.likes.setText(ReelFormat.count(reel.getLikes()));
