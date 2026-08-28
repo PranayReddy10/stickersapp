@@ -1,0 +1,7 @@
+<!-- One mark of the two step indicator. Tinted by the activity: filled for the step the
+     viewer is on and the ones behind it, faint for the ones ahead. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/primary_text" />
+    <corners android:radius="2dp" />
+</shape>

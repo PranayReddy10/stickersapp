@@ -231,6 +231,8 @@
     <string name="reel_swipe_up">Swipe up for more reels</string>
     <string name="reel_upload">Upload reels</string>
     <string name="reel_new_title">New reel</string>
+    <string name="reel_details_title">Details</string>
+    <string name="reel_uploading">Uploading… %1$d%%</string>
     <string name="reel_new_subtitle">Share a short video or photo with your followers</string>
     <string name="reel_pick_formats">MP4, MOV, WEBM · JPG, PNG, WEBP</string>
     <string name="reel_caption_label">Caption</string>
