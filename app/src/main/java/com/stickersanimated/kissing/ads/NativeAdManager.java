@@ -194,6 +194,12 @@ public final class NativeAdManager {
             return;
         }
         final AdNetwork network = waterfall.get(index++);
+        if (AdCooldown.waiting(AdFormat.NATIVE, network)) {
+            // Turned this slot's format down a moment ago; ask the next one instead of
+            // spending this slot's timeout on the same answer.
+            loadNext();
+            return;
+        }
         final String unitId = config.unitId(AdFormat.NATIVE, network);
         final int attempt = ++attemptId;
         scheduleTimeout(attempt, network);
@@ -483,6 +489,7 @@ public final class NativeAdManager {
             return;
         }
         cancelTimeout();
+        AdCooldown.filled(AdFormat.NATIVE, network);
         Log.d(TAG, "Native filled by " + network);
     }
 
@@ -491,6 +498,7 @@ public final class NativeAdManager {
             return;
         }
         cancelTimeout();
+        AdCooldown.failed(AdFormat.NATIVE, network, reason);
         Log.d(TAG, "Native on " + network + " failed (" + reason + "), trying next network");
         handler.post(this::loadNext);
     }

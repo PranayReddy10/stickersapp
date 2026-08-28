@@ -89,6 +89,11 @@ public final class BannerAdManager {
         return size == BannerSize.MREC;
     }
 
+    /** What this slot calls itself in the log, so the two shapes can be told apart. */
+    private String label() {
+        return isMrec() ? "MREC" : "Banner";
+    }
+
     /** Creates a manager for the given container. Returns {@code null} if there is none. */
     @Nullable
     public static BannerAdManager into(@Nullable Activity activity, @Nullable ViewGroup container) {
@@ -127,11 +132,13 @@ public final class BannerAdManager {
             return;
         }
         if (!config.isEnabled(AdFormat.BANNER)) {
-            Log.d(TAG, "Banners are off or have no configured network");
+            Log.d(TAG, label() + ": banners are off or have no configured network");
             reportEmpty();
             return;
         }
         waterfall = config.waterfall(AdFormat.BANNER);
+        Log.d(TAG, label() + " waterfall " + waterfall + ", " + config.timeoutMillis()
+                + "ms per network");
         index = 0;
         loadNext();
     }
@@ -146,12 +153,16 @@ public final class BannerAdManager {
         releaseCurrent();
         if (destroyed || activity.isFinishing() || index >= waterfall.size()) {
             if (index >= waterfall.size()) {
-                Log.d(TAG, "No banner network filled");
+                Log.d(TAG, "No network filled the " + label().toLowerCase() + " slot");
                 reportEmpty();
             }
             return;
         }
         final AdNetwork network = waterfall.get(index++);
+        if (AdCooldown.waiting(AdFormat.BANNER, network)) {
+            loadNext();
+            return;
+        }
         final String unitId = config.unitId(AdFormat.BANNER, network);
         final int attempt = ++attemptId;
         scheduleTimeout(attempt, network);
@@ -490,7 +501,8 @@ public final class BannerAdManager {
             return;
         }
         cancelTimeout();
-        Log.d(TAG, "Banner filled by " + network);
+        AdCooldown.filled(AdFormat.BANNER, network);
+        Log.d(TAG, label() + " filled by " + network);
         if (currentView != null) {
             currentView.setVisibility(View.VISIBLE);
         }
@@ -501,7 +513,9 @@ public final class BannerAdManager {
             return;
         }
         cancelTimeout();
-        Log.d(TAG, "Banner on " + network + " failed (" + reason + "), trying next network");
+        AdCooldown.failed(AdFormat.BANNER, network, reason);
+        Log.d(TAG, label() + " on " + network + " failed (" + reason
+                + "), trying next network");
         handler.post(this::loadNext);
     }
 
