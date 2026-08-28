@@ -34,6 +34,7 @@ import com.stickersanimated.kissing.Manager.PrefManager;
 import com.stickersanimated.kissing.ads.AdsConfig;
 import com.stickersanimated.kissing.ads.InterstitialAdManager;
 import com.stickersanimated.kissing.ads.NativeAdManager;
+import com.stickersanimated.kissing.ads.NativeStyle;
 import com.stickersanimated.kissing.R;
 import com.stickersanimated.kissing.StickerPack;
 import com.stickersanimated.kissing.entity.CategoryApi;
@@ -87,7 +88,9 @@ public class StickerAdapter extends  RecyclerView.Adapter<RecyclerView.ViewHolde
 
     private InterstitialAdManager interstitialAdManager;
 
-    private final java.util.List<NativeAdManager> nativeAdManagers = new java.util.ArrayList<>();
+    /** One ad per ad row, keyed by its position in the list. */
+    private final android.util.SparseArray<NativeAdManager> nativeAdSlots =
+            new android.util.SparseArray<>();
 
     private String sanitizeImageUrl(String raw) {
 
@@ -407,6 +410,11 @@ public class StickerAdapter extends  RecyclerView.Adapter<RecyclerView.ViewHolde
                 Log.v("WE ARE ONE","FollowHolder");
             }
             break;
+            case VIEW_TYPE_NATIVE_AD:
+            case VIEW_TYPE_NATIVE_AD_LEGACY: {
+                bindNativeAd((NativeAdHolder) holder_parent, position);
+            }
+            break;
 
         }
 
@@ -504,34 +512,69 @@ public class StickerAdapter extends  RecyclerView.Adapter<RecyclerView.ViewHolde
             recycle_view_follow_items = (RecyclerView) itemView.findViewById(R.id.recycle_view_follow_items);
         }
     }
-    /**
-     * In-feed ad row. The container is handed to {@link NativeAdManager}, which walks the
-     * configured waterfall until a network fills it.
-     */
-    public class NativeAdHolder extends RecyclerView.ViewHolder {
+    /** In-feed ad row. The ad itself belongs to the adapter, not to the recycled holder. */
+    public static class NativeAdHolder extends RecyclerView.ViewHolder {
+
+        final ViewGroup container;
 
         NativeAdHolder(@NonNull View itemView) {
             super(itemView);
-            final NativeAdManager manager =
-                    NativeAdManager.into(activity, itemView.findViewById(R.id.fl_adplaceholder));
-            if (manager != null) {
-                nativeAdManagers.add(manager);
-                manager.load();
-            }
+            container = itemView.findViewById(R.id.fl_adplaceholder);
         }
     }
 
     /**
-     * Every in-feed ad slot this adapter has filled. They hold on to the activity and to the
+     * Gives an ad row its ad.
+     *
+     * <p>One ad is loaded per row and kept, so scrolling back to a row shows the ad it
+     * already had instead of asking the whole waterfall again - which is what made ads
+     * appear late, and made the same row request an ad more than once. The row after this
+     * one starts loading now, so it has something ready by the time it is reached.
+     */
+    private void bindNativeAd(NativeAdHolder holder, int position) {
+        NativeAdManager manager = nativeAdSlots.get(position);
+        if (manager == null) {
+            manager = NativeAdManager.into(activity, holder.container);
+            if (manager == null) {
+                return;
+            }
+            nativeAdSlots.put(position, manager);
+            manager.load();
+        }
+        manager.attachTo(holder.container);
+        preloadNextNativeAd(position);
+    }
+
+    /** Starts the next ad row's request while this one is on screen. */
+    private void preloadNextNativeAd(int after) {
+        for (int i = after + 1; i < StickerPack.size(); i++) {
+            final int viewType = StickerPack.get(i).getViewType();
+            if (viewType != VIEW_TYPE_NATIVE_AD && viewType != VIEW_TYPE_NATIVE_AD_LEGACY) {
+                continue;
+            }
+            if (nativeAdSlots.get(i) == null) {
+                final NativeAdManager next =
+                        NativeAdManager.preload(activity, NativeStyle.INLINE);
+                if (next != null) {
+                    nativeAdSlots.put(i, next);
+                    next.load();
+                }
+            }
+            return; // only ever one row ahead
+        }
+    }
+
+    /**
+     * Every in-feed ad this adapter has loaded. They hold on to the activity and to the
      * network's ad object, so they are released when the list goes away.
      */
     @Override
     public void onDetachedFromRecyclerView(@NonNull RecyclerView recyclerView) {
         super.onDetachedFromRecyclerView(recyclerView);
-        for (NativeAdManager manager : nativeAdManagers) {
-            manager.destroy();
+        for (int i = 0; i < nativeAdSlots.size(); i++) {
+            nativeAdSlots.valueAt(i).destroy();
         }
-        nativeAdManagers.clear();
+        nativeAdSlots.clear();
     }
 
     public boolean checkSUBSCRIBED() {

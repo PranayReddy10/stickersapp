@@ -36,9 +36,15 @@ final class NativeAdRenderer {
     }
 
     /** Inflates the AdMob native layout and binds an AdMob native ad to it. */
-    static NativeAdView renderAdmob(Context context, NativeAd nativeAd, boolean fullscreen) {
+    static NativeAdView renderAdmob(Context context, NativeAd nativeAd, NativeStyle style) {
+        final int layout;
+        switch (style) {
+            case FULLSCREEN: layout = R.layout.ad_unified_fullscreen; break;
+            case BAR: layout = R.layout.ad_unified_bar; break;
+            default: layout = R.layout.ad_unified; break;
+        }
         final NativeAdView adView = (NativeAdView) LayoutInflater.from(context)
-                .inflate(fullscreen ? R.layout.ad_unified_fullscreen : R.layout.ad_unified, null);
+                .inflate(layout, null);
 
         adView.setMediaView(adView.findViewById(R.id.ad_media));
         adView.setHeadlineView(adView.findViewById(R.id.ad_headline));
@@ -91,10 +97,15 @@ final class NativeAdRenderer {
     }
 
     /** The binder shared by every MAX native placement in the app. */
-    static MaxNativeAdView createMaxAdView(Context context, boolean fullscreen) {
+    static MaxNativeAdView createMaxAdView(Context context, NativeStyle style) {
+        final int layout;
+        switch (style) {
+            case FULLSCREEN: layout = R.layout.native_max_ad_view_fullscreen; break;
+            case BAR: layout = R.layout.native_max_ad_view_bar; break;
+            default: layout = R.layout.native_max_ad_view; break;
+        }
         final MaxNativeAdViewBinder binder =
-                new MaxNativeAdViewBinder.Builder(fullscreen
-                        ? R.layout.native_max_ad_view_fullscreen : R.layout.native_max_ad_view)
+                new MaxNativeAdViewBinder.Builder(layout)
                         .setTitleTextViewId(R.id.title_text_view)
                         .setBodyTextViewId(R.id.body_text_view)
                         .setAdvertiserTextViewId(R.id.advertiser_textView)
@@ -146,9 +157,8 @@ final class NativeAdRenderer {
      * itself once the container is registered, so the layout only has to provide them.
      */
     static View renderVungle(Context context, com.vungle.ads.NativeAd nativeAd,
-                             boolean fullscreen) {
-        final View view = LayoutInflater.from(context).inflate(fullscreen
-                ? R.layout.network_native_fullscreen : R.layout.item_network_native_ads, null);
+                             NativeStyle style) {
+        final View view = LayoutInflater.from(context).inflate(networkLayout(style), null);
         final FrameLayout root = (FrameLayout) view.findViewById(R.id.frame_layout_native_root);
         final FrameLayout media = (FrameLayout) view.findViewById(R.id.frame_layout_native_media);
         final ImageView icon = (ImageView) view.findViewById(R.id.image_view_native_icon);
@@ -186,9 +196,8 @@ final class NativeAdRenderer {
      * InMobi native. Unlike the others it returns the creative as a view sized to a
      * width, and the click has to be reported by hand.
      */
-    static View renderInMobi(Context context, InMobiNative nativeAd, boolean fullscreen) {
-        final View view = LayoutInflater.from(context).inflate(fullscreen
-                ? R.layout.network_native_fullscreen : R.layout.item_network_native_ads, null);
+    static View renderInMobi(Context context, InMobiNative nativeAd, NativeStyle style) {
+        final View view = LayoutInflater.from(context).inflate(networkLayout(style), null);
         final ViewGroup root = (ViewGroup) view.findViewById(R.id.frame_layout_native_root);
         final FrameLayout media = (FrameLayout) view.findViewById(R.id.frame_layout_native_media);
         final ImageView icon = (ImageView) view.findViewById(R.id.image_view_native_icon);
@@ -226,6 +235,15 @@ final class NativeAdRenderer {
                 .setCTAView(cta)
                 .build());
         return view;
+    }
+
+    /** Layout for the networks that hand over the parts rather than a whole view. */
+    private static int networkLayout(NativeStyle style) {
+        switch (style) {
+            case FULLSCREEN: return R.layout.network_native_fullscreen;
+            case BAR: return R.layout.network_native_bar;
+            default: return R.layout.item_network_native_ads;
+        }
     }
 
     private static void setTextOrHide(View view, CharSequence text) {

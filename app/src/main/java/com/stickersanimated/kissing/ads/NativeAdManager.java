@@ -41,10 +41,12 @@ public final class NativeAdManager {
     private static final String TAG = "NativeAds";
 
     private final Activity activity;
-    private final ViewGroup container;
+    /** Null while the ad is being loaded ahead of the row that will show it. */
+    @Nullable
+    private ViewGroup container;
     private final AdsConfig config;
-    /** True for the ad page in the reels player, where the ad fills the screen. */
-    private final boolean fullscreen;
+    /** How much room this placement has, which decides the layout used. */
+    private final NativeStyle style;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     private List<AdNetwork> waterfall = Collections.emptyList();
@@ -52,6 +54,8 @@ public final class NativeAdManager {
     private int attemptId;
     private boolean destroyed;
     private Runnable timeoutRunnable;
+    /** The rendered ad, kept so a recycled row gets it back instead of loading again. */
+    private View adView;
 
     private NativeAd admobAd;
     private MaxNativeAdLoader maxLoader;
@@ -60,10 +64,10 @@ public final class NativeAdManager {
     private com.vungle.ads.NativeAd vungleAd;
     private InMobiNative inmobiAd;
 
-    private NativeAdManager(Activity activity, ViewGroup container, boolean fullscreen) {
+    private NativeAdManager(Activity activity, @Nullable ViewGroup container, NativeStyle style) {
         this.activity = activity;
         this.container = container;
-        this.fullscreen = fullscreen;
+        this.style = style;
         this.config = new AdsConfig(activity);
     }
 
@@ -72,7 +76,7 @@ public final class NativeAdManager {
         if (activity == null || container == null) {
             return null;
         }
-        return new NativeAdManager(activity, container, false);
+        return new NativeAdManager(activity, container, NativeStyle.INLINE);
     }
 
     /**
@@ -86,7 +90,55 @@ public final class NativeAdManager {
         if (activity == null || container == null) {
             return null;
         }
-        return new NativeAdManager(activity, container, true);
+        return new NativeAdManager(activity, container, NativeStyle.FULLSCREEN);
+    }
+
+    /**
+     * A native ad laid out as a strip, for the bottom of a screen a creative would
+     * otherwise cover - the reel player's ad bar. Same waterfall, compact layout.
+     */
+    @Nullable
+    public static NativeAdManager bar(@Nullable Activity activity,
+                                      @Nullable ViewGroup container) {
+        if (activity == null || container == null) {
+            return null;
+        }
+        return new NativeAdManager(activity, container, NativeStyle.BAR);
+    }
+
+    /**
+     * Loads an ad with nowhere to put it yet, for a list row that has not scrolled into
+     * view. Call {@link #attachTo(ViewGroup)} when the row appears: a network that has
+     * already answered by then shows straight away instead of after a round trip.
+     */
+    @Nullable
+    public static NativeAdManager preload(@Nullable Activity activity, NativeStyle style) {
+        if (activity == null) {
+            return null;
+        }
+        return new NativeAdManager(activity, null, style);
+    }
+
+    /** True once a network has filled this slot. */
+    public boolean isFilled() {
+        return adView != null;
+    }
+
+    /**
+     * Moves this ad into {@code newContainer}, which is what a recycled row calls. The ad
+     * itself is not reloaded: the same view is taken out of the row it was in and put in
+     * the new one.
+     */
+    public void attachTo(@Nullable ViewGroup newContainer) {
+        if (destroyed || newContainer == null || container == newContainer) {
+            return;
+        }
+        container = newContainer;
+        if (adView != null) {
+            show(adView);
+        } else {
+            collapse();
+        }
     }
 
     public void load() {
@@ -98,6 +150,10 @@ public final class NativeAdManager {
         // blank card sitting in the layout with its margins and elevation.
         collapse();
         waterfall = config.waterfall(AdFormat.NATIVE);
+        // Worth having in the log: a network that never fills still costs the slot a
+        // timeout before the next one is tried, which is what makes an ad look slow.
+        Log.d(TAG, "Native waterfall " + waterfall + ", " + config.timeoutMillis()
+                + "ms per network");
         index = 0;
         loadNext();
     }
@@ -158,7 +214,7 @@ public final class NativeAdManager {
                     }
                     release();
                     admobAd = nativeAd;
-                    show(NativeAdRenderer.renderAdmob(activity, nativeAd, fullscreen));
+                    show(NativeAdRenderer.renderAdmob(activity, nativeAd, style));
                     onLoaded(attempt, AdNetwork.ADMOB);
                 })
                 .withNativeAdOptions(new NativeAdOptions.Builder()
@@ -201,7 +257,7 @@ public final class NativeAdManager {
             public void onNativeAdClicked(@NonNull MaxAd ad) {
             }
         });
-        loader.loadAd(NativeAdRenderer.createMaxAdView(activity, fullscreen));
+        loader.loadAd(NativeAdRenderer.createMaxAdView(activity, style));
     }
 
     private void loadFacebook(int attempt, String placementId) {
@@ -249,7 +305,7 @@ public final class NativeAdManager {
                 }
                 release();
                 vungleAd = nativeAd;
-                show(NativeAdRenderer.renderVungle(activity, nativeAd, fullscreen));
+                show(NativeAdRenderer.renderVungle(activity, nativeAd, style));
                 onLoaded(attempt, AdNetwork.VUNGLE);
             }
 
@@ -293,7 +349,7 @@ public final class NativeAdManager {
                         }
                         release();
                         inmobiAd = ad;
-                        show(NativeAdRenderer.renderInMobi(activity, ad, fullscreen));
+                        show(NativeAdRenderer.renderInMobi(activity, ad, style));
                         onLoaded(attempt, AdNetwork.INMOBI);
                     }
 
@@ -306,16 +362,29 @@ public final class NativeAdManager {
         nativeAd.load();
     }
 
-    private void show(View adView) {
+    private void show(View view) {
+        adView = view;
+        if (container == null) {
+            return; // preloading: it is shown when a row asks for it
+        }
+        if (view.getParent() instanceof ViewGroup) {
+            ((ViewGroup) view.getParent()).removeView(view);
+        }
         container.removeAllViews();
-        if (fullscreen) {
+        if (style == NativeStyle.FULLSCREEN) {
             // Meta's native banner has no big creative, so it keeps its own height and
             // is centred; the AdMob and MAX full screen layouts fill the page.
-            container.addView(adView, new ViewGroup.LayoutParams(
+            container.addView(view, new ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT));
+        } else if (style == NativeStyle.BAR) {
+            // A bar spans the screen; inflating with no parent leaves the view without the
+            // layout params its own root asked for, so it would otherwise shrink to fit.
+            container.addView(view, new ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT));
         } else {
-            container.addView(adView);
+            container.addView(view);
         }
         container.setVisibility(View.VISIBLE);
         final ViewGroup frame = cardParent();
@@ -329,6 +398,9 @@ public final class NativeAdManager {
      * that card carries the margins and the background, so it has to go too.
      */
     private void collapse() {
+        if (container == null) {
+            return;
+        }
         container.setVisibility(View.GONE);
         final ViewGroup frame = cardParent();
         if (frame != null) {
@@ -339,7 +411,7 @@ public final class NativeAdManager {
     /** The card wrapping this slot, when the container is the only thing inside it. */
     @Nullable
     private ViewGroup cardParent() {
-        if (fullscreen) {
+        if (style != NativeStyle.INLINE || container == null) {
             return null;
         }
         final View parent = container.getParent() instanceof View
@@ -408,6 +480,10 @@ public final class NativeAdManager {
             facebookAd = null;
             vungleAd = null;
             inmobiAd = null;
+            if (adView != null && adView.getParent() instanceof ViewGroup) {
+                ((ViewGroup) adView.getParent()).removeView(adView);
+            }
+            adView = null;
         }
     }
 }

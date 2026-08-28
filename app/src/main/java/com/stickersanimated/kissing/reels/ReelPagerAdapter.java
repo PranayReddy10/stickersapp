@@ -2,6 +2,8 @@ package com.stickersanimated.kissing.reels;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.res.ColorStateList;
+import android.graphics.Color;
 import android.view.GestureDetector;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
@@ -13,6 +15,7 @@ import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.OptIn;
+import androidx.core.widget.ImageViewCompat;
 import androidx.media3.common.util.UnstableApi;
 import androidx.media3.ui.PlayerView;
 import androidx.recyclerview.widget.RecyclerView;
@@ -57,11 +60,51 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     /** Null entries are ad pages, so page indexes line up with what is on screen. */
     private final List<ReelApi> reels;
     private final Listener listener;
+    /** Room the banner takes at the bottom of the player, in pixels. */
+    private int bottomInset;
+    private RecyclerView recyclerView;
 
     public ReelPagerAdapter(Activity activity, List<ReelApi> reels, Listener listener) {
         this.activity = activity;
         this.reels = reels;
         this.listener = listener;
+    }
+
+    /**
+     * Lifts the page's controls clear of the banner across the bottom of the player.
+     * Pages already on screen are moved straight away.
+     */
+    public void setBottomInset(int pixels) {
+        if (bottomInset == pixels) {
+            return;
+        }
+        bottomInset = pixels;
+        if (recyclerView == null) {
+            return;
+        }
+        // Moved on the pages themselves rather than through a rebind: rebinding the page
+        // that is playing would drop its surface and black out the video.
+        for (int i = 0; i < recyclerView.getChildCount(); i++) {
+            final RecyclerView.ViewHolder holder =
+                    recyclerView.getChildViewHolder(recyclerView.getChildAt(i));
+            if (holder instanceof ReelHolder) {
+                ((ReelHolder) holder).applyBottomInset(bottomInset);
+            } else {
+                holder.itemView.setPadding(0, 0, 0, bottomInset);
+            }
+        }
+    }
+
+    @Override
+    public void onAttachedToRecyclerView(@NonNull RecyclerView view) {
+        super.onAttachedToRecyclerView(view);
+        recyclerView = view;
+    }
+
+    @Override
+    public void onDetachedFromRecyclerView(@NonNull RecyclerView view) {
+        super.onDetachedFromRecyclerView(view);
+        recyclerView = null;
     }
 
     @Override
@@ -83,9 +126,12 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     @Override
     public void onBindViewHolder(@NonNull RecyclerView.ViewHolder viewHolder, int position) {
         if (!(viewHolder instanceof ReelHolder)) {
-            return; // the ad page loads once, in its holder
+            // The ad page loads once, in its holder; only the banner gap is per bind.
+            viewHolder.itemView.setPadding(0, 0, 0, bottomInset);
+            return;
         }
         final ReelHolder holder = (ReelHolder) viewHolder;
+        holder.applyBottomInset(bottomInset);
         final ReelApi reel = reels.get(position);
 
         Glide.with(activity).load(reel.getThumb()).into(holder.poster);
@@ -100,6 +146,7 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
         holder.author.setText(reel.getUser());
         holder.verified.setVisibility(reel.isTrusted() ? View.VISIBLE : View.GONE);
+        holder.views.setText(ReelFormat.count(reel.getViews()));
         holder.caption.setText(reel.getCaption());
         holder.caption.setVisibility(reel.getCaption().isEmpty() ? View.GONE : View.VISIBLE);
         Glide.with(activity).load(reel.getUserimage()).placeholder(R.drawable.profile)
@@ -152,8 +199,12 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
 
     /** Refreshes just the like control, so a tap does not rebind the whole page. */
     public void bindLike(@NonNull ReelHolder holder, @NonNull ReelApi reel) {
+        // A liked heart keeps its own red; an unliked one is tinted white so it reads
+        // against whatever the reel is showing behind it.
         holder.like.setImageResource(reel.isLiked()
-                ? R.drawable.ic_favorite_black : R.drawable.ic_favorite_border);
+                ? R.drawable.ic_reel_heart_filled : R.drawable.ic_reel_heart_outline);
+        ImageViewCompat.setImageTintList(holder.like, reel.isLiked()
+                ? null : ColorStateList.valueOf(Color.WHITE));
         holder.likes.setText(ReelFormat.count(reel.getLikes()));
     }
 
@@ -169,6 +220,9 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
     public void onViewAttachedToWindow(@NonNull RecyclerView.ViewHolder holder) {
         super.onViewAttachedToWindow(holder);
         final int position = holder.getBindingAdapterPosition();
+        if (holder instanceof ReelHolder) {
+            ((ReelHolder) holder).applyBottomInset(bottomInset);
+        }
         if (holder instanceof ReelHolder && position != RecyclerView.NO_POSITION) {
             // The very first page is attached after the pager has already been told to
             // play it, so the player had nowhere to draw: sound, no picture.
@@ -208,7 +262,13 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
         final TextView author;
         final TextView caption;
         final TextView likes;
+        final TextView views;
         final TextView follow;
+        final View rail;
+        final View bottomBlock;
+        /** Margins the layout asks for, before the banner is taken into account. */
+        final int railMargin;
+        final int bottomMargin;
 
         ReelHolder(@NonNull View itemView) {
             super(itemView);
@@ -225,7 +285,30 @@ public class ReelPagerAdapter extends RecyclerView.Adapter<RecyclerView.ViewHold
             author = itemView.findViewById(R.id.text_view_reel_author);
             caption = itemView.findViewById(R.id.text_view_reel_caption);
             likes = itemView.findViewById(R.id.text_view_likes);
+            views = itemView.findViewById(R.id.text_view_reel_views);
             follow = itemView.findViewById(R.id.text_view_reel_follow);
+            rail = itemView.findViewById(R.id.layout_reel_rail);
+            bottomBlock = itemView.findViewById(R.id.layout_reel_bottom);
+            railMargin = marginBottom(rail);
+            bottomMargin = marginBottom(bottomBlock);
+        }
+
+        void applyBottomInset(int inset) {
+            setMarginBottom(rail, railMargin + inset);
+            setMarginBottom(bottomBlock, bottomMargin + inset);
+        }
+
+        private static int marginBottom(View view) {
+            return ((ViewGroup.MarginLayoutParams) view.getLayoutParams()).bottomMargin;
+        }
+
+        private static void setMarginBottom(View view, int value) {
+            final ViewGroup.MarginLayoutParams params =
+                    (ViewGroup.MarginLayoutParams) view.getLayoutParams();
+            if (params.bottomMargin != value) {
+                params.bottomMargin = value;
+                view.setLayoutParams(params);
+            }
         }
 
         void playBurst() {
