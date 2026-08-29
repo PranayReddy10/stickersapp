@@ -14,7 +14,8 @@ public enum AdNetwork {
     FACEBOOK("FACEBOOK_ID"),
     UNITY("UNITY_ID"),
     VUNGLE("VUNGLE_ID"),
-    INMOBI("INMOBI_ID");
+    INMOBI("INMOBI_ID"),
+    STARTIO("STARTIO_ID");
 
     private final String idSuffix;
 
@@ -32,7 +33,9 @@ public enum AdNetwork {
      * only network that can serve without a per-placement unit id.
      */
     public boolean requiresUnitId() {
-        return this != APPLOVIN;
+        // AppLovin's direct integration runs off the SDK key, and Start.io off one app id:
+        // neither has per-placement units to configure.
+        return this != APPLOVIN && this != STARTIO;
     }
 
     /** Whether this network is able to serve the given format at all. */
@@ -54,6 +57,10 @@ public enum AdNetwork {
                 // Unity's SDK has banner, interstitial and rewarded only - there is no
                 // native ad surface for publishers to request.
                 return format != AdFormat.NATIVE;
+            case STARTIO:
+                // Start.io sells all four, which is the point of having it: it takes the
+                // slots nobody else bid for.
+                return true;
             default:
                 return false;
         }
@@ -98,6 +105,11 @@ public enum AdNetwork {
             case "INMOBI":
             case "IN_MOBI":
                 return INMOBI;
+            case "STARTIO":
+            case "START_IO":
+            case "STARTAPP":
+            case "START_APP":
+                return STARTIO;
             default:
                 return null;
         }

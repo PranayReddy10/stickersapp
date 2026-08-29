@@ -237,6 +237,47 @@ final class NativeAdRenderer {
         return view;
     }
 
+    /**
+     * Start.io native. The SDK downloads the pictures itself and hands over bitmaps, and
+     * takes the whole card as the clickable view.
+     */
+    static View renderStartIo(Context context,
+                              com.startapp.sdk.ads.nativead.NativeAdDetails ad,
+                              NativeStyle style) {
+        final View view = LayoutInflater.from(context).inflate(networkLayout(style), null);
+        final ViewGroup root = (ViewGroup) view.findViewById(R.id.frame_layout_native_root);
+        final FrameLayout media = (FrameLayout) view.findViewById(R.id.frame_layout_native_media);
+        final ImageView icon = (ImageView) view.findViewById(R.id.image_view_native_icon);
+        final TextView title = (TextView) view.findViewById(R.id.text_view_native_title);
+        final TextView body = (TextView) view.findViewById(R.id.text_view_native_body);
+        final TextView cta = (TextView) view.findViewById(R.id.text_view_native_cta);
+
+        title.setText(ad.getTitle());
+        setTextOrHide(body, ad.getDescription());
+        setTextOrHide(cta, ad.getCallToAction());
+
+        if (ad.getSecondaryImageBitmap() != null) {
+            icon.setImageBitmap(ad.getSecondaryImageBitmap());
+        } else {
+            icon.setVisibility(View.GONE);
+        }
+
+        // The big picture goes where every other network's media view goes, so the card
+        // looks the same whoever filled it.
+        media.removeAllViews();
+        if (ad.getImageBitmap() != null) {
+            final ImageView creative = new ImageView(context);
+            creative.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            creative.setImageBitmap(ad.getImageBitmap());
+            media.addView(creative, new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT));
+        }
+
+        ad.registerViewForInteraction(root);
+        return view;
+    }
+
     /** Layout for the networks that hand over the parts rather than a whole view. */
     private static int networkLayout(NativeStyle style) {
         switch (style) {

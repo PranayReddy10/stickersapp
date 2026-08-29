@@ -130,6 +130,11 @@ dependencies {
     // against. Declaring an older one did not hold - Gradle keeps the highest, so the
     // code compiled against whatever the adapter dragged in, and 11.x renamed the
     // whole native API (getCtaText, getMediaView, registerViewForTracking).
+    // Start.io (StartApp): one app id serves banner, MREC, native, interstitial and
+    // rewarded, which is why it sits at the end of the waterfall - it takes the slots
+    // the higher paying networks passed on.
+    implementation 'com.startapp:inapp-sdk:5.3.2'
+
     implementation 'com.vungle:vungle-ads:7.5.0'
     implementation 'com.inmobi.monetization:inmobi-ads-kotlin:11.1.0'
 

@@ -33,6 +33,7 @@ import com.orhanobut.hawk.Hawk;
 import com.stickersanimated.kissing.Manager.PrefManager;
 import com.stickersanimated.kissing.ads.AdsConfig;
 import com.stickersanimated.kissing.ads.InterstitialAdManager;
+import com.stickersanimated.kissing.ads.BannerAdManager;
 import com.stickersanimated.kissing.ads.NativeAdManager;
 import com.stickersanimated.kissing.ads.NativeStyle;
 import com.stickersanimated.kissing.R;
@@ -90,6 +91,9 @@ public class StickerAdapter extends  RecyclerView.Adapter<RecyclerView.ViewHolde
 
     /** One ad per ad row, keyed by its position in the list. */
     private final android.util.SparseArray<NativeAdManager> nativeAdSlots =
+            new android.util.SparseArray<>();
+    /** The banner a row fell back to, when no network had a native ad for it. */
+    private final android.util.SparseArray<BannerAdManager> mrecSlots =
             new android.util.SparseArray<>();
 
     private String sanitizeImageUrl(String raw) {
@@ -539,10 +543,26 @@ public class StickerAdapter extends  RecyclerView.Adapter<RecyclerView.ViewHolde
                 return;
             }
             nativeAdSlots.put(position, manager);
-            manager.load();
+            // Only three networks sell native at all, and they do not always have a
+            // buyer. An MREC is the shape every network sells, so the row asks for one
+            // rather than collapsing to nothing.
+            final NativeAdHolder row = holder;
+            manager.onEmpty(() -> showMrec(row, position)).load();
         }
         manager.attachTo(holder.container);
         preloadNextNativeAd(position);
+    }
+
+    /** The banner an ad row falls back to when nothing bid for a native ad. */
+    private void showMrec(NativeAdHolder holder, int position) {
+        if (mrecSlots.get(position) != null) {
+            return;
+        }
+        final BannerAdManager banner = BannerAdManager.mrec(activity, holder.container);
+        if (banner != null) {
+            mrecSlots.put(position, banner);
+            banner.load();
+        }
     }
 
     /** Starts the next ad row's request while this one is on screen. */
@@ -575,6 +595,10 @@ public class StickerAdapter extends  RecyclerView.Adapter<RecyclerView.ViewHolde
             nativeAdSlots.valueAt(i).destroy();
         }
         nativeAdSlots.clear();
+        for (int i = 0; i < mrecSlots.size(); i++) {
+            mrecSlots.valueAt(i).destroy();
+        }
+        mrecSlots.clear();
     }
 
     public boolean checkSUBSCRIBED() {

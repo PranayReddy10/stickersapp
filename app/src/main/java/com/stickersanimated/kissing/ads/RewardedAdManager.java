@@ -87,6 +87,7 @@ public final class RewardedAdManager {
     private AppLovinIncentivizedInterstitial applovinAd;
     private com.facebook.ads.RewardedVideoAd facebookAd;
     private String unityPlacementId;
+    private com.startapp.sdk.adsbase.StartAppAd startIoAd;
     private com.vungle.ads.RewardedAd vungleAd;
     private InMobiInterstitial inmobiAd;
 
@@ -168,6 +169,32 @@ public final class RewardedAdManager {
                     UnityAds.show(activity, unityPlacementId, new UnityAdsShowOptions(),
                             unityShowListener);
                     return true;
+                case STARTIO:
+                    if (startIoAd == null || !startIoAd.isReady()) {
+                        return false;
+                    }
+                    // The reward is earned on the video finishing, not on the ad closing.
+                    startIoAd.setVideoListener(this::onRewarded);
+                    startIoAd.showAd(new com.startapp.sdk.adsbase.adlisteners.AdDisplayListener() {
+                        @Override
+                        public void adHidden(com.startapp.sdk.adsbase.Ad ad) {
+                            onClosed();
+                        }
+
+                        @Override
+                        public void adDisplayed(com.startapp.sdk.adsbase.Ad ad) {
+                        }
+
+                        @Override
+                        public void adClicked(com.startapp.sdk.adsbase.Ad ad) {
+                        }
+
+                        @Override
+                        public void adNotDisplayed(com.startapp.sdk.adsbase.Ad ad) {
+                            onClosed();
+                        }
+                    });
+                    return true;
                 default:
                     return false;
             }
@@ -238,6 +265,9 @@ public final class RewardedAdManager {
                     break;
                 case INMOBI:
                     loadInmobi(attempt, unitId);
+                    break;
+                case STARTIO:
+                    loadStartIo(attempt);
                     break;
                 default:
                     onFailed(attempt, network, "unsupported network");
@@ -404,6 +434,32 @@ public final class RewardedAdManager {
                 onFailed(attempt, AdNetwork.UNITY, message);
             }
         });
+    }
+
+    /** Start.io's rewarded video. One app id covers it, like the rest of the network. */
+    private void loadStartIo(int attempt) {
+        if (!sdkReady(attempt, AdNetwork.STARTIO, () -> loadStartIo(attempt))) {
+            return;
+        }
+        final com.startapp.sdk.adsbase.StartAppAd ad =
+                new com.startapp.sdk.adsbase.StartAppAd(activity);
+        ad.loadAd(com.startapp.sdk.adsbase.StartAppAd.AdMode.REWARDED_VIDEO,
+                new com.startapp.sdk.adsbase.adlisteners.AdEventListener() {
+                    @Override
+                    public void onReceiveAd(@NonNull com.startapp.sdk.adsbase.Ad loaded) {
+                        if (destroyed || attempt != attemptId) {
+                            return;
+                        }
+                        startIoAd = ad;
+                        onLoaded(attempt, AdNetwork.STARTIO);
+                    }
+
+                    @Override
+                    public void onFailedToReceiveAd(@NonNull com.startapp.sdk.adsbase.Ad failed) {
+                        onFailed(attempt, AdNetwork.STARTIO,
+                                failed == null ? "no ad" : String.valueOf(failed.getErrorMessage()));
+                    }
+                });
     }
 
     private void loadVungle(int attempt, String placementId) {

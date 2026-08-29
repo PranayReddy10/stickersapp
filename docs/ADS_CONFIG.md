@@ -17,9 +17,15 @@ navigation happens with or without an ad.
 | `UNITY` | Unity Ads | ✅ | — | ✅ | ✅ |
 | `VUNGLE` | Liftoff Monetize (Vungle) | ✅ | ✅ | ✅ | ✅ |
 | `INMOBI` | InMobi | ✅ | ✅ | ✅ | ✅ |
+| `STARTIO` | Start.io (StartApp) | ✅ | ✅ | ✅ | ✅ |
 
 Aliases accepted for each: `GOOGLE`/`ADMANAGER`, `APPLOVIN_MAX`, `FB`/`META`/`FAN`,
-`UNITYADS`, `LIFTOFF`.
+`UNITYADS`, `LIFTOFF`, `STARTAPP`/`START_IO`.
+
+**Start.io** is the backstop. One credential - `ADMIN_STARTIO_APP_ID` - covers all four
+formats, with no placement ids to configure, and it fills where the others pass. It pays
+less than they do, so put it **last** in `ADMIN_<FORMAT>_ORDER`: it should only ever get
+the slots nobody else bought.
 
 Native ads are served by AdMob, AppLovin MAX, Meta, Vungle and InMobi. AppLovin's
 direct integration and Unity Ads have no native format for publishers to request, so
@@ -50,6 +56,23 @@ Every network skipped for a format is logged with the field it is waiting on:
 AdsConfig: VUNGLE skipped for NATIVE: ADMIN_VUNGLE_APP_ID is empty
 NativeAds: Native waterfall [MAX, INMOBI], 10000ms per network
 ```
+
+### When a slot cannot be filled with the format it asked for
+
+Native is the format with the fewest sellers, so every native slot has a second chance:
+
+| Slot | First choice | Falls back to |
+|---|---|---|
+| In-feed row (home, popular, search, category, follows, profile) | native | 300x250 MREC banner |
+| Sticker pack page | native | 300x250 MREC banner |
+| Reels feed card | native | 300x250 MREC banner |
+| Ad page between reels | full screen native | 300x250 MREC banner, centred |
+| Bar under the reels player | banner | native laid out as a bar |
+
+The MREC is the one shape every network sells - AdMob, MAX, AppLovin, Meta, Unity, Vungle
+and InMobi all have it - so a slot that no network will fill with a native ad usually
+fills with this. It uses the **banner** unit ids (`ADMIN_BANNER_<NETWORK>_ID`), so those
+are worth filling in even on screens that show no strip.
 
 Unity, Vungle and InMobi are started from credentials the panel sends, which are not
 present when the process starts. They are started again as soon as the settings call

@@ -59,6 +59,8 @@ public final class NativeAdManager {
     private Runnable timeoutRunnable;
     /** The rendered ad, kept so a recycled row gets it back instead of loading again. */
     private View adView;
+    /** Run once when no network fills, so the caller can try another format. */
+    private Runnable onEmpty;
 
     private NativeAd admobAd;
     private MaxNativeAdLoader maxLoader;
@@ -66,6 +68,7 @@ public final class NativeAdManager {
     private NativeBannerAd facebookAd;
     private com.vungle.ads.NativeAd vungleAd;
     private InMobiNative inmobiAd;
+    private com.startapp.sdk.ads.nativead.NativeAdDetails startIoAd;
 
     private NativeAdManager(Activity activity, @Nullable ViewGroup container, NativeStyle style) {
         this.activity = activity;
@@ -144,9 +147,21 @@ public final class NativeAdManager {
         }
     }
 
+    /**
+     * Called once when this slot ends up with no native ad: the format is off, or every
+     * network passed. With AdMob and Meta out of the picture only three networks sell
+     * native at all, so the callers use this to ask for an MREC instead.
+     */
+    public NativeAdManager onEmpty(@Nullable Runnable action) {
+        this.onEmpty = action;
+        return this;
+    }
+
     public void load() {
         if (destroyed || !config.isEnabled(AdFormat.NATIVE)) {
             collapse();
+            Log.d(TAG, "Native is off or has no configured network");
+            reportEmpty();
             return;
         }
         // Nothing is shown until a network fills: an empty slot would otherwise leave a
@@ -172,11 +187,20 @@ public final class NativeAdManager {
             return;
         }
         if (index >= waterfall.size()) {
-            // Every network passed on this slot: keep it collapsed.
+            // Every network passed on this slot: keep it collapsed, and let the caller
+            // fall back to a format the networks will actually fill.
+            Log.d(TAG, "No native network filled");
             collapse();
+            reportEmpty();
             return;
         }
         final AdNetwork network = waterfall.get(index++);
+        if (AdCooldown.waiting(AdFormat.NATIVE, network)) {
+            // Turned this slot's format down a moment ago; ask the next one instead of
+            // spending this slot's timeout on the same answer.
+            loadNext();
+            return;
+        }
         final String unitId = config.unitId(AdFormat.NATIVE, network);
         final int attempt = ++attemptId;
         scheduleTimeout(attempt, network);
@@ -197,6 +221,9 @@ public final class NativeAdManager {
                     break;
                 case INMOBI:
                     loadInMobi(attempt, unitId);
+                    break;
+                case STARTIO:
+                    loadStartIo(attempt);
                     break;
                 default:
                     onFailed(attempt, network, "format not supported");
@@ -391,6 +418,58 @@ public final class NativeAdManager {
         return false;
     }
 
+    /**
+     * Start.io native. The SDK hands over a list of ads with their own text and pictures,
+     * which the renderer lays out the same way it does Vungle's and InMobi's.
+     */
+    private void loadStartIo(int attempt) {
+        if (!sdkReady(attempt, AdNetwork.STARTIO, () -> loadStartIo(attempt))) {
+            return;
+        }
+        final com.startapp.sdk.ads.nativead.StartAppNativeAd nativeAd =
+                new com.startapp.sdk.ads.nativead.StartAppNativeAd(activity);
+        final com.startapp.sdk.ads.nativead.NativeAdPreferences preferences =
+                new com.startapp.sdk.ads.nativead.NativeAdPreferences()
+                        .setAdsNumber(1)
+                        .setAutoBitmapDownload(true)
+                        .setPrimaryImageSize(3)
+                        .setSecondaryImageSize(2);
+
+        nativeAd.loadAd(preferences, new com.startapp.sdk.adsbase.adlisteners.AdEventListener() {
+            @Override
+            public void onReceiveAd(@NonNull com.startapp.sdk.adsbase.Ad ad) {
+                if (destroyed || attempt != attemptId) {
+                    return;
+                }
+                final java.util.ArrayList<com.startapp.sdk.ads.nativead.NativeAdDetails> ads =
+                        nativeAd.getNativeAds();
+                if (ads == null || ads.isEmpty()) {
+                    onFailed(attempt, AdNetwork.STARTIO, "no ad in the response");
+                    return;
+                }
+                release();
+                startIoAd = ads.get(0);
+                show(NativeAdRenderer.renderStartIo(activity, startIoAd, style));
+                onLoaded(attempt, AdNetwork.STARTIO);
+            }
+
+            @Override
+            public void onFailedToReceiveAd(@NonNull com.startapp.sdk.adsbase.Ad ad) {
+                onFailed(attempt, AdNetwork.STARTIO,
+                        ad == null ? "no ad" : String.valueOf(ad.getErrorMessage()));
+            }
+        });
+    }
+
+    /** Fires the empty callback once, and only once. */
+    private void reportEmpty() {
+        final Runnable action = onEmpty;
+        onEmpty = null;
+        if (action != null && !destroyed) {
+            action.run();
+        }
+    }
+
     private void show(View view) {
         adView = view;
         if (container == null) {
@@ -457,6 +536,7 @@ public final class NativeAdManager {
             return;
         }
         cancelTimeout();
+        AdCooldown.filled(AdFormat.NATIVE, network);
         Log.d(TAG, "Native filled by " + network);
     }
 
@@ -465,6 +545,7 @@ public final class NativeAdManager {
             return;
         }
         cancelTimeout();
+        AdCooldown.failed(AdFormat.NATIVE, network, reason);
         Log.d(TAG, "Native on " + network + " failed (" + reason + "), trying next network");
         handler.post(this::loadNext);
     }
@@ -500,6 +581,9 @@ public final class NativeAdManager {
                 inmobiAd.unTrackViews();
                 inmobiAd.destroy();
             }
+            if (startIoAd != null) {
+                startIoAd.unregisterView();
+            }
         } catch (Throwable t) {
             Log.w(TAG, "Failed to release native ad", t);
         } finally {
@@ -509,6 +593,7 @@ public final class NativeAdManager {
             facebookAd = null;
             vungleAd = null;
             inmobiAd = null;
+            startIoAd = null;
             if (adView != null && adView.getParent() instanceof ViewGroup) {
                 ((ViewGroup) adView.getParent()).removeView(adView);
             }

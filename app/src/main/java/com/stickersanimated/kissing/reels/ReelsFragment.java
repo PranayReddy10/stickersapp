@@ -82,6 +82,8 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
      * pager resumes one page at a time, so leaving the tab pauses the reel.
      */
     private boolean feedMuted = false;
+    /** Reels since the last ad card, carried across pages so the spacing stays even. */
+    private int sinceAd;
 
     /** 0 for the main feed, otherwise the profile whose reels are being shown. */
     private int author;
@@ -127,6 +129,11 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
         adapter = new ReelCardAdapter(requireActivity(), rows, this);
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         recyclerView.setAdapter(adapter);
+        // The list fills the screen whatever is in it, a few cards are kept ready either
+        // side of the ones on show, and a changed card does not fade in and out of place.
+        recyclerView.setHasFixedSize(true);
+        recyclerView.setItemViewCacheSize(4);
+        recyclerView.setItemAnimator(null);
 
         // The upload button belongs to HomeActivity - see app_bar_home.xml - so it
         // cannot slide away with the pager.
@@ -198,11 +205,36 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
                 ? android.R.color.white : R.color.primary_text));
     }
 
-    /** Rebuilds the visible rows from {@link #loaded}, dropping in the ad cards. */
+    /** Rebuilds every visible row from {@link #loaded}: a filter change, or a delete. */
     private void rebuildRows() {
         rows.clear();
-        int sinceAd = 0;
-        for (ReelApi reel : loaded) {
+        sinceAd = 0;
+        addRows(loaded);
+        adapter.notifyDataSetChanged();
+        emptyView.setVisibility(rows.isEmpty() ? View.VISIBLE : View.GONE);
+        stopPlayback();
+        recyclerView.post(this::playMostVisible);
+    }
+
+    /**
+     * Adds a freshly fetched page to the end of the feed.
+     *
+     * <p>Rebuilding the whole list for every page rebound every card on screen while the
+     * finger was still moving - the jolt in the middle of a scroll - and dropped the video
+     * off whichever card was playing. Only the new rows are announced.
+     */
+    private void appendRows(List<ReelApi> batch) {
+        final int from = rows.size();
+        addRows(batch);
+        if (rows.size() > from) {
+            adapter.notifyItemRangeInserted(from, rows.size() - from);
+        }
+        emptyView.setVisibility(rows.isEmpty() ? View.VISIBLE : View.GONE);
+    }
+
+    /** Appends the reels that pass the filter, dropping in an ad card as they go. */
+    private void addRows(List<ReelApi> source) {
+        for (ReelApi reel : source) {
             if (!matchesFilter(reel)) {
                 continue;
             }
@@ -212,10 +244,6 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
                 rows.add(ReelCardAdapter.adRow());
             }
         }
-        adapter.notifyDataSetChanged();
-        emptyView.setVisibility(rows.isEmpty() ? View.VISIBLE : View.GONE);
-        stopPlayback();
-        recyclerView.post(this::playMostVisible);
     }
 
     /**
@@ -284,7 +312,7 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
                         }
                         loaded.addAll(batch);
                         page++;
-                        rebuildRows();
+                        appendRows(batch);
                     }
 
                     @Override
@@ -523,7 +551,7 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
         final boolean wasLiked = reel.isLiked();
         reel.setLiked(!wasLiked);
         reel.setLikes(reel.getLikes() + (wasLiked ? -1 : 1));
-        adapter.notifyDataSetChanged();
+        refreshLike(reel);
 
         apiClient.getClient().create(apiRest.class)
                 .reelLike(reel.getId(), prefManager.getString("ID_USER"),
@@ -542,7 +570,7 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
                             // leaving a like that was never saved.
                             reel.setLiked(wasLiked);
                             reel.setLikes(reel.getLikes() + (wasLiked ? 1 : -1));
-                            adapter.notifyDataSetChanged();
+                            refreshLike(reel);
                             Toasty.error(requireContext(), likeError(response, body, reel),
                                     Toast.LENGTH_LONG).show();
                             return;
@@ -551,7 +579,7 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
                         if (body.has("likes")) {
                             reel.setLikes(body.get("likes").getAsInt());
                         }
-                        adapter.notifyDataSetChanged();
+                        refreshLike(reel);
                     }
 
                     @Override
@@ -561,9 +589,31 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
                         }
                         reel.setLiked(wasLiked);
                         reel.setLikes(reel.getLikes() + (wasLiked ? 1 : -1));
-                        adapter.notifyDataSetChanged();
+                        refreshLike(reel);
                     }
                 });
+    }
+
+    /**
+     * Just the heart, on the one card.
+     *
+     * <p>A like used to refresh the whole list, which rebound the card that was playing:
+     * the video was swapped back for its still picture while the sound carried on, and the
+     * speaker went with it.
+     */
+    private void refreshLike(ReelApi reel) {
+        for (int position = 0; position < rows.size(); position++) {
+            if (rows.get(position).reel != reel) {
+                continue;
+            }
+            final ReelCardAdapter.CardHolder holder = cardAt(position);
+            if (holder != null) {
+                adapter.bindLike(holder, reel);
+            } else {
+                adapter.notifyItemChanged(position);
+            }
+            return;
+        }
     }
 
     @Override

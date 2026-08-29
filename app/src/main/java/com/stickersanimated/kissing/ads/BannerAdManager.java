@@ -57,10 +57,13 @@ public final class BannerAdManager {
 
     private static final int BANNER_WIDTH_DP = 320;
     private static final int BANNER_HEIGHT_DP = 50;
+    private static final int MREC_WIDTH_DP = 300;
+    private static final int MREC_HEIGHT_DP = 250;
 
     private final Activity activity;
     private final ViewGroup container;
     private final AdsConfig config;
+    private final BannerSize size;
     private final Handler handler = new Handler(Looper.getMainLooper());
 
     private List<AdNetwork> waterfall = Collections.emptyList();
@@ -75,10 +78,20 @@ public final class BannerAdManager {
     /** Vungle hands back a view but keeps teardown on the ad object itself. */
     private BannerAd vungleBannerAd;
 
-    private BannerAdManager(Activity activity, ViewGroup container) {
+    private BannerAdManager(Activity activity, ViewGroup container, BannerSize size) {
         this.activity = activity;
         this.container = container;
+        this.size = size;
         this.config = new AdsConfig(activity);
+    }
+
+    private boolean isMrec() {
+        return size == BannerSize.MREC;
+    }
+
+    /** What this slot calls itself in the log, so the two shapes can be told apart. */
+    private String label() {
+        return isMrec() ? "MREC" : "Banner";
     }
 
     /** Creates a manager for the given container. Returns {@code null} if there is none. */
@@ -87,7 +100,21 @@ public final class BannerAdManager {
         if (activity == null || container == null) {
             return null;
         }
-        return new BannerAdManager(activity, container);
+        return new BannerAdManager(activity, container, BannerSize.STANDARD);
+    }
+
+    /**
+     * A 300x250 block rather than a strip, for a slot with room for a card - an in-feed
+     * row, or the ad page between reels. Every network sells this shape, so it fills where
+     * a native ad has no demand.
+     */
+    @Nullable
+    public static BannerAdManager mrec(@Nullable Activity activity,
+                                       @Nullable ViewGroup container) {
+        if (activity == null || container == null) {
+            return null;
+        }
+        return new BannerAdManager(activity, container, BannerSize.MREC);
     }
 
     /**
@@ -105,11 +132,13 @@ public final class BannerAdManager {
             return;
         }
         if (!config.isEnabled(AdFormat.BANNER)) {
-            Log.d(TAG, "Banners are off or have no configured network");
+            Log.d(TAG, label() + ": banners are off or have no configured network");
             reportEmpty();
             return;
         }
         waterfall = config.waterfall(AdFormat.BANNER);
+        Log.d(TAG, label() + " waterfall " + waterfall + ", " + config.timeoutMillis()
+                + "ms per network");
         index = 0;
         loadNext();
     }
@@ -124,12 +153,16 @@ public final class BannerAdManager {
         releaseCurrent();
         if (destroyed || activity.isFinishing() || index >= waterfall.size()) {
             if (index >= waterfall.size()) {
-                Log.d(TAG, "No banner network filled");
+                Log.d(TAG, "No network filled the " + label().toLowerCase() + " slot");
                 reportEmpty();
             }
             return;
         }
         final AdNetwork network = waterfall.get(index++);
+        if (AdCooldown.waiting(AdFormat.BANNER, network)) {
+            loadNext();
+            return;
+        }
         final String unitId = config.unitId(AdFormat.BANNER, network);
         final int attempt = ++attemptId;
         scheduleTimeout(attempt, network);
@@ -157,6 +190,9 @@ public final class BannerAdManager {
                 case INMOBI:
                     loadInmobi(attempt, unitId);
                     break;
+                case STARTIO:
+                    loadStartIo(attempt);
+                    break;
                 default:
                     onFailed(attempt, network, "unsupported network");
                     break;
@@ -169,7 +205,8 @@ public final class BannerAdManager {
 
     private void loadAdmob(int attempt, String unitId) {
         final AdView adView = new AdView(activity);
-        adView.setAdSize(AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(activity, 360));
+        adView.setAdSize(isMrec() ? AdSize.MEDIUM_RECTANGLE
+                : AdSize.getCurrentOrientationAnchoredAdaptiveBannerAdSize(activity, 360));
         adView.setAdUnitId(unitId);
         adView.setAdListener(new AdListener() {
             @Override
@@ -187,7 +224,9 @@ public final class BannerAdManager {
     }
 
     private void loadMax(int attempt, String unitId) {
-        final MaxAdView adView = new MaxAdView(unitId, activity);
+        final MaxAdView adView = isMrec()
+                ? new MaxAdView(unitId, MaxAdFormat.MREC, activity)
+                : new MaxAdView(unitId, activity);
         adView.setListener(new MaxAdViewAdListener() {
             @Override
             public void onAdLoaded(MaxAd ad) {
@@ -224,20 +263,35 @@ public final class BannerAdManager {
             public void onAdClicked(MaxAd ad) {
             }
         });
-        final int heightPx = AppLovinSdkUtils.dpToPx(activity,
-                MaxAdFormat.BANNER.getAdaptiveSize(activity).getHeight());
-        adView.setLayoutParams(new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, heightPx));
+        if (isMrec()) {
+            adView.setLayoutParams(new FrameLayout.LayoutParams(
+                    AppLovinSdkUtils.dpToPx(activity, MREC_WIDTH_DP),
+                    AppLovinSdkUtils.dpToPx(activity, MREC_HEIGHT_DP),
+                    android.view.Gravity.CENTER));
+        } else {
+            final int heightPx = AppLovinSdkUtils.dpToPx(activity,
+                    MaxAdFormat.BANNER.getAdaptiveSize(activity).getHeight());
+            adView.setLayoutParams(new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, heightPx));
+        }
         attach(adView);
         adView.loadAd();
     }
 
     private void loadAppLovin(int attempt) {
-        final AppLovinAdView adView = new AppLovinAdView(AppLovinAdSize.BANNER, activity);
-        final int heightPx = AppLovinSdkUtils.dpToPx(activity,
-                AppLovinSdkUtils.isTablet(activity) ? 90 : 50);
-        adView.setLayoutParams(new FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT, heightPx));
+        final AppLovinAdView adView = new AppLovinAdView(
+                isMrec() ? AppLovinAdSize.MREC : AppLovinAdSize.BANNER, activity);
+        if (isMrec()) {
+            adView.setLayoutParams(new FrameLayout.LayoutParams(
+                    AppLovinSdkUtils.dpToPx(activity, MREC_WIDTH_DP),
+                    AppLovinSdkUtils.dpToPx(activity, MREC_HEIGHT_DP),
+                    android.view.Gravity.CENTER));
+        } else {
+            final int heightPx = AppLovinSdkUtils.dpToPx(activity,
+                    AppLovinSdkUtils.isTablet(activity) ? 90 : 50);
+            adView.setLayoutParams(new FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, heightPx));
+        }
         adView.setAdLoadListener(new AppLovinAdLoadListener() {
             @Override
             public void adReceived(AppLovinAd ad) {
@@ -254,8 +308,9 @@ public final class BannerAdManager {
     }
 
     private void loadFacebook(int attempt, String placementId) {
-        final com.facebook.ads.AdView adView = new com.facebook.ads.AdView(
-                activity, placementId, com.facebook.ads.AdSize.BANNER_HEIGHT_50);
+        final com.facebook.ads.AdView adView = new com.facebook.ads.AdView(activity, placementId,
+                isMrec() ? com.facebook.ads.AdSize.RECTANGLE_HEIGHT_250
+                        : com.facebook.ads.AdSize.BANNER_HEIGHT_50);
         final com.facebook.ads.AdListener listener = new com.facebook.ads.AdListener() {
             @Override
             public void onError(com.facebook.ads.Ad ad, com.facebook.ads.AdError adError) {
@@ -283,8 +338,9 @@ public final class BannerAdManager {
         if (!sdkReady(attempt, AdNetwork.UNITY, () -> loadUnity(attempt, placementId))) {
             return;
         }
-        final BannerView bannerView =
-                new BannerView(activity, placementId, new UnityBannerSize(320, 50));
+        final BannerView bannerView = new BannerView(activity, placementId,
+                isMrec() ? new UnityBannerSize(MREC_WIDTH_DP, MREC_HEIGHT_DP)
+                        : new UnityBannerSize(BANNER_WIDTH_DP, BANNER_HEIGHT_DP));
         bannerView.setListener(new BannerView.Listener() {
             @Override
             public void onBannerLoaded(BannerView view) {
@@ -304,7 +360,8 @@ public final class BannerAdManager {
         if (!sdkReady(attempt, AdNetwork.VUNGLE, () -> loadVungle(attempt, placementId))) {
             return;
         }
-        final BannerAd bannerAd = new BannerAd(activity, placementId, BannerAdSize.BANNER);
+        final BannerAd bannerAd = new BannerAd(activity, placementId,
+                isMrec() ? BannerAdSize.VUNGLE_MREC : BannerAdSize.BANNER);
         bannerAd.setAdListener(new BannerAdListener() {
             @Override
             public void onAdLoaded(@NonNull BaseAd baseAd) {
@@ -318,9 +375,14 @@ public final class BannerAdManager {
                     onFailed(attempt, AdNetwork.VUNGLE, "no banner view");
                     return;
                 }
-                view.setLayoutParams(new FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        AppLovinSdkUtils.dpToPx(activity, 50)));
+                view.setLayoutParams(isMrec()
+                        ? new FrameLayout.LayoutParams(
+                                AppLovinSdkUtils.dpToPx(activity, MREC_WIDTH_DP),
+                                AppLovinSdkUtils.dpToPx(activity, MREC_HEIGHT_DP),
+                                android.view.Gravity.CENTER)
+                        : new FrameLayout.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                AppLovinSdkUtils.dpToPx(activity, BANNER_HEIGHT_DP)));
                 vungleBannerAd = bannerAd;
                 attach(view);
                 onLoaded(attempt, AdNetwork.VUNGLE);
@@ -380,14 +442,60 @@ public final class BannerAdManager {
                 onFailed(attempt, AdNetwork.INMOBI, status.getMessage());
             }
         });
+        final int widthDp = isMrec() ? MREC_WIDTH_DP : BANNER_WIDTH_DP;
+        final int heightDp = isMrec() ? MREC_HEIGHT_DP : BANNER_HEIGHT_DP;
         banner.setEnableAutoRefresh(false);
-        banner.setBannerSize(BANNER_WIDTH_DP, BANNER_HEIGHT_DP);
+        banner.setBannerSize(widthDp, heightDp);
         // InMobi sizes its banner from the layout params, which it reads in pixels.
         banner.setLayoutParams(new FrameLayout.LayoutParams(
-                AppLovinSdkUtils.dpToPx(activity, BANNER_WIDTH_DP),
-                AppLovinSdkUtils.dpToPx(activity, BANNER_HEIGHT_DP)));
+                AppLovinSdkUtils.dpToPx(activity, widthDp),
+                AppLovinSdkUtils.dpToPx(activity, heightDp),
+                android.view.Gravity.CENTER));
         attach(banner);
         banner.load();
+    }
+
+    /**
+     * Start.io. Its banner and MREC views load themselves as soon as they are built, so
+     * there is nothing to request: the listener says whether anything came back.
+     */
+    private void loadStartIo(int attempt) {
+        if (!sdkReady(attempt, AdNetwork.STARTIO, () -> loadStartIo(attempt))) {
+            return;
+        }
+        final com.startapp.sdk.ads.banner.BannerListener listener =
+                new com.startapp.sdk.ads.banner.BannerListener() {
+                    @Override
+                    public void onReceiveAd(View view) {
+                        onLoaded(attempt, AdNetwork.STARTIO);
+                    }
+
+                    @Override
+                    public void onFailedToReceiveAd(View view) {
+                        onFailed(attempt, AdNetwork.STARTIO, "no ad");
+                    }
+
+                    @Override
+                    public void onImpression(View view) {
+                    }
+
+                    @Override
+                    public void onClick(View view) {
+                    }
+                };
+
+        final View adView = isMrec()
+                ? new com.startapp.sdk.ads.banner.Mrec(activity, listener)
+                : new com.startapp.sdk.ads.banner.Banner(activity, listener);
+        adView.setLayoutParams(isMrec()
+                ? new FrameLayout.LayoutParams(
+                        AppLovinSdkUtils.dpToPx(activity, MREC_WIDTH_DP),
+                        AppLovinSdkUtils.dpToPx(activity, MREC_HEIGHT_DP),
+                        android.view.Gravity.CENTER)
+                : new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT));
+        attach(adView);
     }
 
     /** InMobi placements are numeric; anything else means the panel value is wrong. */
@@ -439,7 +547,8 @@ public final class BannerAdManager {
             return;
         }
         cancelTimeout();
-        Log.d(TAG, "Banner filled by " + network);
+        AdCooldown.filled(AdFormat.BANNER, network);
+        Log.d(TAG, label() + " filled by " + network);
         if (currentView != null) {
             currentView.setVisibility(View.VISIBLE);
         }
@@ -450,7 +559,9 @@ public final class BannerAdManager {
             return;
         }
         cancelTimeout();
-        Log.d(TAG, "Banner on " + network + " failed (" + reason + "), trying next network");
+        AdCooldown.failed(AdFormat.BANNER, network, reason);
+        Log.d(TAG, label() + " on " + network + " failed (" + reason
+                + "), trying next network");
         handler.post(this::loadNext);
     }
 

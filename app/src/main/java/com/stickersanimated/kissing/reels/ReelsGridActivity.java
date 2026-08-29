@@ -76,6 +76,9 @@ public class ReelsGridActivity extends AppCompatActivity implements ReelTileAdap
         adapter = new ReelTileAdapter(this, reels, this);
         recyclerView.setLayoutManager(new GridLayoutManager(this, COLUMNS));
         recyclerView.setAdapter(adapter);
+        recyclerView.setHasFixedSize(true);
+        recyclerView.setItemViewCacheSize(9);
+        recyclerView.setItemAnimator(null);
 
         swipeRefresh.setOnRefreshListener(this::reload);
         recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {

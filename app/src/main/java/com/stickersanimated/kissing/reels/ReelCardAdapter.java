@@ -20,11 +20,13 @@ import androidx.recyclerview.widget.RecyclerView;
 import android.graphics.drawable.Drawable;
 
 import com.bumptech.glide.Glide;
+import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.target.Target;
 import com.bumptech.glide.request.RequestListener;
 import com.bumptech.glide.load.DataSource;
 import com.bumptech.glide.load.engine.GlideException;
 import com.stickersanimated.kissing.R;
+import com.stickersanimated.kissing.ads.BannerAdManager;
 import com.stickersanimated.kissing.ads.NativeAdManager;
 import com.stickersanimated.kissing.entity.ReelApi;
 
@@ -84,6 +86,7 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     private final List<Row> rows;
     private final Listener listener;
     private final List<NativeAdManager> nativeAdManagers = new java.util.ArrayList<>();
+    private final List<BannerAdManager> bannerAdManagers = new java.util.ArrayList<>();
 
     public ReelCardAdapter(Activity activity, List<Row> rows, Listener listener) {
         this.activity = activity;
@@ -143,10 +146,18 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         card.thumb.setScaleType(isWide(reel)
                 ? ImageView.ScaleType.FIT_CENTER : ImageView.ScaleType.CENTER_CROP);
 
+        // Decoded straight to the size the card shows, kept on disk, and swapped in
+        // without a fade: three things that each cost a frame or two mid scroll.
         Glide.with(activity).load(reel.getThumb())
+                .override(mediaWidth(card), Math.round(mediaWidth(card) * CARD_ASPECT))
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .dontAnimate()
                 .placeholder(R.drawable.sticker_error)
                 .into(card.thumb);
-        Glide.with(activity).load(reel.getUserimage()).placeholder(R.drawable.profile)
+        Glide.with(activity).load(reel.getUserimage())
+                .diskCacheStrategy(DiskCacheStrategy.ALL)
+                .dontAnimate()
+                .placeholder(R.drawable.profile)
                 .into(card.avatar);
 
         bindLike(card, reel);
@@ -195,7 +206,8 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
         return Math.max(1, metrics.widthPixels - margins);
     }
 
-    private void bindLike(CardHolder card, ReelApi reel) {
+    /** Refreshes just the heart, so a like never rebinds the card that is playing. */
+    void bindLike(CardHolder card, ReelApi reel) {
         card.like.setImageResource(reel.isLiked()
                 ? R.drawable.ic_reel_heart_filled : R.drawable.ic_reel_heart_outline);
         card.likes.setText(ReelFormat.count(reel.getLikes()));
@@ -258,11 +270,19 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
     class AdHolder extends RecyclerView.ViewHolder {
         AdHolder(@NonNull View itemView) {
             super(itemView);
-            final NativeAdManager manager = NativeAdManager.into(activity,
-                    itemView.findViewById(R.id.frame_layout_reel_ad));
+            final ViewGroup slot = itemView.findViewById(R.id.frame_layout_reel_ad);
+            final NativeAdManager manager = NativeAdManager.into(activity, slot);
             if (manager != null) {
                 nativeAdManagers.add(manager);
-                manager.load();
+                // No native ad for this card: ask for the 300x250 block, the one shape
+                // every network sells.
+                manager.onEmpty(() -> {
+                    final BannerAdManager banner = BannerAdManager.mrec(activity, slot);
+                    if (banner != null) {
+                        bannerAdManagers.add(banner);
+                        banner.load();
+                    }
+                }).load();
             }
         }
     }
@@ -275,5 +295,9 @@ public class ReelCardAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolde
             manager.destroy();
         }
         nativeAdManagers.clear();
+        for (BannerAdManager banner : bannerAdManagers) {
+            banner.destroy();
+        }
+        bannerAdManagers.clear();
     }
 }
