@@ -20,7 +20,12 @@ import com.orhanobut.hawk.Hawk;
 import com.stickersanimated.kissing.R;
 import com.stickersanimated.kissing.Sticker;
 import com.stickersanimated.kissing.StickerPack;
+import com.stickersanimated.kissing.Manager.PrefManager;
+import com.stickersanimated.kissing.reels.Reels;
+import com.stickersanimated.kissing.reels.ReelsGridActivity;
+import com.stickersanimated.kissing.reels.UploadReelActivity;
 import com.stickersanimated.kissing.ui.CategoryActivity;
+import com.stickersanimated.kissing.ui.LoginActivity;
 import com.stickersanimated.kissing.ui.StickerDetailsActivity;
 import com.stickersanimated.kissing.entity.PackApi;
 import com.stickersanimated.kissing.entity.SlideApi;
@@ -130,6 +135,29 @@ public class SlideAdapter extends PagerAdapter {
                 if (slideList.get(position).getType().equals("2") && slideList.get(position).getUrl()!=null){
                     Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(slideList.get(position).getUrl()));
                     activity.startActivity(browserIntent,
+                            ActivityOptionsCompat.makeScaleUpAnimation(v, (int) v.getX(), (int) v.getY(), v.getWidth(),
+                                    v.getHeight()).toBundle());
+                }
+                // 4: the reels grid. 5: posting one. Both are silently skipped when the
+                // panel has reels switched off, so a slide cannot open a tab that is
+                // not there.
+                if (slideList.get(position).getType().equals("4")) {
+                    if (!Reels.enabled(activity)) {
+                        return;
+                    }
+                    activity.startActivity(new Intent(activity, ReelsGridActivity.class),
+                            ActivityOptionsCompat.makeScaleUpAnimation(v, (int) v.getX(), (int) v.getY(), v.getWidth(),
+                                    v.getHeight()).toBundle());
+                }
+                if (slideList.get(position).getType().equals("5")) {
+                    if (!Reels.enabled(activity)) {
+                        return;
+                    }
+                    final PrefManager prefManager = new PrefManager(activity.getApplicationContext());
+                    final Intent intent = "TRUE".equals(prefManager.getString("LOGGED"))
+                            ? new Intent(activity, UploadReelActivity.class)
+                            : new Intent(activity, LoginActivity.class);
+                    activity.startActivity(intent,
                             ActivityOptionsCompat.makeScaleUpAnimation(v, (int) v.getX(), (int) v.getY(), v.getWidth(),
                                     v.getHeight()).toBundle());
                 }
