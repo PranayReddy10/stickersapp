@@ -27,6 +27,9 @@ public final class AdsSdks {
             case INMOBI:
                 AdsInitializer.initializeInmobi(context);
                 break;
+            case STARTIO:
+                AdsInitializer.initializeStartIo(context);
+                break;
             default:
                 break;
         }
@@ -41,6 +44,8 @@ public final class AdsSdks {
                 return AdsInitializer.isVungleReady();
             case INMOBI:
                 return AdsInitializer.isInmobiReady();
+            case STARTIO:
+                return AdsInitializer.isStartIoReady();
             default:
                 // AdMob, Meta and AppLovin queue requests made before they finish starting.
                 return true;

@@ -17,9 +17,15 @@ navigation happens with or without an ad.
 | `UNITY` | Unity Ads | ✅ | — | ✅ | ✅ |
 | `VUNGLE` | Liftoff Monetize (Vungle) | ✅ | ✅ | ✅ | ✅ |
 | `INMOBI` | InMobi | ✅ | ✅ | ✅ | ✅ |
+| `STARTIO` | Start.io (StartApp) | ✅ | ✅ | ✅ | ✅ |
 
 Aliases accepted for each: `GOOGLE`/`ADMANAGER`, `APPLOVIN_MAX`, `FB`/`META`/`FAN`,
-`UNITYADS`, `LIFTOFF`.
+`UNITYADS`, `LIFTOFF`, `STARTAPP`/`START_IO`.
+
+**Start.io** is the backstop. One credential - `ADMIN_STARTIO_APP_ID` - covers all four
+formats, with no placement ids to configure, and it fills where the others pass. It pays
+less than they do, so put it **last** in `ADMIN_<FORMAT>_ORDER`: it should only ever get
+the slots nobody else bought.
 
 Native ads are served by AdMob, AppLovin MAX, Meta, Vungle and InMobi. AppLovin's
 direct integration and Unity Ads have no native format for publishers to request, so

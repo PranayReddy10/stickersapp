@@ -68,6 +68,7 @@ public final class NativeAdManager {
     private NativeBannerAd facebookAd;
     private com.vungle.ads.NativeAd vungleAd;
     private InMobiNative inmobiAd;
+    private com.startapp.sdk.ads.nativead.NativeAdDetails startIoAd;
 
     private NativeAdManager(Activity activity, @Nullable ViewGroup container, NativeStyle style) {
         this.activity = activity;
@@ -220,6 +221,9 @@ public final class NativeAdManager {
                     break;
                 case INMOBI:
                     loadInMobi(attempt, unitId);
+                    break;
+                case STARTIO:
+                    loadStartIo(attempt);
                     break;
                 default:
                     onFailed(attempt, network, "format not supported");
@@ -414,6 +418,49 @@ public final class NativeAdManager {
         return false;
     }
 
+    /**
+     * Start.io native. The SDK hands over a list of ads with their own text and pictures,
+     * which the renderer lays out the same way it does Vungle's and InMobi's.
+     */
+    private void loadStartIo(int attempt) {
+        if (!sdkReady(attempt, AdNetwork.STARTIO, () -> loadStartIo(attempt))) {
+            return;
+        }
+        final com.startapp.sdk.ads.nativead.StartAppNativeAd nativeAd =
+                new com.startapp.sdk.ads.nativead.StartAppNativeAd(activity);
+        final com.startapp.sdk.ads.nativead.NativeAdPreferences preferences =
+                new com.startapp.sdk.ads.nativead.NativeAdPreferences()
+                        .setAdsNumber(1)
+                        .setAutoBitmapDownload(true)
+                        .setPrimaryImageSize(3)
+                        .setSecondaryImageSize(2);
+
+        nativeAd.loadAd(preferences, new com.startapp.sdk.adsbase.adlisteners.AdEventListener() {
+            @Override
+            public void onReceiveAd(@NonNull com.startapp.sdk.adsbase.Ad ad) {
+                if (destroyed || attempt != attemptId) {
+                    return;
+                }
+                final java.util.ArrayList<com.startapp.sdk.ads.nativead.NativeAdDetails> ads =
+                        nativeAd.getNativeAds();
+                if (ads == null || ads.isEmpty()) {
+                    onFailed(attempt, AdNetwork.STARTIO, "no ad in the response");
+                    return;
+                }
+                release();
+                startIoAd = ads.get(0);
+                show(NativeAdRenderer.renderStartIo(activity, startIoAd, style));
+                onLoaded(attempt, AdNetwork.STARTIO);
+            }
+
+            @Override
+            public void onFailedToReceiveAd(@NonNull com.startapp.sdk.adsbase.Ad ad) {
+                onFailed(attempt, AdNetwork.STARTIO,
+                        ad == null ? "no ad" : String.valueOf(ad.getErrorMessage()));
+            }
+        });
+    }
+
     /** Fires the empty callback once, and only once. */
     private void reportEmpty() {
         final Runnable action = onEmpty;
@@ -534,6 +581,9 @@ public final class NativeAdManager {
                 inmobiAd.unTrackViews();
                 inmobiAd.destroy();
             }
+            if (startIoAd != null) {
+                startIoAd.unregisterView();
+            }
         } catch (Throwable t) {
             Log.w(TAG, "Failed to release native ad", t);
         } finally {
@@ -543,6 +593,7 @@ public final class NativeAdManager {
             facebookAd = null;
             vungleAd = null;
             inmobiAd = null;
+            startIoAd = null;
             if (adView != null && adView.getParent() instanceof ViewGroup) {
                 ((ViewGroup) adView.getParent()).removeView(adView);
             }

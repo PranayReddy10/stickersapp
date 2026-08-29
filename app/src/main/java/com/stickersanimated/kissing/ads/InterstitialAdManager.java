@@ -79,6 +79,7 @@ public final class InterstitialAdManager {
     private String unityPlacementId;
     private com.vungle.ads.InterstitialAd vungleAd;
     private InMobiInterstitial inmobiAd;
+    private com.startapp.sdk.adsbase.StartAppAd startIoAd;
 
     private Runnable pendingOnDone;
 
@@ -177,6 +178,9 @@ public final class InterstitialAdManager {
                     break;
                 case INMOBI:
                     loadInmobi(attempt, unitId);
+                    break;
+                case STARTIO:
+                    loadStartIo(attempt);
                     break;
                 default:
                     onFailed(attempt, network, "unsupported network");
@@ -356,6 +360,32 @@ public final class InterstitialAdManager {
         });
     }
 
+    /** Start.io's full page ad. One app id, no placement to configure. */
+    private void loadStartIo(int attempt) {
+        if (!sdkReady(attempt, AdNetwork.STARTIO, () -> loadStartIo(attempt))) {
+            return;
+        }
+        final com.startapp.sdk.adsbase.StartAppAd ad =
+                new com.startapp.sdk.adsbase.StartAppAd(activity);
+        ad.loadAd(com.startapp.sdk.adsbase.StartAppAd.AdMode.AUTOMATIC,
+                new com.startapp.sdk.adsbase.adlisteners.AdEventListener() {
+                    @Override
+                    public void onReceiveAd(@NonNull com.startapp.sdk.adsbase.Ad loaded) {
+                        if (destroyed || attempt != attemptId) {
+                            return;
+                        }
+                        startIoAd = ad;
+                        onLoaded(attempt, AdNetwork.STARTIO);
+                    }
+
+                    @Override
+                    public void onFailedToReceiveAd(@NonNull com.startapp.sdk.adsbase.Ad failed) {
+                        onFailed(attempt, AdNetwork.STARTIO,
+                                failed == null ? "no ad" : String.valueOf(failed.getErrorMessage()));
+                    }
+                });
+    }
+
     private void loadVungle(int attempt, String placementId) {
         if (!sdkReady(attempt, AdNetwork.VUNGLE, () -> loadVungle(attempt, placementId))) {
             return;
@@ -504,6 +534,31 @@ public final class InterstitialAdManager {
                 }
                 readyNetwork = null;
                 inmobiAd.show();
+                return true;
+            case STARTIO:
+                if (startIoAd == null || !startIoAd.isReady()) {
+                    return false;
+                }
+                readyNetwork = null;
+                startIoAd.showAd(new com.startapp.sdk.adsbase.adlisteners.AdDisplayListener() {
+                    @Override
+                    public void adHidden(com.startapp.sdk.adsbase.Ad ad) {
+                        finishShow();
+                    }
+
+                    @Override
+                    public void adDisplayed(com.startapp.sdk.adsbase.Ad ad) {
+                    }
+
+                    @Override
+                    public void adClicked(com.startapp.sdk.adsbase.Ad ad) {
+                    }
+
+                    @Override
+                    public void adNotDisplayed(com.startapp.sdk.adsbase.Ad ad) {
+                        finishShow();
+                    }
+                });
                 return true;
             case UNITY:
                 if (unityPlacementId == null) {

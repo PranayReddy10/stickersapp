@@ -190,6 +190,9 @@ public final class BannerAdManager {
                 case INMOBI:
                     loadInmobi(attempt, unitId);
                     break;
+                case STARTIO:
+                    loadStartIo(attempt);
+                    break;
                 default:
                     onFailed(attempt, network, "unsupported network");
                     break;
@@ -450,6 +453,49 @@ public final class BannerAdManager {
                 android.view.Gravity.CENTER));
         attach(banner);
         banner.load();
+    }
+
+    /**
+     * Start.io. Its banner and MREC views load themselves as soon as they are built, so
+     * there is nothing to request: the listener says whether anything came back.
+     */
+    private void loadStartIo(int attempt) {
+        if (!sdkReady(attempt, AdNetwork.STARTIO, () -> loadStartIo(attempt))) {
+            return;
+        }
+        final com.startapp.sdk.ads.banner.BannerListener listener =
+                new com.startapp.sdk.ads.banner.BannerListener() {
+                    @Override
+                    public void onReceiveAd(View view) {
+                        onLoaded(attempt, AdNetwork.STARTIO);
+                    }
+
+                    @Override
+                    public void onFailedToReceiveAd(View view) {
+                        onFailed(attempt, AdNetwork.STARTIO, "no ad");
+                    }
+
+                    @Override
+                    public void onImpression(View view) {
+                    }
+
+                    @Override
+                    public void onClick(View view) {
+                    }
+                };
+
+        final View adView = isMrec()
+                ? new com.startapp.sdk.ads.banner.Mrec(activity, listener)
+                : new com.startapp.sdk.ads.banner.Banner(activity, listener);
+        adView.setLayoutParams(isMrec()
+                ? new FrameLayout.LayoutParams(
+                        AppLovinSdkUtils.dpToPx(activity, MREC_WIDTH_DP),
+                        AppLovinSdkUtils.dpToPx(activity, MREC_HEIGHT_DP),
+                        android.view.Gravity.CENTER)
+                : new FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT));
+        attach(adView);
     }
 
     /** InMobi placements are numeric; anything else means the panel value is wrong. */

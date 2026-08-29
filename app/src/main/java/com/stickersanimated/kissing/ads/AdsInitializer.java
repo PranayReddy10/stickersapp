@@ -15,6 +15,8 @@ import com.facebook.ads.AudienceNetworkAds;
 import com.google.android.gms.ads.MobileAds;
 import com.inmobi.sdk.InMobiSdk;
 import com.inmobi.sdk.SdkInitializationListener;
+import com.startapp.sdk.adsbase.StartAppAd;
+import com.startapp.sdk.adsbase.StartAppSDK;
 import com.stickersanimated.kissing.R;
 import com.unity3d.ads.IUnityAdsInitializationListener;
 import com.unity3d.ads.UnityAds;
@@ -41,6 +43,7 @@ public final class AdsInitializer {
     private static volatile boolean vungleRequested;
     private static volatile boolean inmobiRequested;
     private static volatile boolean inmobiReady;
+    private static volatile boolean startIoRequested;
 
     private AdsInitializer() {
     }
@@ -53,6 +56,7 @@ public final class AdsInitializer {
         initializeUnity(app);
         initializeVungle(app);
         initializeInmobi(app);
+        initializeStartIo(app);
     }
 
     private static void initializeAdMob(Context context) {
@@ -209,5 +213,34 @@ public final class AdsInitializer {
     /** True when InMobi can currently be asked for an ad. */
     public static boolean isInmobiReady() {
         return inmobiReady;
+    }
+
+    /**
+     * Start.io. One app id covers every format, so there is nothing else to configure -
+     * which is the point of having it at the end of the waterfall.
+     */
+    public static void initializeStartIo(Context context) {
+        final String appId = new AdsConfig(context).startIoAppId();
+        if (TextUtils.isEmpty(appId) || startIoRequested) {
+            return;
+        }
+        startIoRequested = true;
+        try {
+            // The splash Start.io can show on its own is not wanted: this app has its own,
+            // and an ad on launch is not what the waterfall is for.
+            StartAppAd.disableSplash();
+            StartAppSDK.init(context.getApplicationContext(), appId, false);
+            StartAppSDK.setUserConsent(context.getApplicationContext(),
+                    "pas", System.currentTimeMillis(), true);
+            Log.d(TAG, "Start.io initialized");
+        } catch (Throwable t) {
+            startIoRequested = false;
+            Log.w(TAG, "Start.io failed to initialize", t);
+        }
+    }
+
+    /** True once Start.io has been started with an app id. */
+    public static boolean isStartIoReady() {
+        return startIoRequested;
     }
 }
