@@ -22,6 +22,11 @@ navigation happens with or without an ad.
 Aliases accepted for each: `GOOGLE`/`ADMANAGER`, `APPLOVIN_MAX`, `FB`/`META`/`FAN`,
 `UNITYADS`, `LIFTOFF`, `STARTAPP`/`START_IO`.
 
+**Start.io** is pinned to SDK **5.3.1**. 5.3.2 declares `minCompileSdk=37`, which the
+build refuses against `compileSdk 36` and the Android Gradle plugin this project uses -
+so that version has to wait for an AGP that supports API 37. Every Start.io API the app
+calls exists unchanged in 5.3.1.
+
 **Start.io** is the backstop. One credential - `ADMIN_STARTIO_APP_ID` - covers all four
 formats, with no placement ids to configure, and it fills where the others pass. It pays
 less than they do, so put it **last** in `ADMIN_<FORMAT>_ORDER`: it should only ever get

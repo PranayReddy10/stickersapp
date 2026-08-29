@@ -133,7 +133,10 @@ dependencies {
     // Start.io (StartApp): one app id serves banner, MREC, native, interstitial and
     // rewarded, which is why it sits at the end of the waterfall - it takes the slots
     // the higher paying networks passed on.
-    implementation 'com.startapp:inapp-sdk:5.3.2'
+    // Pinned to 5.3.1: 5.3.2 declares minCompileSdk 37, which needs a newer Android
+    // Gradle plugin than this project runs and a compileSdk past the 36 it targets.
+    // Every Start.io API the app uses exists unchanged in 5.3.1.
+    implementation 'com.startapp:inapp-sdk:5.3.1'
 
     implementation 'com.vungle:vungle-ads:7.5.0'
     implementation 'com.inmobi.monetization:inmobi-ads-kotlin:11.1.0'
