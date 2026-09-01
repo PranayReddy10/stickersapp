@@ -1,6 +1,8 @@
 package com.stickersanimated.kissing.reels;
 
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.media.MediaMetadataRetriever;
 import android.net.Uri;
 import android.os.Handler;
 import android.os.Looper;
@@ -12,6 +14,7 @@ import com.google.gson.JsonObject;
 import com.stickersanimated.kissing.Manager.PrefManager;
 import com.stickersanimated.kissing.api.apiClient;
 import com.stickersanimated.kissing.api.apiRest;
+import com.stickersanimated.kissing.entity.ReelApi;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -79,8 +82,7 @@ public class ReelUploader {
                                     : "The server would not hand out an upload slot.");
                             return;
                         }
-                        final JsonObject media = body.getAsJsonObject("media");
-                        new Thread(() -> putThenCreate(uri, media, userId, key, type, caption,
+                        new Thread(() -> putThenCreate(uri, body, userId, key, type, caption,
                                 width, height, durationSeconds)).start();
                     }
 
@@ -91,64 +93,130 @@ public class ReelUploader {
                 });
     }
 
-    private void putThenCreate(Uri uri, JsonObject media, String userId, String key,
+    private void putThenCreate(Uri uri, JsonObject slots, String userId, String key,
                                String type, String caption,
                                int width, int height, int durationSeconds) {
         File temp = null;
+        File poster = null;
         try {
             temp = copyToCache(uri);
             progress(5);
 
-            final String url = media.get("url").getAsString();
+            final JsonObject media = slots.getAsJsonObject("media");
             final String objectKey = media.get("object_key").getAsString();
 
-            final Request.Builder request = new Request.Builder().url(url);
-            // The signed headers are not advisory: sending a different Content-Type
-            // or dropping the ACL makes Spaces reject the upload.
-            String contentType = "application/octet-stream";
-            if (media.has("headers")) {
-                final JsonObject headers = media.getAsJsonObject("headers");
-                for (Iterator<Map.Entry<String, com.google.gson.JsonElement>> it =
-                     headers.entrySet().iterator(); it.hasNext(); ) {
-                    final Map.Entry<String, com.google.gson.JsonElement> entry = it.next();
-                    final String value = entry.getValue().getAsString();
-                    if ("content-type".equalsIgnoreCase(entry.getKey())) {
-                        contentType = value;
-                    } else {
-                        request.header(entry.getKey(), value);
+            if (!put(media, temp)) {
+                return;
+            }
+            progress(75);
+
+            // A video has nothing to show until it is playing, so the feed and the
+            // grid need a still. The server signs a second slot for it in the same
+            // round trip; a frame the phone cannot decode is not worth failing over,
+            // so the reel is posted either way.
+            String thumbKey = null;
+            if (ReelApi.TYPE_VIDEO.equals(type) && slots.has("thumb")) {
+                poster = posterFrame(temp);
+                if (poster != null) {
+                    final JsonObject thumb = slots.getAsJsonObject("thumb");
+                    if (put(thumb, poster)) {
+                        thumbKey = thumb.get("object_key").getAsString();
                     }
                 }
             }
-
-            request.put(RequestBody.create(temp, MediaType.parse(contentType)));
-            progress(15);
-
-            final Response response = client.newCall(request.build()).execute();
-            final boolean ok = response.isSuccessful();
-            final int code = response.code();
-            response.close();
-
-            if (!ok) {
-                fail("Storage refused the upload (HTTP " + code + ").");
-                return;
-            }
             progress(85);
 
-            createReel(userId, key, objectKey, type, caption, width, height, durationSeconds);
+            createReel(userId, key, objectKey, thumbKey, type, caption,
+                    width, height, durationSeconds);
         } catch (IOException e) {
             Log.w(TAG, "Reel upload failed", e);
             fail("Upload failed: " + e.getMessage());
         } finally {
-            if (temp != null && temp.exists() && !temp.delete()) {
-                Log.w(TAG, "Could not remove the temporary upload file");
+            remove(temp);
+            remove(poster);
+        }
+    }
+
+    /**
+     * PUTs one file into a signed slot.
+     *
+     * <p>The signed headers are not advisory: sending a different Content-Type or
+     * dropping the ACL makes Spaces reject the upload.
+     */
+    private boolean put(JsonObject slot, File file) throws IOException {
+        final Request.Builder request = new Request.Builder().url(slot.get("url").getAsString());
+        String contentType = "application/octet-stream";
+        if (slot.has("headers")) {
+            final JsonObject headers = slot.getAsJsonObject("headers");
+            for (Iterator<Map.Entry<String, com.google.gson.JsonElement>> it =
+                 headers.entrySet().iterator(); it.hasNext(); ) {
+                final Map.Entry<String, com.google.gson.JsonElement> entry = it.next();
+                final String value = entry.getValue().getAsString();
+                if ("content-type".equalsIgnoreCase(entry.getKey())) {
+                    contentType = value;
+                } else {
+                    request.header(entry.getKey(), value);
+                }
+            }
+        }
+        request.put(RequestBody.create(file, MediaType.parse(contentType)));
+
+        final Response response = client.newCall(request.build()).execute();
+        final boolean ok = response.isSuccessful();
+        final int code = response.code();
+        response.close();
+        if (!ok) {
+            fail("Storage refused the upload (HTTP " + code + ").");
+        }
+        return ok;
+    }
+
+    /** A frame from the video as a JPEG, or null if it cannot be read. */
+    private File posterFrame(File video) {
+        MediaMetadataRetriever retriever = null;
+        try {
+            retriever = new MediaMetadataRetriever();
+            retriever.setDataSource(video.getAbsolutePath());
+            // Half a second in: the first frame of a phone recording is often black.
+            Bitmap frame = retriever.getFrameAtTime(500000,
+                    MediaMetadataRetriever.OPTION_CLOSEST_SYNC);
+            if (frame == null) {
+                frame = retriever.getFrameAtTime();
+            }
+            if (frame == null) {
+                return null;
+            }
+            final File out = new File(context.getCacheDir(),
+                    "reel_poster_" + System.currentTimeMillis() + ".jpg");
+            try (OutputStream os = new FileOutputStream(out)) {
+                frame.compress(Bitmap.CompressFormat.JPEG, 80, os);
+            }
+            frame.recycle();
+            return out;
+        } catch (Exception e) {
+            Log.w(TAG, "Could not take a poster frame", e);
+            return null;
+        } finally {
+            if (retriever != null) {
+                try {
+                    retriever.release();
+                } catch (Exception ignored) {
+                }
             }
         }
     }
 
-    private void createReel(String userId, String key, String objectKey, String type,
-                            String caption, int width, int height, int durationSeconds) {
+    private void remove(File file) {
+        if (file != null && file.exists() && !file.delete()) {
+            Log.w(TAG, "Could not remove " + file.getName());
+        }
+    }
+
+    private void createReel(String userId, String key, String objectKey, String thumbKey,
+                            String type, String caption,
+                            int width, int height, int durationSeconds) {
         apiClient.getClient().create(apiRest.class)
-                .reelCreate(userId, key, objectKey, null, type, caption,
+                .reelCreate(userId, key, objectKey, thumbKey, type, caption,
                         width, height, durationSeconds)
                 .enqueue(new Callback<JsonObject>() {
                     @Override
