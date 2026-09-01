@@ -648,7 +648,14 @@ public class HomeActivity extends AppCompatActivity
                 prf.setString("NOT_RATE_APP", "TRUE");
                 Retrofit retrofit = apiClient.getClient();
                 apiRest service = retrofit.create(apiRest.class);
-                Call<ApiResponse> call = service.addSupport("Application rating feedback",AppCompatRatingBar_dialog_rating_app.getRating()+" star(s) Rating".toString(),edit_text_feed_back.getText().toString());
+                // Rating feedback has no address to write back to and nothing to
+                // open, so it is its own heading in the panel rather than another
+                // anonymous row among the reports.
+                Call<ApiResponse> call = service.addSupport(
+                        "Application rating feedback",
+                        AppCompatRatingBar_dialog_rating_app.getRating() + " star(s) Rating",
+                        edit_text_feed_back.getText().toString(),
+                        SupportActivity.KIND_RATING, null);
                 call.enqueue(new Callback<ApiResponse>() {
                     @Override
                     public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {

@@ -48,6 +48,8 @@ public class SupportActivity extends AppCompatActivity {
     public static final String KIND_PACK = "pack";
     public static final String KIND_USER = "user";
     public static final String KIND_REEL = "reel";
+    /** Stars and a comment from the rate-the-app dialog. */
+    public static final String KIND_RATING = "rating";
 
     /**
      * A report about something, prefilled and tagged.
