@@ -174,7 +174,9 @@ public interface apiRest {
 
     @FormUrlEncoded
     @POST("support/add/"+Config.SECURE_KEY+"/"+Config.ITEM_PURCHASE_CODE+"/")
-    Call<ApiResponse> addSupport(@Field("email") String email, @Field("name") String name , @Field("message") String message);
+    Call<ApiResponse> addSupport(@Field("email") String email, @Field("name") String name,
+                                 @Field("message") String message,
+                                 @Field("kind") String kind, @Field("target") Integer target);
 
     @Multipart
     @POST("user/edit/"+ Config.SECURE_KEY+"/"+ Config.ITEM_PURCHASE_CODE+"/")

@@ -642,9 +642,8 @@ public class ReelsFragment extends Fragment implements ReelCardAdapter.Listener 
     }
 
     private void report(ReelApi reel) {
-        final Intent intent = new Intent(requireContext(), SupportActivity.class);
-        intent.putExtra("message", "Hi Admin, please check this reel, id : " + reel.getId());
-        startActivity(intent);
+        startActivity(SupportActivity.report(requireContext(), SupportActivity.KIND_REEL, reel.getId(),
+                "Hi Admin, please check this reel, id : " + reel.getId()));
     }
 
     private void confirmDelete(ReelApi reel) {

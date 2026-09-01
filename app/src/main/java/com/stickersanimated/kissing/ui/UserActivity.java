@@ -306,9 +306,10 @@ public class UserActivity extends AppCompatActivity {
                     int itemId = item.getItemId();
 
                     if (itemId == R.id.report_user) {
-                        Intent intent_user = new Intent(UserActivity.this, SupportActivity.class);
-                        intent_user.putExtra("message", "Hi Admin, Please check this user " + name + " i think should be removed user id : " + id);
-                        startActivity(intent_user);
+                        startActivity(SupportActivity.report(UserActivity.this,
+                                SupportActivity.KIND_USER, String.valueOf(id),
+                                "Hi Admin, please check this user " + name
+                                        + ", user id : " + id));
                     } else if (itemId == R.id.block_user) {
                         prefManager.setString("user_reported_" + id, "TRUE");
                         Toasty.warning(getApplicationContext(), "User : " + name + " has been blocked !").show();

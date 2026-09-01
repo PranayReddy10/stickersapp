@@ -1,6 +1,8 @@
 package com.stickersanimated.kissing.ui;
 
 import android.app.ProgressDialog;
+import android.content.Context;
+import android.content.Intent;
 import com.google.android.material.textfield.TextInputLayout;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
@@ -38,6 +40,29 @@ public class SupportActivity extends AppCompatActivity {
     private Button support_button;
     private ProgressDialog register_progress;
     private String message;
+    private String kind;
+    private String target;
+
+    /** What the panel files a message under. Anything else is treated as contact. */
+    public static final String KIND_CONTACT = "contact";
+    public static final String KIND_PACK = "pack";
+    public static final String KIND_USER = "user";
+    public static final String KIND_REEL = "reel";
+
+    /**
+     * A report about something, prefilled and tagged.
+     *
+     * <p>The message is what a person reads; the kind and the id are what the panel
+     * files it under, so a reported pack, a reported user, a reported reel and
+     * somebody simply writing in stop arriving as the same thing.
+     */
+    public static Intent report(Context context, String kind, String target, String message) {
+        final Intent intent = new Intent(context, SupportActivity.class);
+        intent.putExtra("kind", kind);
+        intent.putExtra("target", target);
+        intent.putExtra("message", message);
+        return intent;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +77,8 @@ public class SupportActivity extends AppCompatActivity {
         initView();
         initAction();
         message = getIntent().getStringExtra("message");
+        kind = getIntent().getStringExtra("kind");
+        target = getIntent().getStringExtra("target");
         if(message!= null){
             support_input_message.setText(message);
         }
@@ -107,7 +134,12 @@ public class SupportActivity extends AppCompatActivity {
         register_progress= ProgressDialog.show(this,null,getString(R.string.progress_login));
         Retrofit retrofit = apiClient.getClient();
         apiRest service = retrofit.create(apiRest.class);
-        Call<ApiResponse> call = service.addSupport(support_input_email.getText().toString(),support_input_name.getText().toString(),support_input_message.getText().toString());
+        Call<ApiResponse> call = service.addSupport(
+                support_input_email.getText().toString(),
+                support_input_name.getText().toString(),
+                support_input_message.getText().toString(),
+                kind == null ? KIND_CONTACT : kind,
+                targetId());
         call.enqueue(new Callback<ApiResponse>() {
             @Override
             public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
@@ -126,6 +158,15 @@ public class SupportActivity extends AppCompatActivity {
             }
         });
     }
+    /** The id of whatever is being reported, or null when nothing is. */
+    private Integer targetId() {
+        try {
+            return target == null ? null : Integer.valueOf(target.trim());
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
+
     private boolean validatName() {
         if (support_input_name.getText().toString().trim().isEmpty() || support_input_name.getText().length()  < 3 ) {
             support_input_layout_name.setError(getString(R.string.error_short_value));

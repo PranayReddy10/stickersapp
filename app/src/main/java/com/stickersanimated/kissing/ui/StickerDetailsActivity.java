@@ -270,9 +270,10 @@ public class StickerDetailsActivity extends AppCompatActivity {
                 int itemId = item.getItemId();
 
                 if (itemId == R.id.report_user) {
-                    Intent intent_user = new Intent(StickerDetailsActivity.this, SupportActivity.class);
-                    intent_user.putExtra("message", "Hi Admin, Please check this user " + stickerPack.username + " i think should be removed user id : " + stickerPack.userid);
-                    startActivity(intent_user);
+                    startActivity(SupportActivity.report(StickerDetailsActivity.this,
+                            SupportActivity.KIND_USER, stickerPack.userid,
+                            "Hi Admin, please check this user " + stickerPack.username
+                                    + ", user id : " + stickerPack.userid));
                 } else if (itemId == R.id.block_user) {
                     prefManager.setString("user_reported_" + stickerPack.userid, "TRUE");
                     Toasty.warning(getApplicationContext(), "User : " + stickerPack.username + " has been blocked !").show();
