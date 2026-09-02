@@ -36,7 +36,12 @@ public final class SubscriptionReport {
 
     private static final String TAG = "SubscriptionReport";
 
-    /** The purchase this device last told the panel about. */
+    /**
+     * What this device last told the panel: the purchase token and the state it was
+     * in. The state is part of it on purpose - a subscription that stops renewing
+     * is the same purchase saying something new, and the panel should hear it that
+     * day rather than the next one.
+     */
     private static final String LAST_TOKEN = "SUB_REPORTED_TOKEN";
     /** The day it last said so: the app is opened far more often than this changes. */
     private static final String LAST_DAY = "SUB_REPORTED_DAY";
@@ -57,17 +62,20 @@ public final class SubscriptionReport {
             return;
         }
 
-        // Same purchase, already reported today. Play is asked at every launch; the
-        // panel does not need to hear the same answer a dozen times a day.
-        if (token.equals(prefManager.getString(LAST_TOKEN))
+        final int renewing = purchase.isAutoRenewing() ? 1 : 0;
+        final String signature = token + "|" + renewing;
+
+        // Nothing has changed and the panel already heard it today. Play is asked at
+        // every launch; it does not need the same answer a dozen times a day. A new
+        // purchase, or the same one no longer renewing, goes through at once.
+        if (signature.equals(prefManager.getString(LAST_TOKEN))
                 && today().equals(prefManager.getString(LAST_DAY))) {
             return;
         }
 
-        send(context, prefManager, "active", token,
+        send(context, prefManager, "active", token, signature,
                 purchase.getProducts().isEmpty() ? null : purchase.getProducts().get(0),
-                purchase.getOrderId(), purchase.getPurchaseTime(),
-                purchase.isAutoRenewing() ? 1 : 0);
+                purchase.getOrderId(), purchase.getPurchaseTime(), renewing);
     }
 
     /**
@@ -85,12 +93,12 @@ public final class SubscriptionReport {
         if (reported == null || reported.isEmpty()) {
             return;
         }
-        send(context, prefManager, "expired", "", null, null, 0, 0);
+        send(context, prefManager, "expired", "", "", null, null, 0, 0);
     }
 
     private static void send(Context context, final PrefManager prefManager, final String state,
-                             final String token, String product, String order,
-                             long startedMillis, int renewing) {
+                             final String token, final String signature, String product,
+                             String order, long startedMillis, int renewing) {
         final String userId = prefManager.getString("ID_USER");
 
         final Call<ApiResponse> call = apiClient.getClient().create(apiRest.class)
@@ -118,7 +126,7 @@ public final class SubscriptionReport {
                     prefManager.setString(LAST_TOKEN, "");
                     prefManager.setString(LAST_DAY, "");
                 } else {
-                    prefManager.setString(LAST_TOKEN, token);
+                    prefManager.setString(LAST_TOKEN, signature);
                     prefManager.setString(LAST_DAY, today());
                 }
             }
