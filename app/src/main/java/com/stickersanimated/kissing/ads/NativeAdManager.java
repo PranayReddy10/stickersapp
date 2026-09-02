@@ -196,6 +196,7 @@ public final class NativeAdManager {
         }
         final AdNetwork network = waterfall.get(index++);
         if (AdCooldown.waiting(AdFormat.NATIVE, network)) {
+            Log.d(TAG, network + " skipped: resting after turning a slot down");
             // Turned this slot's format down a moment ago; ask the next one instead of
             // spending this slot's timeout on the same answer.
             loadNext();
