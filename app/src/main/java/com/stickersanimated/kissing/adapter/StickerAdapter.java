@@ -655,14 +655,14 @@ public class StickerAdapter extends  RecyclerView.Adapter<RecyclerView.ViewHolde
 
         switch (item.getItemId()){
             case R.id.report:
-                Intent intent = new Intent(activity, SupportActivity.class);
-                intent.putExtra("message","Hi Admin, Please check this status i think should be removed status id : "+packApi.identifier );
-                activity.startActivity(intent);
+                activity.startActivity(SupportActivity.report(activity,
+                        SupportActivity.KIND_PACK, packApi.identifier,
+                        "Hi Admin, please check this pack, id : " + packApi.identifier));
                 break;
             case R.id.report_user:
-                Intent intent_user = new Intent(activity, SupportActivity.class);
-                intent_user.putExtra("message","Hi Admin, Please check this user i think should be removed user id : "+packApi.userid );
-                activity.startActivity(intent_user);
+                activity.startActivity(SupportActivity.report(activity,
+                        SupportActivity.KIND_USER, packApi.userid,
+                        "Hi Admin, please check this user, user id : " + packApi.userid));
                 break;
             case R.id.block_user:
 

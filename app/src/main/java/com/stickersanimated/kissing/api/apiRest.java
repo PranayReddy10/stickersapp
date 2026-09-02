@@ -174,7 +174,28 @@ public interface apiRest {
 
     @FormUrlEncoded
     @POST("support/add/"+Config.SECURE_KEY+"/"+Config.ITEM_PURCHASE_CODE+"/")
-    Call<ApiResponse> addSupport(@Field("email") String email, @Field("name") String name , @Field("message") String message);
+    Call<ApiResponse> addSupport(@Field("email") String email, @Field("name") String name,
+                                 @Field("message") String message,
+                                 @Field("kind") String kind, @Field("target") Integer target);
+
+    /**
+     * Tells the panel what Play said about this device's subscription.
+     *
+     * <p>Sent at every launch, so the server keys on the purchase token: the same
+     * purchase reported again is the same row, seen once more. An empty token with
+     * state expired means the subscription this device used to have is gone.
+     */
+    @FormUrlEncoded
+    @POST("subscription/report/"+Config.SECURE_KEY+"/"+Config.ITEM_PURCHASE_CODE+"/")
+    Call<ApiResponse> reportSubscription(@Field("device") String device,
+                                         @Field("user") Integer user,
+                                         @Field("state") String state,
+                                         @Field("product") String product,
+                                         @Field("token") String token,
+                                         @Field("order") String order,
+                                         @Field("started") Long started,
+                                         @Field("renewing") Integer renewing,
+                                         @Field("platform") String platform);
 
     @Multipart
     @POST("user/edit/"+ Config.SECURE_KEY+"/"+ Config.ITEM_PURCHASE_CODE+"/")

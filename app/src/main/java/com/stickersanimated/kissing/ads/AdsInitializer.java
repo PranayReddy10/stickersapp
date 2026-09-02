@@ -1,6 +1,8 @@
 package com.stickersanimated.kissing.ads;
 
 import android.content.Context;
+import android.os.Handler;
+import android.os.Looper;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -27,6 +29,8 @@ import com.vungle.ads.VungleError;
 import org.json.JSONObject;
 
 import java.util.Arrays;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 /**
  * Starts every ad SDK the app can fall back to.
@@ -39,6 +43,25 @@ public final class AdsInitializer {
 
     private static final String TAG = "AdsInitializer";
 
+    /**
+     * Ad SDKs are started here, off whichever thread asked for them.
+     *
+     * <p>This used to run inline, and the first caller is Application.onCreate - so
+     * seven SDKs opened files and sockets inside the window Android gives a process
+     * to finish starting. On a slow device, or an emulator, that window closes first
+     * and the system kills the app with "failed to complete startup". Nothing here
+     * is needed before the first screen draws: an ad that is not ready yet simply
+     * is not asked for.
+     */
+    private static final Executor BACKGROUND = Executors.newSingleThreadExecutor(runnable -> {
+        final Thread thread = new Thread(runnable, "ads-init");
+        thread.setPriority(Thread.MIN_PRIORITY + 2);
+        return thread;
+    });
+
+    /** For the two SDKs that expect to be started from the main thread. */
+    private static final Handler MAIN = new Handler(Looper.getMainLooper());
+
     private static volatile boolean unityRequested;
     private static volatile boolean vungleRequested;
     private static volatile boolean inmobiRequested;
@@ -50,13 +73,21 @@ public final class AdsInitializer {
 
     public static void initialize(Context context) {
         final Context app = context.getApplicationContext();
-        initializeAdMob(app);
-        initializeMeta(app);
-        initializeAppLovin(app);
-        initializeUnity(app);
-        initializeVungle(app);
-        initializeInmobi(app);
-        initializeStartIo(app);
+
+        // Whatever thread the caller is on, the app carries on immediately.
+        BACKGROUND.execute(() -> {
+            initializeAdMob(app);
+            initializeMeta(app);
+        });
+
+        // AppLovin and InMobi both want the main thread. Posting them puts them
+        // after startup rather than inside it, which is the part that matters.
+        MAIN.post(() -> initializeAppLovin(app));
+
+        startUnityLater(app);
+        startVungleLater(app);
+        startInmobiLater(app);
+        startStartIoLater(app);
     }
 
     private static void initializeAdMob(Context context) {
@@ -99,6 +130,14 @@ public final class AdsInitializer {
      * the first call wins and {@link UnityAds#isInitialized()} guards the rest.
      */
     public static void initializeUnity(Context context) {
+        startUnityLater(context.getApplicationContext());
+    }
+
+    private static void startUnityLater(Context context) {
+        BACKGROUND.execute(() -> startUnity(context));
+    }
+
+    private static void startUnity(Context context) {
         final String gameId = new AdsConfig(context).unityGameId();
         if (TextUtils.isEmpty(gameId) || unityRequested) {
             return;
@@ -141,6 +180,14 @@ public final class AdsInitializer {
      * Liftoff Monetize (Vungle). Only started once the panel has sent an app id.
      */
     public static void initializeVungle(Context context) {
+        startVungleLater(context.getApplicationContext());
+    }
+
+    private static void startVungleLater(Context context) {
+        BACKGROUND.execute(() -> startVungle(context));
+    }
+
+    private static void startVungle(Context context) {
         final String appId = new AdsConfig(context).vungleAppId();
         if (TextUtils.isEmpty(appId) || vungleRequested) {
             return;
@@ -182,6 +229,14 @@ public final class AdsInitializer {
      * InMobi. Only started once the panel has sent an account id.
      */
     public static void initializeInmobi(Context context) {
+        startInmobiLater(context.getApplicationContext());
+    }
+
+    private static void startInmobiLater(Context context) {
+        MAIN.post(() -> startInmobi(context));
+    }
+
+    private static void startInmobi(Context context) {
         final String accountId = new AdsConfig(context).inmobiAccountId();
         if (TextUtils.isEmpty(accountId) || inmobiRequested) {
             return;
@@ -220,6 +275,14 @@ public final class AdsInitializer {
      * which is the point of having it at the end of the waterfall.
      */
     public static void initializeStartIo(Context context) {
+        startStartIoLater(context.getApplicationContext());
+    }
+
+    private static void startStartIoLater(Context context) {
+        BACKGROUND.execute(() -> startStartIo(context));
+    }
+
+    private static void startStartIo(Context context) {
         final String appId = new AdsConfig(context).startIoAppId();
         if (TextUtils.isEmpty(appId) || startIoRequested) {
             return;

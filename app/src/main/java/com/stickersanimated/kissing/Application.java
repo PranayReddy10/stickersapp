@@ -34,8 +34,9 @@ public class Application extends MultiDexApplication {
                 .setTestDeviceIds(Arrays.asList("B078212DB5EAB81998E2EBF273B2A90E"))
                 .build());
 
-        // Starts AdMob, Meta Audience Network, AppLovin and Unity Ads so any of them can
-        // take over when another one fails to fill.
+        // Asks every ad network to start. It returns at once: the SDKs themselves are
+        // started off this thread, because Android gives a process a fixed window to
+        // finish starting and seven SDKs opening files and sockets does not fit in it.
         AdsInitializer.initialize(this);
 
         // Android 16 always draws windows edge to edge; this keeps the system bars from

@@ -613,9 +613,8 @@ public class ReelPlayerActivity extends AppCompatActivity
     }
 
     private void report(ReelApi reel) {
-        final Intent intent = new Intent(this, SupportActivity.class);
-        intent.putExtra("message", "Hi Admin, please check this reel, id : " + reel.getId());
-        startActivity(intent);
+        startActivity(SupportActivity.report(this, SupportActivity.KIND_REEL, reel.getId(),
+                "Hi Admin, please check this reel, id : " + reel.getId()));
     }
 
     private void confirmDelete(int position, ReelApi reel) {

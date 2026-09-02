@@ -102,6 +102,10 @@ public class BillingSubs {
 
     private void handleSubscriptionPurchase(Purchase purchase) {
         if (purchase.getPurchaseState() == Purchase.PurchaseState.PURCHASED) {
+            // The panel hears about it here rather than at the call sites: every
+            // route into a subscription passes through this method or the check
+            // below, and a report is a record, never a gate on the entitlement.
+            SubscriptionReport.active(activity, purchase);
             if (!purchase.isAcknowledged()) {
                 AcknowledgePurchaseParams acknowledgePurchaseParams =
                         AcknowledgePurchaseParams.newBuilder()
@@ -193,6 +197,7 @@ public class BillingSubs {
                                 for (String productId : listProductIds) {
                                     if (purchase.getProducts().contains(productId)) {
                                         Log.d(TAG, "Active subscription found: " + productId);
+                                        SubscriptionReport.active(activity, purchase);
                                         if (callBackCheck != null) callBackCheck.onPurchase();
                                         return; // An active subscription was found, so we can exit.
                                     }
@@ -202,6 +207,9 @@ public class BillingSubs {
 
                         // 6. If the loop completes without finding an active, matching subscription.
                         Log.d(TAG, "No active subscriptions found for the user.");
+                        // Says so only if this device had reported one before, which is
+                        // what closes the row in the panel instead of leaving it open.
+                        SubscriptionReport.none(activity);
                         if (callBackCheck != null) callBackCheck.onNotPurchase();
                     }
             );

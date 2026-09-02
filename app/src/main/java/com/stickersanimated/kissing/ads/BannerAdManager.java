@@ -160,6 +160,10 @@ public final class BannerAdManager {
         }
         final AdNetwork network = waterfall.get(index++);
         if (AdCooldown.waiting(AdFormat.BANNER, network)) {
+            // Said out loud: a network resting after a no fill is invisible in the log
+            // otherwise, and reads as a network that is never asked at all.
+            Log.d(TAG, network + " skipped for " + label().toLowerCase()
+                    + ": resting after turning a slot down");
             loadNext();
             return;
         }
