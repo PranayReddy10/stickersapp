@@ -17,6 +17,8 @@ import com.orhanobut.hawk.Hawk;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import retrofit2.Call;
 import retrofit2.Response;
@@ -40,7 +42,18 @@ public class LoadActivity extends AppCompatActivity {
             Bundle bundle = getIntent().getExtras() ;
             this.id =  bundle.getInt("id");
         }else{
-            this.id=Integer.parseInt(data.getPath().replace("/share/","").replace(".html",""));
+            // This activity answers for every link to the site, because the intent
+            // filter matches the whole host rather than one path. Most of those
+            // links are not a pack, and the old code parsed the path with two
+            // string replacements and Integer.parseInt - so a reel link, or the
+            // site's front page, crashed the app before it drew anything.
+            final Integer packId = packIdFrom(data);
+            if (packId == null) {
+                startActivity(new Intent(this, HomeActivity.class));
+                finish();
+                return;
+            }
+            this.id = packId;
         }
 
         stickerPacks = new ArrayList<>();
@@ -50,6 +63,27 @@ public class LoadActivity extends AppCompatActivity {
         mEmojis.add("");
 
         getArticle();
+    }
+
+    /**
+     * The pack id in a link to this site, or null when the link is not a pack.
+     *
+     * <p>Matches the address a pack is shared at and the one its page lives at,
+     * and nothing else: a reel, the front page and every other address on the
+     * host belong to the browser or to the home screen, not here.
+     */
+    private static Integer packIdFrom(Uri data) {
+        final String path = data.getPath() == null ? "" : data.getPath();
+        final Matcher matcher =
+                Pattern.compile("^/(?:share|stickers)/(\\d+)\\.html$").matcher(path);
+        if (!matcher.matches()) {
+            return null;
+        }
+        try {
+            return Integer.valueOf(matcher.group(1));
+        } catch (NumberFormatException e) {
+            return null;
+        }
     }
 
     private static String getLastBitFromUrl(final String url) {
