@@ -67,6 +67,7 @@ import com.miguelcatalan.materialsearchview.MaterialSearchView;
 import com.stickersanimated.kissing.Manager.PrefManager;
 import com.stickersanimated.kissing.utils.Images;
 import com.stickersanimated.kissing.R;
+import com.stickersanimated.kissing.Shop;
 import com.stickersanimated.kissing.config.Config;
 import com.stickersanimated.kissing.api.apiClient;
 import com.stickersanimated.kissing.api.apiRest;
@@ -331,6 +332,8 @@ public class HomeActivity extends AppCompatActivity
             rateDialog(false);
         }else if(id ==  R.id.nav_go_pro){
             showDialog();
+        }else if (id == R.id.nav_shop) {
+            openShop();
         }else if (id == R.id.nav_exit) {
             final PrefManager prf = new PrefManager(getApplicationContext());
             if (prf.getString("NOT_RATE_APP").equals("TRUE")) {
@@ -759,6 +762,17 @@ public class HomeActivity extends AppCompatActivity
             nav_Menu.findItem(R.id.nav_go_pro).setVisible(true);
         }
 
+        // The settings call may land after this screen is already up, so the shop item
+        // is settled here rather than once at startup.
+        final MenuItem shop = nav_Menu.findItem(R.id.nav_shop);
+        if (shop != null) {
+            final boolean showShop = Shop.enabled(getApplicationContext());
+            shop.setVisible(showShop);
+            if (showShop) {
+                shop.setTitle(Shop.label(getApplicationContext(), getString(R.string.nav_shop)));
+            }
+        }
+
         if (prf.getString("LOGGED").toString().equals("TRUE")){
             nav_Menu.findItem(R.id.my_profile).setVisible(true);
             nav_Menu.findItem(R.id.logout).setVisible(true);
@@ -776,6 +790,29 @@ public class HomeActivity extends AppCompatActivity
            Picasso.get().load(R.drawable.profile).placeholder(R.drawable.profile).error(R.drawable.profile).resize(200,200).centerCrop().into(circle_image_view_profile_nav_header);
         }
     }
+    /**
+     * Hands the shop to whatever the phone uses for the web. The address comes from the
+     * panel, so it is checked rather than trusted: a shop that has been switched on
+     * without a usable address simply says so instead of throwing.
+     */
+    private void openShop() {
+        final String url = Shop.url(getApplicationContext());
+        if (url == null) {
+            Toast.makeText(getApplicationContext(),
+                    getString(R.string.error_shop), Toast.LENGTH_SHORT).show();
+            return;
+        }
+        try {
+            final Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+        } catch (Exception e) {
+            // No browser, or an address the phone will not take.
+            Toast.makeText(getApplicationContext(),
+                    getString(R.string.error_shop), Toast.LENGTH_SHORT).show();
+        }
+    }
+
     public void logout(){
         loadCategories();
         PrefManager prf= new PrefManager(getApplicationContext());

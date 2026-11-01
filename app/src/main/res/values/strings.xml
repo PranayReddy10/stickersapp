@@ -71,6 +71,8 @@
     <string name="description_subsribte">With our pack. You can enjoy an ad-free experiance . and focus on the  essential!</string>
 
     <string name="title_home">Home</string>
+    <string name="nav_shop">Shop</string>
+    <string name="error_shop">The shop could not be opened right now</string>
     <string name="my_profile">My profile</string>
     <string name="login">Login / Register</string>
     <string name="Logout">Logout</string>
