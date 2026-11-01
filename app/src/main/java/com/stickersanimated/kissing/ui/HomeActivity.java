@@ -68,6 +68,7 @@ import com.stickersanimated.kissing.Manager.PrefManager;
 import com.stickersanimated.kissing.utils.Images;
 import com.stickersanimated.kissing.R;
 import com.stickersanimated.kissing.Shop;
+import com.stickersanimated.kissing.shop.ShopActivity;
 import com.stickersanimated.kissing.config.Config;
 import com.stickersanimated.kissing.api.apiClient;
 import com.stickersanimated.kissing.api.apiRest;
@@ -791,26 +792,20 @@ public class HomeActivity extends AppCompatActivity
         }
     }
     /**
-     * Hands the shop to whatever the phone uses for the web. The address comes from the
-     * panel, so it is checked rather than trusted: a shop that has been switched on
-     * without a usable address simply says so instead of throwing.
+     * Opens the shop's products inside the app. Buying still happens on the shop's own
+     * site - it is the shop that takes the photo upload, the address and the payment.
+     *
+     * <p>The address is only needed as a fallback, and is checked rather than trusted:
+     * a shop switched on without a usable one says so instead of throwing.
      */
     private void openShop() {
-        final String url = Shop.url(getApplicationContext());
-        if (url == null) {
+        if (!Shop.enabled(getApplicationContext())) {
             Toast.makeText(getApplicationContext(),
                     getString(R.string.error_shop), Toast.LENGTH_SHORT).show();
             return;
         }
-        try {
-            final Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            startActivity(intent);
-        } catch (Exception e) {
-            // No browser, or an address the phone will not take.
-            Toast.makeText(getApplicationContext(),
-                    getString(R.string.error_shop), Toast.LENGTH_SHORT).show();
-        }
+        startActivity(new Intent(getApplicationContext(), ShopActivity.class));
+        overridePendingTransition(R.anim.enter, R.anim.exit);
     }
 
     public void logout(){

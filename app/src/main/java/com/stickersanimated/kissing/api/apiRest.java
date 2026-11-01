@@ -11,6 +11,8 @@ import com.stickersanimated.kissing.entity.ReelApi;
 import com.stickersanimated.kissing.entity.SlideApi;
 import com.stickersanimated.kissing.entity.TagApi;
 import com.stickersanimated.kissing.entity.UserApi;
+import com.stickersanimated.kissing.shop.ShopCategories;
+import com.stickersanimated.kissing.shop.ShopPage;
 
 import java.util.List;
 
@@ -23,8 +25,28 @@ import retrofit2.http.Multipart;
 import retrofit2.http.POST;
 import retrofit2.http.Part;
 import retrofit2.http.Path;
+import retrofit2.http.Query;
 
 public interface apiRest {
+
+    // ------------------------------------------------------------------ shop
+
+    /**
+     * Products, through our own server rather than straight from the shop.
+     *
+     * <p>The shop's API key stays on the server and is added there. An app that called
+     * the shop directly would have to carry the key, and a key inside an APK is a key
+     * anybody can read out of the file.
+     */
+    @GET("shop/products/" + Config.SECURE_KEY + "/" + Config.ITEM_PURCHASE_CODE + "/")
+    Call<ShopPage> shopProducts(@Query("page") Integer page,
+                                @Query("per_page") Integer perPage,
+                                @Query("q") String query,
+                                @Query("category") String category);
+
+    /** The categories, for the filter row. Empty is fine; the row just does not show. */
+    @GET("shop/categories/" + Config.SECURE_KEY + "/" + Config.ITEM_PURCHASE_CODE + "/")
+    Call<ShopCategories> shopCategories();
 
     // ----------------------------------------------------------------- reels
 

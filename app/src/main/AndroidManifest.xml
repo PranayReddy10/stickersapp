@@ -151,6 +151,9 @@
             android:windowSoftInputMode="adjustResize" />
         <activity android:name=".reels.ReelsGridActivity" />
 
+        <activity android:name=".shop.ShopActivity" />
+        <activity android:name=".shop.ShopProductActivity" />
+
         <activity
             android:name="com.facebook.CustomTabActivity"
             android:exported="true">
