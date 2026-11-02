@@ -14,11 +14,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.stickersanimated.kissing.Shop;
 import com.stickersanimated.kissing.shop.ShopActivity;
-import com.stickersanimated.kissing.shop.ShopAdapter;
-import com.stickersanimated.kissing.shop.ShopPage;
-import com.stickersanimated.kissing.shop.ShopProduct;
-import com.stickersanimated.kissing.shop.ShopProductActivity;
-import com.stickersanimated.kissing.shop.ShopRelatedAdapter;
 
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -96,10 +91,6 @@ public class StickerAdapter extends  RecyclerView.Adapter<RecyclerView.ViewHolde
     private static final int VIEW_TYPE_NATIVE_AD_LEGACY = 7;
     /** The shop's own row on the home screen, shown only when the panel enables it. */
     public static final int VIEW_TYPE_SHOP = 8;
-
-    /** Fetched once and kept: the row is rebound every time it scrolls back on screen. */
-    private final java.util.List<ShopProduct> shopProducts = new java.util.ArrayList<>();
-    private boolean shopRequested;
 
     private InterstitialAdManager interstitialAdManager;
 
@@ -518,84 +509,33 @@ public class StickerAdapter extends  RecyclerView.Adapter<RecyclerView.ViewHolde
 
     }
     /**
-     * The shop's row on the home screen: a few products, a heading, and a way through
-     * to the rest. Everything it shows comes from the panel, so an app whose shop is
-     * switched off never builds this row at all.
+     * The shop's way in on the home screen.
+     *
+     * <p>One quiet row rather than a showcase. The shop is a sideline, not what anybody
+     * opened a sticker app for, so it sits in the scroll like any other card and takes
+     * no attention away from the packs. Tapping it opens the shop.
+     *
+     * <p>Nothing is fetched here either: the row costs the home screen no request and
+     * no waiting, and a shop that is slow or down cannot show on this screen at all.
      */
     public class ShopShowcaseHolder extends RecyclerView.ViewHolder {
 
-        /** Enough to fill the row twice over on a wide phone, and no more. */
-        private static final int COUNT = 10;
-
         private final TextView title;
-        private final TextView seeAll;
-        private final RecyclerView list;
-        private final View progress;
 
         public ShopShowcaseHolder(View view) {
             super(view);
             this.title = (TextView) view.findViewById(R.id.text_view_showcase_title);
-            this.seeAll = (TextView) view.findViewById(R.id.text_view_showcase_all);
-            this.list = (RecyclerView) view.findViewById(R.id.recycler_view_showcase);
-            this.progress = view.findViewById(R.id.progress_bar_showcase);
-
-            this.list.setLayoutManager(new LinearLayoutManager(activity,
-                    LinearLayoutManager.HORIZONTAL, false));
-            this.list.setAdapter(new ShopRelatedAdapter(activity, shopProducts,
-                    new ShopAdapter.OnProductTapped() {
+            view.findViewById(R.id.card_view_showcase).setOnClickListener(
+                    new View.OnClickListener() {
                         @Override
-                        public void onProductTapped(ShopProduct product) {
-                            final Intent intent = new Intent(activity, ShopProductActivity.class);
-                            intent.putExtra(ShopProductActivity.EXTRA_PRODUCT, product);
-                            activity.startActivity(intent);
+                        public void onClick(View v) {
+                            activity.startActivity(new Intent(activity, ShopActivity.class));
                         }
-                    }));
-
-            final View.OnClickListener open = new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    activity.startActivity(new Intent(activity, ShopActivity.class));
-                }
-            };
-            this.seeAll.setOnClickListener(open);
-            this.title.setOnClickListener(open);
+                    });
         }
 
         void bind() {
             title.setText(Shop.label(activity, activity.getString(R.string.nav_shop)));
-            if (!shopProducts.isEmpty() || shopRequested) {
-                progress.setVisibility(View.GONE);
-                return;
-            }
-
-            shopRequested = true;
-            progress.setVisibility(View.VISIBLE);
-            apiClient.getClient().create(apiRest.class)
-                    .shopProducts(1, COUNT, null, null)
-                    .enqueue(new Callback<ShopPage>() {
-                        @Override
-                        public void onResponse(Call<ShopPage> call, Response<ShopPage> response) {
-                            progress.setVisibility(View.GONE);
-                            final ShopPage body = response.body();
-                            if (!response.isSuccessful() || body == null || body.data == null
-                                    || body.data.isEmpty()) {
-                                // Nothing to show: leave the row to its heading rather
-                                // than putting an error on the home screen.
-                                return;
-                            }
-                            shopProducts.addAll(body.data);
-                            if (list.getAdapter() != null) {
-                                list.getAdapter().notifyDataSetChanged();
-                            }
-                        }
-
-                        @Override
-                        public void onFailure(Call<ShopPage> call, Throwable t) {
-                            progress.setVisibility(View.GONE);
-                            // Let it try again the next time the row is built.
-                            shopRequested = false;
-                        }
-                    });
         }
     }
 
