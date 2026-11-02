@@ -12,6 +12,9 @@ import androidx.cardview.widget.CardView;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.stickersanimated.kissing.Shop;
+import com.stickersanimated.kissing.shop.ShopActivity;
+
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.MenuItem;
@@ -86,6 +89,8 @@ public class StickerAdapter extends  RecyclerView.Adapter<RecyclerView.ViewHolde
     public static final int VIEW_TYPE_NATIVE_AD = 6;
     /** Kept so lists built by older code still render an ad row. */
     private static final int VIEW_TYPE_NATIVE_AD_LEGACY = 7;
+    /** The shop's own row on the home screen, shown only when the panel enables it. */
+    public static final int VIEW_TYPE_SHOP = 8;
 
     private InterstitialAdManager interstitialAdManager;
 
@@ -173,10 +178,19 @@ public class StickerAdapter extends  RecyclerView.Adapter<RecyclerView.ViewHolde
                 viewHolder = new CategoriesHolder(v5 );
                 break;
             }
+            case VIEW_TYPE_SHOP: {
+                ((ShopShowcaseHolder) holder_parent).bind();
+                break;
+            }
             case VIEW_TYPE_NATIVE_AD:
             case VIEW_TYPE_NATIVE_AD_LEGACY: {
                 View v6 = inflater.inflate(R.layout.item_admob_native_ads, parent, false);
                 viewHolder = new NativeAdHolder(v6);
+                break;
+            }
+            case VIEW_TYPE_SHOP: {
+                View v8 = inflater.inflate(R.layout.item_shop_showcase, parent, false);
+                viewHolder = new ShopShowcaseHolder(v8);
                 break;
             }
         }
@@ -494,6 +508,37 @@ public class StickerAdapter extends  RecyclerView.Adapter<RecyclerView.ViewHolde
         }
 
     }
+    /**
+     * The shop's way in on the home screen.
+     *
+     * <p>One quiet row rather than a showcase. The shop is a sideline, not what anybody
+     * opened a sticker app for, so it sits in the scroll like any other card and takes
+     * no attention away from the packs. Tapping it opens the shop.
+     *
+     * <p>Nothing is fetched here either: the row costs the home screen no request and
+     * no waiting, and a shop that is slow or down cannot show on this screen at all.
+     */
+    public class ShopShowcaseHolder extends RecyclerView.ViewHolder {
+
+        private final TextView title;
+
+        public ShopShowcaseHolder(View view) {
+            super(view);
+            this.title = (TextView) view.findViewById(R.id.text_view_showcase_title);
+            view.findViewById(R.id.card_view_showcase).setOnClickListener(
+                    new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            activity.startActivity(new Intent(activity, ShopActivity.class));
+                        }
+                    });
+        }
+
+        void bind() {
+            title.setText(Shop.label(activity, activity.getString(R.string.nav_shop)));
+        }
+    }
+
     public class CategoriesHolder extends RecyclerView.ViewHolder {
         private final LinearLayoutManager linearLayoutManager;
         private final CategoryAdapter categoryVideoAdapter;

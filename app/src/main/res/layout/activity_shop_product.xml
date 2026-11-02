@@ -137,6 +137,21 @@
                     android:visibility="gone" />
 
                 <TextView
+                    android:id="@+id/text_view_product_save"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="10dp"
+                    android:background="@drawable/shop_pill_mint"
+                    android:fontFamily="@font/jakarta_bold"
+                    android:paddingStart="11dp"
+                    android:paddingTop="5dp"
+                    android:paddingEnd="11dp"
+                    android:paddingBottom="5dp"
+                    android:textColor="@color/shop_mint_dark"
+                    android:textSize="12.5sp"
+                    android:visibility="gone" />
+
+                <TextView
                     android:id="@+id/text_view_product_stock"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -149,16 +164,38 @@
                     android:textSize="12.5sp" />
             </LinearLayout>
 
-            <TextView
-                android:id="@+id/text_view_product_meta"
+            <!-- ============================= details ============================ -->
+            <LinearLayout
+                android:id="@+id/linear_layout_product_details"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="18dp"
-                android:layout_marginTop="10dp"
-                android:layout_marginEnd="18dp"
-                android:fontFamily="@font/jakarta"
-                android:textColor="@color/shop_ink_2"
-                android:textSize="12.5sp" />
+                android:layout_marginTop="22dp"
+                android:orientation="vertical">
+
+                <TextView
+                    style="@style/ShopSectionTitle"
+                    android:text="@string/shop_details" />
+
+                <androidx.cardview.widget.CardView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="14dp"
+                    android:layout_marginEnd="14dp"
+                    app:cardBackgroundColor="@color/shop_card"
+                    app:cardCornerRadius="16dp"
+                    app:cardElevation="2dp">
+
+                    <LinearLayout
+                        android:id="@+id/linear_layout_details_rows"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="vertical"
+                        android:paddingStart="16dp"
+                        android:paddingTop="6dp"
+                        android:paddingEnd="16dp"
+                        android:paddingBottom="6dp" />
+                </androidx.cardview.widget.CardView>
+            </LinearLayout>
 
             <!-- ============================ variants ============================= -->
             <LinearLayout
@@ -232,16 +269,15 @@
                     style="@style/ShopSectionTitle"
                     android:text="@string/shop_about" />
 
-                <TextView
-                    android:id="@+id/text_view_product_description"
+                <!-- Filled by ShopDescription: one view per paragraph, heading
+                     and list item, because the shop writes these in HTML. -->
+                <LinearLayout
+                    android:id="@+id/linear_layout_description_body"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginStart="18dp"
                     android:layout_marginEnd="18dp"
-                    android:fontFamily="@font/jakarta"
-                    android:lineSpacingExtra="5dp"
-                    android:textColor="@color/shop_ink_2"
-                    android:textSize="14sp" />
+                    android:orientation="vertical" />
             </LinearLayout>
 
             <!-- ============================= related ============================= -->

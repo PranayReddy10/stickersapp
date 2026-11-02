@@ -88,6 +88,16 @@
     <string name="shop_required">%1$s *</string>
     <string name="shop_about">About this item</string>
     <string name="shop_related">You might also like</string>
+    <string name="shop_details">Details</string>
+    <string name="shop_showcase_subtitle">Personalised gifts, made to order</string>
+    <string name="shop_detail_brand">Brand</string>
+    <string name="shop_detail_code">Item code</string>
+    <string name="shop_detail_category">Category</string>
+    <string name="shop_detail_made">Making time</string>
+    <string name="shop_detail_availability">Availability</string>
+    <string name="shop_save">Save %1$s</string>
+    <string name="shop_share">Share</string>
+    <string name="shop_share_subject">%1$s</string>
     <string name="shop_buy">Buy now</string>
     <string name="shop_buy_note">Photos, delivery and payment are handled on the shop\'s own site</string>
     <string name="shop_open_website">Open the website</string>

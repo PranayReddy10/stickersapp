@@ -3,11 +3,11 @@ package com.stickersanimated.kissing.shop;
 import android.content.Intent;
 import android.graphics.Paint;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
-import android.text.Html;
 import android.text.TextUtils;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
@@ -57,6 +57,7 @@ public class ShopProductActivity extends AppCompatActivity {
     private TextView wasPriceView;
     private TextView stockView;
     private TextView counterView;
+    private TextView saveView;
     private TextView buyButton;
 
     /** The other things from the same category, once they arrive. */
@@ -91,6 +92,7 @@ public class ShopProductActivity extends AppCompatActivity {
         priceView = findViewById(R.id.text_view_product_price);
         wasPriceView = findViewById(R.id.text_view_product_was_price);
         stockView = findViewById(R.id.text_view_product_stock);
+        saveView = findViewById(R.id.text_view_product_save);
         counterView = findViewById(R.id.text_view_product_counter);
 
         // Found before the binding runs: bindPrice() turns this button on and off.
@@ -107,9 +109,43 @@ public class ShopProductActivity extends AppCompatActivity {
         bindVariants();
         bindPersonalisation();
         bindDescription();
-        bindMeta();
+        bindDetails();
         bindPrice();
         loadRelated();
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu_shop_product, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_product_share) {
+            share();
+            return true;
+        }
+        if (item.getItemId() == android.R.id.home) {
+            finish();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    /** The product's own address, so whoever receives it lands on the same page. */
+    private void share() {
+        final String url = address();
+        if (TextUtils.isEmpty(url)) {
+            return;
+        }
+        final Intent intent = new Intent(Intent.ACTION_SEND);
+        intent.setType("text/plain");
+        intent.putExtra(Intent.EXTRA_SUBJECT,
+                getString(R.string.shop_share_subject, product.name == null ? "" : product.name));
+        intent.putExtra(Intent.EXTRA_TEXT,
+                (product.name == null ? "" : product.name + "\n") + url);
+        startActivity(Intent.createChooser(intent, getString(R.string.shop_share)));
     }
 
     @SuppressWarnings("deprecation")
@@ -190,6 +226,14 @@ public class ShopProductActivity extends AppCompatActivity {
             wasPriceView.setVisibility(View.GONE);
         }
 
+        if (regular > price) {
+            saveView.setVisibility(View.VISIBLE);
+            saveView.setText(getString(R.string.shop_save,
+                    ShopPrice.format(regular - price, product.currency)));
+        } else {
+            saveView.setVisibility(View.GONE);
+        }
+
         stockView.setText(inStock ? R.string.shop_in_stock : R.string.shop_out_of_stock);
         stockView.setTextColor(getResources().getColor(
                 inStock ? R.color.shop_mint_dark : R.color.shop_peach_dark));
@@ -228,6 +272,8 @@ public class ShopProductActivity extends AppCompatActivity {
                     }
                     variant = option;
                     bindPrice();
+                    // The code and availability belong to the variant, not the product.
+                    bindDetails();
                 }
             });
             group.addView(chip);
@@ -284,61 +330,92 @@ public class ShopProductActivity extends AppCompatActivity {
         }
     }
 
+    /**
+     * The description, which the shop writes in HTML - mostly bulleted lists. It is laid
+     * out block by block rather than flattened; see {@link ShopDescription}.
+     */
     private void bindDescription() {
         final View section = findViewById(R.id.linear_layout_product_description);
-        final TextView body = findViewById(R.id.text_view_product_description);
+        final LinearLayout body = findViewById(R.id.linear_layout_description_body);
 
-        // The plain text first: the shop's HTML carries editor attributes that add
-        // nothing on a phone, and a blank description should hide the whole section.
-        if (!TextUtils.isEmpty(product.descriptionText)) {
-            body.setText(product.descriptionText.trim());
-        } else if (!TextUtils.isEmpty(product.descriptionHtml)) {
-            body.setText(fromHtml(product.descriptionHtml));
-        } else if (!TextUtils.isEmpty(product.shortDescription)) {
-            body.setText(fromHtml(product.shortDescription));
-        } else {
+        String html = product.descriptionHtml;
+        if (TextUtils.isEmpty(html)) {
+            html = product.shortDescription;
+        }
+
+        if (ShopDescription.render(body, html)) {
+            return;
+        }
+
+        // No markup to lay out: whatever plain text there is, or nothing at all.
+        if (TextUtils.isEmpty(product.descriptionText)) {
             section.setVisibility(View.GONE);
+            return;
         }
+        final TextView plain = new TextView(this);
+        plain.setText(product.descriptionText.trim());
+        plain.setTextSize(14f);
+        body.removeAllViews();
+        body.addView(plain);
     }
 
-    @SuppressWarnings("deprecation")
-    private CharSequence fromHtml(String html) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            return Html.fromHtml(html, Html.FROM_HTML_MODE_COMPACT).toString().trim();
-        }
-        return Html.fromHtml(html).toString().trim();
-    }
+    /**
+     * The details card: brand, code, category, making time and availability.
+     *
+     * <p>A row is only added when the shop actually has that field, so a sparse
+     * product shows a short card rather than a column of dashes.
+     */
+    private void bindDetails() {
+        final View section = findViewById(R.id.linear_layout_product_details);
+        final LinearLayout rows = findViewById(R.id.linear_layout_details_rows);
+        rows.removeAllViews();
 
-    /** Brand, code and how long it takes to make - the small print under the fold. */
-    private void bindMeta() {
-        final TextView meta = findViewById(R.id.text_view_product_meta);
-        final StringBuilder text = new StringBuilder();
-
-        if (!TextUtils.isEmpty(product.brand)) {
-            text.append(product.brand);
-        }
-        final String code = variant == null || TextUtils.isEmpty(variant.sku)
-                ? product.sku : variant.sku;
-        if (!TextUtils.isEmpty(code)) {
-            append(text, code);
-        }
+        addDetail(rows, getString(R.string.shop_detail_brand), product.brand);
+        addDetail(rows, getString(R.string.shop_detail_code),
+                variant == null || TextUtils.isEmpty(variant.sku) ? product.sku : variant.sku);
+        addDetail(rows, getString(R.string.shop_detail_category), categoryNames());
         if (product.productionDays != null && product.productionDays > 0) {
-            append(text, getResources().getQuantityString(R.plurals.shop_production_days,
-                    product.productionDays, product.productionDays));
+            addDetail(rows, getString(R.string.shop_detail_made),
+                    getResources().getQuantityString(R.plurals.shop_production_days,
+                            product.productionDays, product.productionDays));
         }
+        addDetail(rows, getString(R.string.shop_detail_availability),
+                getString(inStock() ? R.string.shop_in_stock : R.string.shop_out_of_stock));
 
-        if (text.length() == 0) {
-            meta.setVisibility(View.GONE);
-        } else {
-            meta.setText(text.toString());
-        }
+        section.setVisibility(rows.getChildCount() == 0 ? View.GONE : View.VISIBLE);
     }
 
-    private void append(StringBuilder text, String part) {
-        if (text.length() > 0) {
-            text.append("  ·  ");
+    private void addDetail(LinearLayout rows, String label, String value) {
+        if (TextUtils.isEmpty(value)) {
+            return;
         }
-        text.append(part);
+        final View row = LayoutInflater.from(this)
+                .inflate(R.layout.item_shop_detail_row, (ViewGroup) rows, false);
+        ((TextView) row.findViewById(R.id.text_view_detail_label)).setText(label);
+        ((TextView) row.findViewById(R.id.text_view_detail_value)).setText(value);
+        rows.addView(row);
+    }
+
+    /** "Magnets, Round Magnets" - every category the shop files this under. */
+    private String categoryNames() {
+        if (product.categories == null || product.categories.isEmpty()) {
+            return product.category;
+        }
+        final StringBuilder names = new StringBuilder();
+        for (ShopProduct.Category category : product.categories) {
+            if (category == null || TextUtils.isEmpty(category.name)) {
+                continue;
+            }
+            if (names.length() > 0) {
+                names.append(", ");
+            }
+            names.append(category.name);
+        }
+        return names.length() == 0 ? product.category : names.toString();
+    }
+
+    private boolean inStock() {
+        return variant == null ? product.inStock : variant.inStock;
     }
 
     /**
@@ -421,16 +498,23 @@ public class ShopProductActivity extends AppCompatActivity {
         return fallback;
     }
 
+    /** The variant's own address when one is picked, otherwise the product's. */
+    private String address() {
+        if (variant != null && !TextUtils.isEmpty(variant.url)) {
+            return variant.url;
+        }
+        if (!TextUtils.isEmpty(product.url)) {
+            return product.url;
+        }
+        return com.stickersanimated.kissing.Shop.url(this);
+    }
+
     /**
      * Over to the shop. The variant's own address when one is picked, so the buyer
      * lands on the pack size they chose rather than the default.
      */
     private void openOnWebsite() {
-        String url = variant != null && !TextUtils.isEmpty(variant.url)
-                ? variant.url : product.url;
-        if (TextUtils.isEmpty(url)) {
-            url = com.stickersanimated.kissing.Shop.url(this);
-        }
+        final String url = address();
         if (TextUtils.isEmpty(url)) {
             Toast.makeText(this, R.string.error_shop, Toast.LENGTH_SHORT).show();
             return;
