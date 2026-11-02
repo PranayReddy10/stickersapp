@@ -178,10 +178,6 @@ public class StickerAdapter extends  RecyclerView.Adapter<RecyclerView.ViewHolde
                 viewHolder = new CategoriesHolder(v5 );
                 break;
             }
-            case VIEW_TYPE_SHOP: {
-                ((ShopShowcaseHolder) holder_parent).bind();
-                break;
-            }
             case VIEW_TYPE_NATIVE_AD:
             case VIEW_TYPE_NATIVE_AD_LEGACY: {
                 View v6 = inflater.inflate(R.layout.item_admob_native_ads, parent, false);
@@ -428,6 +424,10 @@ public class StickerAdapter extends  RecyclerView.Adapter<RecyclerView.ViewHolde
                 Log.v("WE ARE ONE","FollowHolder");
             }
             break;
+            case VIEW_TYPE_SHOP: {
+                ((ShopShowcaseHolder) holder_parent).bind();
+                break;
+            }
             case VIEW_TYPE_NATIVE_AD:
             case VIEW_TYPE_NATIVE_AD_LEGACY: {
                 bindNativeAd((NativeAdHolder) holder_parent, position);
