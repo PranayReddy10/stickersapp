@@ -28,6 +28,7 @@ import com.stickersanimated.kissing.api.apiClient;
 import com.stickersanimated.kissing.api.apiRest;
 import com.stickersanimated.kissing.entity.CategoryApi;
 import com.stickersanimated.kissing.entity.PackApi;
+import com.stickersanimated.kissing.Shop;
 import com.stickersanimated.kissing.entity.SlideApi;
 import com.stickersanimated.kissing.entity.StickerApi;
 
@@ -213,6 +214,7 @@ public class HomeFragment extends Fragment {
                         stickerPacks.add(new StickerPack().setViewType(2));
                     }
                 }
+                addShopRow();
                 // Now fetch the first page of actual sticker packs
                 fetchPacks(true);
             }
@@ -220,11 +222,31 @@ public class HomeFragment extends Fragment {
             @Override
             public void onFailure(@NonNull Call<List<CategoryApi>> call, @NonNull Throwable t) {
                 Log.e(TAG, "Failed to fetch categories", t);
+                addShopRow();
                 fetchPacks(true); // Attempt to load packs anyway
             }
         });
     }
 
+
+    /**
+     * Puts the shop above the packs, when there is a shop.
+     *
+     * <p>Only the placeholder goes in here; the row fetches its own products when it is
+     * first drawn. That keeps the home screen's own loading off the shop's latency - a
+     * slow or unreachable shop delays nothing, it just leaves that one row empty.
+     */
+    private void addShopRow() {
+        if (!isAdded() || !Shop.enabled(requireContext())) {
+            return;
+        }
+        for (StickerPack pack : stickerPacks) {
+            if (pack.getViewType() == StickerAdapter.VIEW_TYPE_SHOP) {
+                return;
+            }
+        }
+        stickerPacks.add(new StickerPack().setViewType(StickerAdapter.VIEW_TYPE_SHOP));
+    }
 
     /**
      * **REFACTORED & UNIFIED:** A single method to fetch sticker packs for both initial load and "load more".
