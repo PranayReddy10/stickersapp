@@ -130,17 +130,6 @@ dependencies {
     // against. Declaring an older one did not hold - Gradle keeps the highest, so the
     // code compiled against whatever the adapter dragged in, and 11.x renamed the
     // whole native API (getCtaText, getMediaView, registerViewForTracking).
-    // Start.io (StartApp): one app id serves banner, MREC, native, interstitial and
-    // rewarded, which is why it sits at the end of the waterfall - it takes the slots
-    // the higher paying networks passed on.
-    // 5.4.0, not 5.3.2: that one release declares minCompileSdk 37, which this project
-    // cannot satisfy while it compiles against 36. 5.4.0 went back to 36, and every
-    // Start.io class and method used here - StartAppSDK.init/setUserConsent,
-    // StartAppAd.disableSplash/loadAd/showAd, Banner, Mrec, StartAppNativeAd,
-    // NativeAdDetails, NativeAdPreferences, AdEventListener - carries the same
-    // signature in it. Check that again before moving off this version.
-    implementation 'com.startapp:inapp-sdk:5.4.0'
-
     implementation 'com.vungle:vungle-ads:7.5.0'
     implementation 'com.inmobi.monetization:inmobi-ads-kotlin:11.1.0'
 

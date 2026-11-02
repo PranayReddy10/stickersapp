@@ -50,7 +50,6 @@ public final class AdsConfig {
     private static final String KEY_UNITY_GAME_ID = "ADMIN_UNITY_GAME_ID";
     private static final String KEY_VUNGLE_APP_ID = "ADMIN_VUNGLE_APP_ID";
     private static final String KEY_INMOBI_ACCOUNT_ID = "ADMIN_INMOBI_ACCOUNT_ID";
-    private static final String KEY_STARTIO_APP_ID = "ADMIN_STARTIO_APP_ID";
     private static final String KEY_INTERSTITIAL_CLICKS = "ADMIN_INTERSTITIAL_CLICKS";
     private static final String KEY_NATIVE_LINES = "ADMIN_NATIVE_LINES";
     private static final String KEY_REELS_NATIVE_LINES = "ADMIN_REELS_NATIVE_LINES";
@@ -147,11 +146,6 @@ public final class AdsConfig {
         return string(KEY_INMOBI_ACCOUNT_ID);
     }
 
-    /** Start.io's one credential: the app id from its dashboard. */
-    public String startIoAppId() {
-        return string(KEY_STARTIO_APP_ID);
-    }
-
     /** How long one network may take before the waterfall moves on. */
     public long timeoutMillis() {
         final String raw = string(KEY_TIMEOUT_SECONDS);
@@ -218,9 +212,6 @@ public final class AdsConfig {
         if (network == AdNetwork.INMOBI && TextUtils.isEmpty(inmobiAccountId())) {
             return KEY_INMOBI_ACCOUNT_ID + " is empty";
         }
-        if (network == AdNetwork.STARTIO && TextUtils.isEmpty(startIoAppId())) {
-            return KEY_STARTIO_APP_ID + " is empty";
-        }
         return format.unitIdKey(network) + " is empty";
     }
 
@@ -233,9 +224,6 @@ public final class AdsConfig {
             return false;
         }
         if (network == AdNetwork.INMOBI && TextUtils.isEmpty(inmobiAccountId())) {
-            return false;
-        }
-        if (network == AdNetwork.STARTIO && TextUtils.isEmpty(startIoAppId())) {
             return false;
         }
         return !network.requiresUnitId() || !TextUtils.isEmpty(unitId(format, network));
