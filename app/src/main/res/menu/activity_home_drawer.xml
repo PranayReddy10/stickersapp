@@ -28,6 +28,13 @@
             android:id="@+id/nav_go_pro"
             android:icon="@drawable/ic_subscribe"
             android:title="Subscribe" />
+        <!-- Hidden until the panel's Shop page switches it on and gives it an
+             address; HomeActivity decides that on every resume. -->
+        <item
+            android:id="@+id/nav_shop"
+            android:icon="@drawable/ic_shop"
+            android:visible="false"
+            android:title="@string/nav_shop" />
 
     </group>
 

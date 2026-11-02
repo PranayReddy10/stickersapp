@@ -71,6 +71,26 @@
     <string name="description_subsribte">With our pack. You can enjoy an ad-free experiance . and focus on the  essential!</string>
 
     <string name="title_home">Home</string>
+    <string name="nav_shop">Shop</string>
+    <string name="error_shop">The shop could not be opened right now</string>
+    <string name="shop_search_hint">Search the shop</string>
+    <string name="shop_all">All</string>
+    <string name="shop_empty">Nothing in the shop just yet</string>
+    <string name="shop_no_results">Nothing found for \"%1$s\"</string>
+    <string name="shop_unavailable">The shop could not be reached. Pull down to try again.</string>
+    <string name="shop_discount">-%1$d%%</string>
+    <string name="shop_in_stock">In stock</string>
+    <string name="shop_out_of_stock">Out of stock</string>
+    <string name="shop_counter">%1$d / %2$d</string>
+    <string name="shop_rating">%1$s out of 5 · %2$d reviews</string>
+    <string name="shop_choose_option">Choose an option</string>
+    <string name="shop_personalisation">You will be asked for</string>
+    <string name="shop_required">%1$s *</string>
+    <string name="shop_about">About this item</string>
+    <string name="shop_related">You might also like</string>
+    <string name="shop_buy">Buy now</string>
+    <string name="shop_buy_note">Photos, delivery and payment are handled on the shop\'s own site</string>
+    <string name="shop_open_website">Open the website</string>
     <string name="my_profile">My profile</string>
     <string name="login">Login / Register</string>
     <string name="Logout">Logout</string>
@@ -241,4 +261,8 @@
     <string name="reel_caption_counter">%1$d / 500</string>
     <string name="reel_badge_video">VIDEO</string>
     <string name="reel_badge_photo">PHOTO</string>
+    <plurals name="shop_production_days">
+        <item quantity="one">Made in %d day</item>
+        <item quantity="other">Made in %d days</item>
+    </plurals>
 </resources>

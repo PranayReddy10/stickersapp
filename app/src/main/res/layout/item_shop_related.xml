@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- A narrower version of the same card, for the row at the foot of a product. -->
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="148dp"
+    android:layout_height="wrap_content"
+    android:layout_marginStart="6dp"
+    android:layout_marginEnd="6dp"
+    android:foreground="?attr/selectableItemBackground"
+    app:cardBackgroundColor="@color/shop_card"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="2dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <ImageView
+            android:id="@+id/image_view_related"
+            android:layout_width="match_parent"
+            android:layout_height="148dp"
+            android:background="@color/shop_blush"
+            android:contentDescription="@null"
+            android:scaleType="centerCrop" />
+
+        <TextView
+            android:id="@+id/text_view_related_name"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="11dp"
+            android:layout_marginTop="9dp"
+            android:layout_marginEnd="11dp"
+            android:ellipsize="end"
+            android:fontFamily="@font/jakarta_semibold"
+            android:maxLines="2"
+            android:minLines="2"
+            android:textColor="@color/shop_ink"
+            android:textSize="13sp" />
+
+        <TextView
+            android:id="@+id/text_view_related_price"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="11dp"
+            android:layout_marginTop="4dp"
+            android:layout_marginEnd="11dp"
+            android:layout_marginBottom="13dp"
+            android:fontFamily="@font/jakarta_bold"
+            android:textColor="@color/shop_ink"
+            android:textSize="15sp" />
+    </LinearLayout>
+</androidx.cardview.widget.CardView>

@@ -185,4 +185,42 @@
         <item name="android:textSize">14sp</item>
         <item name="android:textStyle">bold</item>
     </style>
+    <!-- ==================================================================
+         The shop, dressed as madeforu.co.in. Fraunces for headings and prices,
+         Plus Jakarta Sans for everything else, matching the two faces the site
+         loads from Google Fonts.
+         ================================================================== -->
+
+    <!-- The heading above each block on a product page: the site's display face. -->
+    <style name="ShopSectionTitle">
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginStart">18dp</item>
+        <item name="android:layout_marginEnd">18dp</item>
+        <item name="android:layout_marginBottom">10dp</item>
+        <item name="android:fontFamily">@font/fraunces_bold</item>
+        <item name="android:textColor">@color/shop_ink</item>
+        <item name="android:textSize">17sp</item>
+    </style>
+
+    <!-- The site's .chip: a white pill with a 1.5px line, rose once chosen. -->
+    <style name="ShopChip" parent="Widget.Material3.Chip.Filter">
+        <item name="android:textAppearance">@style/ShopChipText</item>
+        <item name="chipBackgroundColor">@color/shop_chip_background</item>
+        <item name="chipStrokeColor">@color/shop_chip_stroke</item>
+        <item name="chipStrokeWidth">1.5dp</item>
+        <item name="chipCornerRadius">19dp</item>
+        <item name="chipMinHeight">38dp</item>
+        <item name="checkedIconVisible">false</item>
+        <item name="chipIconVisible">false</item>
+        <item name="closeIconVisible">false</item>
+        <item name="rippleColor">@color/shop_rose_light</item>
+        <item name="android:textColor">@color/shop_chip_text</item>
+    </style>
+
+    <style name="ShopChipText" parent="TextAppearance.Material3.LabelLarge">
+        <item name="android:fontFamily">@font/jakarta_semibold</item>
+        <item name="android:textSize">14sp</item>
+        <item name="android:textColor">@color/shop_chip_text</item>
+    </style>
 </resources>

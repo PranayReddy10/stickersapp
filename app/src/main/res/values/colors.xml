@@ -64,4 +64,32 @@
         <item>#E65100</item>
         <item>#FFBB00</item>
     </array>
+
+    <!-- ==================================================================
+         The shop's palette, taken from madeforu.co.in's own store.css so the
+         in-app shop and the website are the same shop. Names follow the CSS
+         variables there (rose, ink, paper and the rest) rather than being
+         renamed, so the two stay easy to compare when the site changes.
+         ================================================================== -->
+    <color name="shop_rose">#f04577</color>
+    <color name="shop_rose_dark">#d42c5e</color>
+    <color name="shop_rose_light">#ffe9f0</color>
+    <color name="shop_rose_border">#f9d3df</color>
+
+    <color name="shop_ink">#1c2844</color>
+    <color name="shop_ink_2">#4a5470</color>
+    <color name="shop_muted">#858ca3</color>
+
+    <color name="shop_paper">#fffafc</color>
+    <color name="shop_card">#ffffff</color>
+    <color name="shop_line">#f2e6eb</color>
+    <color name="shop_blush">#fbeef2</color>
+
+    <color name="shop_mint">#2fa77a</color>
+    <color name="shop_mint_light">#e3f6ee</color>
+    <color name="shop_mint_dark">#146c48</color>
+
+    <color name="shop_peach_light">#fff0e2</color>
+    <color name="shop_peach_dark">#a4480b</color>
+    <color name="shop_sun">#ffb547</color>
 </resources>

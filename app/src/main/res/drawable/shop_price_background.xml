@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The product page's price block: the site's rose wash fading to white. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:angle="330"
+        android:endColor="@color/shop_card"
+        android:startColor="@color/shop_rose_light"
+        android:type="linear" />
+    <stroke
+        android:width="1dp"
+        android:color="@color/shop_rose_border" />
+    <corners android:radius="18dp" />
+</shape>

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The site's .tag over a picture: near-white, so it reads on any photo. -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="#F5FFFFFF" />
+    <corners android:radius="999dp" />
+</shape>

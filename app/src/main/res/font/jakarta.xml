@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Plus Jakarta Sans, the shop website's body face. Regular and bold here; the
+     600 weight is referenced directly as @font/jakarta_semibold where the site
+     uses it (card titles, chips). -->
+<font-family xmlns:android="http://schemas.android.com/apk/res/android">
+    <font
+        android:font="@font/jakarta_regular"
+        android:fontStyle="normal"
+        android:fontWeight="400" />
+    <font
+        android:font="@font/jakarta_bold"
+        android:fontStyle="normal"
+        android:fontWeight="700" />
+</font-family>
