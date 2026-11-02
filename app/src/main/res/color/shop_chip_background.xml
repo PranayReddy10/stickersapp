@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- White until chosen, then rose - the site's .chip and its active state. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:color="@color/shop_rose" android:state_checked="true" />
+    <item android:color="@color/shop_card" />
+</selector>

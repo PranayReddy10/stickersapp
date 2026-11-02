@@ -10,20 +10,28 @@ import android.text.TextUtils;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
 import com.stickersanimated.kissing.R;
+import com.stickersanimated.kissing.api.apiClient;
+import com.stickersanimated.kissing.api.apiRest;
 
+import java.util.ArrayList;
 import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 /**
  * One product, in full.
@@ -37,6 +45,9 @@ public class ShopProductActivity extends AppCompatActivity {
 
     public static final String EXTRA_PRODUCT = "product";
 
+    /** How many neighbours to show. More than this and nobody scrolls that far. */
+    private static final int RELATED_COUNT = 10;
+
     private ShopProduct product;
 
     /** The variant the buyer has picked, if the product has any. */
@@ -46,6 +57,10 @@ public class ShopProductActivity extends AppCompatActivity {
     private TextView wasPriceView;
     private TextView stockView;
     private TextView counterView;
+    private TextView buyButton;
+
+    /** The other things from the same category, once they arrive. */
+    private final List<ShopProduct> related = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -78,6 +93,15 @@ public class ShopProductActivity extends AppCompatActivity {
         stockView = findViewById(R.id.text_view_product_stock);
         counterView = findViewById(R.id.text_view_product_counter);
 
+        // Found before the binding runs: bindPrice() turns this button on and off.
+        buyButton = findViewById(R.id.button_product_buy);
+        buyButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                openOnWebsite();
+            }
+        });
+
         bindImages();
         bindHeader();
         bindVariants();
@@ -85,14 +109,7 @@ public class ShopProductActivity extends AppCompatActivity {
         bindDescription();
         bindMeta();
         bindPrice();
-
-        final Button buy = findViewById(R.id.button_product_buy);
-        buy.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                openOnWebsite();
-            }
-        });
+        loadRelated();
     }
 
     @SuppressWarnings("deprecation")
@@ -175,11 +192,12 @@ public class ShopProductActivity extends AppCompatActivity {
 
         stockView.setText(inStock ? R.string.shop_in_stock : R.string.shop_out_of_stock);
         stockView.setTextColor(getResources().getColor(
-                inStock ? R.color.colorAccent : R.color.primary_text_light));
+                inStock ? R.color.shop_mint_dark : R.color.shop_peach_dark));
+        stockView.setBackgroundResource(
+                inStock ? R.drawable.shop_pill_mint : R.drawable.shop_pill_peach);
 
-        final Button buy = findViewById(R.id.button_product_buy);
-        buy.setEnabled(inStock);
-        buy.setText(inStock ? R.string.shop_buy : R.string.shop_out_of_stock);
+        buyButton.setEnabled(inStock);
+        buyButton.setText(inStock ? R.string.shop_buy : R.string.shop_out_of_stock);
     }
 
     private void bindVariants() {
@@ -197,10 +215,9 @@ public class ShopProductActivity extends AppCompatActivity {
                 continue;
             }
             shown.add(option);
-            final Chip chip = new Chip(this);
+            final Chip chip = (Chip) LayoutInflater.from(this)
+                    .inflate(R.layout.item_shop_chip, group, false);
             chip.setText(option.label());
-            chip.setCheckable(true);
-            chip.setCheckedIconVisible(false);
             chip.setEnabled(option.inStock);
             chip.setOnClickListener(new View.OnClickListener() {
                 @Override
@@ -322,6 +339,86 @@ public class ShopProductActivity extends AppCompatActivity {
             text.append("  ·  ");
         }
         text.append(part);
+    }
+
+    /**
+     * Other things from the same category.
+     *
+     * <p>The shop's API has no "related" of its own, so this asks for the category
+     * this product sits in and drops the product itself. A product with no category,
+     * or a category holding nothing else, simply has no row - it is never an error
+     * worth telling the buyer about.
+     */
+    private void loadRelated() {
+        final String slug = categorySlug();
+        if (slug == null) {
+            return;
+        }
+
+        final View section = findViewById(R.id.linear_layout_product_related);
+        final RecyclerView list = findViewById(R.id.recycler_view_product_related);
+        list.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false));
+        list.setAdapter(new ShopRelatedAdapter(this, related,
+                new ShopAdapter.OnProductTapped() {
+                    @Override
+                    public void onProductTapped(ShopProduct tapped) {
+                        final Intent intent = new Intent(ShopProductActivity.this,
+                                ShopProductActivity.class);
+                        intent.putExtra(EXTRA_PRODUCT, tapped);
+                        startActivity(intent);
+                        overridePendingTransition(R.anim.enter, R.anim.exit);
+                    }
+                }));
+
+        final apiRest api = apiClient.getClient().create(apiRest.class);
+        api.shopProducts(1, RELATED_COUNT + 1, null, slug).enqueue(new Callback<ShopPage>() {
+            @Override
+            public void onResponse(Call<ShopPage> call, Response<ShopPage> response) {
+                final ShopPage body = response.body();
+                if (!response.isSuccessful() || body == null || body.data == null) {
+                    return;
+                }
+                for (ShopProduct other : body.data) {
+                    if (other == null || other.id == product.id) {
+                        continue;
+                    }
+                    if (related.size() >= RELATED_COUNT) {
+                        break;
+                    }
+                    related.add(other);
+                }
+                if (related.isEmpty()) {
+                    return;
+                }
+                section.setVisibility(View.VISIBLE);
+                list.getAdapter().notifyDataSetChanged();
+            }
+
+            @Override
+            public void onFailure(Call<ShopPage> call, Throwable t) {
+            }
+        });
+    }
+
+    /** The narrowest category this product is in, which makes the closest neighbours. */
+    private String categorySlug() {
+        if (product.categories == null) {
+            return null;
+        }
+        String fallback = null;
+        for (ShopProduct.Category category : product.categories) {
+            if (category == null || TextUtils.isEmpty(category.slug)) {
+                continue;
+            }
+            // A child category is more specific than its parent, so prefer one.
+            if (category.parentId != null) {
+                return category.slug;
+            }
+            if (fallback == null) {
+                fallback = category.slug;
+            }
+        }
+        return fallback;
     }
 
     /**

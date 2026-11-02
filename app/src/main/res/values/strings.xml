@@ -87,6 +87,7 @@
     <string name="shop_personalisation">You will be asked for</string>
     <string name="shop_required">%1$s *</string>
     <string name="shop_about">About this item</string>
+    <string name="shop_related">You might also like</string>
     <string name="shop_buy">Buy on the website</string>
     <string name="shop_buy_note">Photos, delivery and payment are handled on the shop\'s own site</string>
     <string name="shop_open_website">Open the website</string>

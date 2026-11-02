@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.Menu;
+import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
@@ -302,11 +303,12 @@ public class ShopActivity extends AppCompatActivity implements ShopAdapter.OnPro
     }
 
     private void addChip(final String label, final String slug, boolean checked) {
-        final Chip chip = new Chip(this);
+        // Inflated, not new Chip(): a chip built in code does not pick up the style
+        // and would come out as a stock Material chip among the shop's own.
+        final Chip chip = (Chip) LayoutInflater.from(this)
+                .inflate(R.layout.item_shop_chip, chipGroup, false);
         chip.setText(label);
-        chip.setCheckable(true);
         chip.setChecked(checked);
-        chip.setCheckedIconVisible(false);
         chip.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {

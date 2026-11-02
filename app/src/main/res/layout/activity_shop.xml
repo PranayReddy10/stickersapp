@@ -3,67 +3,63 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@color/app_background"
+    android:background="@color/shop_paper"
     android:fitsSystemWindows="true"
     android:orientation="vertical">
 
     <androidx.appcompat.widget.Toolbar
         android:id="@+id/toolbar_shop"
-        style="@style/ActionBar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/app_background"
+        android:background="@color/shop_paper"
         app:elevation="0dp"
-        app:navigationIcon="@drawable/ic_arrow_back" />
+        app:navigationIcon="@drawable/ic_arrow_back"
+        app:titleTextColor="@color/shop_ink" />
 
-    <!-- Search -->
-    <androidx.cardview.widget.CardView
+    <!-- Search: the site's white pill behind a hairline -->
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginStart="12dp"
-        android:layout_marginEnd="12dp"
-        android:layout_marginBottom="8dp"
-        app:cardCornerRadius="22dp"
-        app:cardElevation="0dp">
+        android:layout_height="46dp"
+        android:layout_marginStart="14dp"
+        android:layout_marginEnd="14dp"
+        android:layout_marginBottom="10dp"
+        android:background="@drawable/shop_search_background"
+        android:gravity="center_vertical"
+        android:orientation="horizontal"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp">
 
-        <LinearLayout
+        <ImageView
+            android:layout_width="18dp"
+            android:layout_height="18dp"
+            android:contentDescription="@null"
+            android:src="@drawable/ic_search_black"
+            app:tint="@color/shop_muted" />
+
+        <EditText
+            android:id="@+id/edit_text_shop_search"
             android:layout_width="match_parent"
-            android:layout_height="44dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingStart="14dp"
-            android:paddingEnd="14dp">
+            android:layout_height="match_parent"
+            android:layout_marginStart="11dp"
+            android:background="@null"
+            android:fontFamily="@font/jakarta"
+            android:hint="@string/shop_search_hint"
+            android:imeOptions="actionSearch"
+            android:importantForAutofill="no"
+            android:inputType="text"
+            android:maxLines="1"
+            android:textColor="@color/shop_ink"
+            android:textColorHint="@color/shop_muted"
+            android:textCursorDrawable="@null"
+            android:textSize="14sp" />
+    </LinearLayout>
 
-            <ImageView
-                android:layout_width="18dp"
-                android:layout_height="18dp"
-                android:alpha="0.45"
-                android:contentDescription="@null"
-                android:src="@drawable/ic_search_black" />
-
-            <EditText
-                android:id="@+id/edit_text_shop_search"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_marginStart="10dp"
-                android:background="@null"
-                android:hint="@string/shop_search_hint"
-                android:imeOptions="actionSearch"
-                android:inputType="text"
-                android:maxLines="1"
-                android:textColor="@color/primary_text"
-                android:textColorHint="@color/dark_gray"
-                android:textSize="14sp"
-                android:importantForAutofill="no" />
-        </LinearLayout>
-    </androidx.cardview.widget.CardView>
-
-    <!-- Categories -->
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:paddingStart="12dp"
-        android:paddingEnd="12dp"
+        android:clipToPadding="false"
+        android:paddingStart="14dp"
+        android:paddingEnd="14dp"
         android:scrollbars="none">
 
         <com.google.android.material.chip.ChipGroup
@@ -71,6 +67,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:visibility="gone"
+            app:chipSpacingHorizontal="8dp"
             app:singleLine="true"
             app:singleSelection="true" />
     </HorizontalScrollView>
@@ -89,10 +86,10 @@
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:clipToPadding="false"
-                android:paddingStart="6dp"
+                android:paddingStart="8dp"
                 android:paddingTop="6dp"
-                android:paddingEnd="6dp"
-                android:paddingBottom="20dp" />
+                android:paddingEnd="8dp"
+                android:paddingBottom="22dp" />
         </androidx.swiperefreshlayout.widget.SwipeRefreshLayout>
 
         <LinearLayout
@@ -108,17 +105,20 @@
             <ImageView
                 android:layout_width="58dp"
                 android:layout_height="58dp"
-                android:alpha="0.25"
+                android:alpha="0.35"
                 android:contentDescription="@null"
-                android:src="@drawable/ic_shop" />
+                android:src="@drawable/ic_shop"
+                app:tint="@color/shop_rose" />
 
             <TextView
                 android:id="@+id/text_view_shop_empty"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="14dp"
+                android:fontFamily="@font/jakarta"
                 android:gravity="center"
-                android:textColor="@color/primary_text_light"
+                android:lineSpacingExtra="3dp"
+                android:textColor="@color/shop_ink_2"
                 android:textSize="14sp" />
         </LinearLayout>
 
@@ -127,7 +127,7 @@
             android:layout_width="36dp"
             android:layout_height="36dp"
             android:layout_gravity="center"
-            android:indeterminateTint="@color/colorAccent"
+            android:indeterminateTint="@color/shop_rose"
             android:visibility="gone" />
     </FrameLayout>
 </LinearLayout>
