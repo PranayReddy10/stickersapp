@@ -422,7 +422,7 @@ public final class NativeAdManager {
     private void loadCustom(int attempt) {
         final HouseAd ad = HouseAds.pick(activity, AdFormat.NATIVE);
         if (ad == null) {
-            onFailed(attempt, AdNetwork.CUSTOM, "no native ad of your own");
+            onFailed(attempt, AdNetwork.CUSTOM, "no native ad of your own (" + HouseAds.describe(activity) + ")");
             return;
         }
         release();

@@ -464,9 +464,18 @@ public final class BannerAdManager {
      * already on the phone, which is why this is the one that cannot fail.
      */
     private void loadCustom(int attempt) {
-        final HouseAd ad = HouseAds.pick(activity, isMrec() ? HouseAds.MREC : AdFormat.BANNER.name());
+        // The shape this slot wants, and the other one if there is none - a wide
+        // strip in a box is better than an empty box, and the alternative is a
+        // slot that stays blank because the ad was filed under the other name.
+        final String wanted = isMrec() ? HouseAds.MREC : AdFormat.BANNER.name();
+        final String other = isMrec() ? AdFormat.BANNER.name() : HouseAds.MREC;
+        HouseAd ad = HouseAds.pick(activity, wanted);
         if (ad == null) {
-            onFailed(attempt, AdNetwork.CUSTOM, "no " + label() + " ad of your own");
+            ad = HouseAds.pick(activity, other);
+        }
+        if (ad == null) {
+            onFailed(attempt, AdNetwork.CUSTOM, "no " + label().toLowerCase()
+                    + " ad of your own (" + HouseAds.describe(activity) + ")");
             return;
         }
         attach(HouseAdViews.banner(activity, ad, isMrec()));
