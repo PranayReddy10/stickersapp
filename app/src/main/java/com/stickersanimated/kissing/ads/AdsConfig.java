@@ -228,10 +228,19 @@ public final class AdsConfig {
     }
 
     private boolean isUsable(AdFormat format, AdNetwork network) {
-        // Your own ads need no credentials, only an ad of the right shape on the
-        // phone. With none there is nothing to show and the slot stays empty.
+        // Your own ads are never filtered out here.
+        //
+        // They were, on whether an ad of this format existed, and that was wrong
+        // twice over. An MREC slot asks for the BANNER waterfall, so a shop with
+        // only an MREC ad was told it had no banner and CUSTOM was dropped from
+        // the slot that would have used it. And the list arrives a moment after
+        // launch, so any slot filled in that moment saw an empty list and dropped
+        // CUSTOM for good.
+        //
+        // It is last in the order and costs one lookup on disk, so leaving it in
+        // and letting it say "nothing of that shape" is both cheaper and honest.
         if (network == AdNetwork.CUSTOM) {
-            return HouseAds.has(context, format);
+            return true;
         }
         // A network whose account level credential is missing can never serve.
         if (network == AdNetwork.UNITY && TextUtils.isEmpty(unityGameId())) {

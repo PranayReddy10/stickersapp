@@ -89,12 +89,21 @@ public final class HouseAds {
                 cached = usable;
                 prf.setString(KEY_JSON, new Gson().toJson(usable));
                 prf.setString(KEY_FETCHED, String.valueOf(System.currentTimeMillis()));
-                Log.d(TAG, "Kept " + usable.size() + " of your own ads");
+                if (usable.isEmpty()) {
+                    // Said out loud: the server answering with nothing looks
+                    // exactly like the app never asking.
+                    Log.d(TAG, "The server has no ads of your own, or none complete"
+                            + " enough to show (every one needs an address, and"
+                            + " everything but a native one needs a picture)");
+                } else {
+                    Log.d(TAG, "Kept " + usable.size() + " of your own ads");
+                }
             }
 
             @Override
             public void onFailure(Call<Payload> call, Throwable t) {
                 fetching = false;
+                Log.d(TAG, "Could not fetch your own ads", t);
                 // Whatever is already on disk stays. An old house ad is worth more
                 // than an empty slot, which is the alternative here.
             }
@@ -122,6 +131,32 @@ public final class HouseAds {
             cached = new ArrayList<>();
         }
         return cached;
+    }
+
+    /**
+     * What is on the phone right now, for the log.
+     *
+     * <p>"Not loading" is almost always one of three things: nothing saved yet,
+     * nothing of that shape, or the list never downloaded. Guessing between them
+     * from an empty slot is impossible, so the slot says which.
+     */
+    public static String describe(Context context) {
+        final List<HouseAd> ads = all(context);
+        if (ads.isEmpty()) {
+            // Ask again now. The first fetch runs at launch and can lose to a
+            // slow start; without this the next try is the next launch.
+            refresh(context);
+            return "none saved - asking the server again";
+        }
+        final StringBuilder shapes = new StringBuilder();
+        for (HouseAd ad : ads) {
+            if (shapes.length() > 0) {
+                shapes.append(", ");
+            }
+            shapes.append(ad.format);
+        }
+
+        return ads.size() + " saved: " + shapes;
     }
 
     /** Whether there is anything at all for this shape. */

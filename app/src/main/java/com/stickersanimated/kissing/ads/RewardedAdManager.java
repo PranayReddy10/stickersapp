@@ -434,7 +434,7 @@ public final class RewardedAdManager {
     private void loadCustom(int attempt) {
         final HouseAd ad = HouseAds.pick(activity, AdFormat.REWARDED);
         if (ad == null) {
-            onFailed(attempt, AdNetwork.CUSTOM, "no rewarded ad of your own");
+            onFailed(attempt, AdNetwork.CUSTOM, "no rewarded ad of your own (" + HouseAds.describe(activity) + ")");
             return;
         }
         houseAd = ad;

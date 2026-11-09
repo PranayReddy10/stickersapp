@@ -369,7 +369,7 @@ public final class InterstitialAdManager {
     private void loadCustom(int attempt) {
         final HouseAd ad = HouseAds.pick(activity, AdFormat.INTERSTITIAL);
         if (ad == null) {
-            onFailed(attempt, AdNetwork.CUSTOM, "no interstitial of your own");
+            onFailed(attempt, AdNetwork.CUSTOM, "no interstitial of your own (" + HouseAds.describe(activity) + ")");
             return;
         }
         houseAd = ad;
