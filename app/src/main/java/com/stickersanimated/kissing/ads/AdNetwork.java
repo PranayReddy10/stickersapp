@@ -14,7 +14,13 @@ public enum AdNetwork {
     FACEBOOK("FACEBOOK_ID"),
     UNITY("UNITY_ID"),
     VUNGLE("VUNGLE_ID"),
-    INMOBI("INMOBI_ID");
+    INMOBI("INMOBI_ID"),
+    /**
+     * Your own ads. Last on purpose: everything above pays and this does not, so
+     * it should only ever take the slots nobody bought. It is also the only one
+     * that cannot fail to fill, which is why it belongs at the end.
+     */
+    CUSTOM("CUSTOM_ID");
 
     private final String idSuffix;
 
@@ -32,7 +38,9 @@ public enum AdNetwork {
      * only network that can serve without a per-placement unit id.
      */
     public boolean requiresUnitId() {
-        return this != APPLOVIN;
+        // AppLovin's direct integration runs off the SDK key, and your own ads off
+        // the list the panel sends: neither has per-placement units to configure.
+        return this != APPLOVIN && this != CUSTOM;
     }
 
     /** Whether this network is able to serve the given format at all. */
@@ -54,6 +62,10 @@ public enum AdNetwork {
                 // Unity's SDK has banner, interstitial and rewarded only - there is no
                 // native ad surface for publishers to request.
                 return format != AdFormat.NATIVE;
+            case CUSTOM:
+                // Your own ads are pictures and words, so they fit any shape you
+                // have drawn one for.
+                return true;
             default:
                 return false;
         }
@@ -98,6 +110,11 @@ public enum AdNetwork {
             case "INMOBI":
             case "IN_MOBI":
                 return INMOBI;
+            case "CUSTOM":
+            case "HOUSE":
+            case "OWN":
+            case "SELF":
+                return CUSTOM;
             default:
                 return null;
         }

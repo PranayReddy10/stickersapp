@@ -79,6 +79,8 @@ public final class RewardedAdManager {
     private boolean destroyed;
     private boolean loading;
     private boolean rewarded;
+    /** The one of your own that was picked, waiting to be shown. */
+    private HouseAd houseAd;
     private Runnable timeoutRunnable;
 
     private AdNetwork readyNetwork;
@@ -168,6 +170,20 @@ public final class RewardedAdManager {
                     UnityAds.show(activity, unityPlacementId, new UnityAdsShowOptions(),
                             unityShowListener);
                     return true;
+                case CUSTOM:
+                    if (houseAd == null) {
+                        return false;
+                    }
+                    // The reward lands when the page is closed after its hold.
+                    // A house ad has no video to finish, and a rewarded slot
+                    // that never fills helps nobody.
+                    final HouseAd shown = houseAd;
+                    houseAd = null;
+                    HouseAdViews.fullScreen(activity, shown, 5, () -> {
+                        onRewarded();
+                        onClosed();
+                    }).show();
+                    return true;
                 default:
                     return false;
             }
@@ -238,6 +254,9 @@ public final class RewardedAdManager {
                     break;
                 case INMOBI:
                     loadInmobi(attempt, unitId);
+                    break;
+                case CUSTOM:
+                    loadCustom(attempt);
                     break;
                 default:
                     onFailed(attempt, network, "unsupported network");
@@ -404,6 +423,22 @@ public final class RewardedAdManager {
                 onFailed(attempt, AdNetwork.UNITY, message);
             }
         });
+    }
+
+    /**
+     * One of your own. These cannot really be earned the way a network's video
+     * is, so the reward is given when the page is closed after its hold - the
+     * alternative is a rewarded slot that simply never fills, which helps
+     * nobody.
+     */
+    private void loadCustom(int attempt) {
+        final HouseAd ad = HouseAds.pick(activity, AdFormat.REWARDED);
+        if (ad == null) {
+            onFailed(attempt, AdNetwork.CUSTOM, "no rewarded ad of your own");
+            return;
+        }
+        houseAd = ad;
+        onLoaded(attempt, AdNetwork.CUSTOM);
     }
 
     private void loadVungle(int attempt, String placementId) {

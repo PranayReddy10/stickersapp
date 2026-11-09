@@ -222,6 +222,9 @@ public final class NativeAdManager {
                 case INMOBI:
                     loadInMobi(attempt, unitId);
                     break;
+                case CUSTOM:
+                    loadCustom(attempt);
+                    break;
                 default:
                     onFailed(attempt, network, "format not supported");
                     break;
@@ -413,6 +416,18 @@ public final class NativeAdManager {
             }
         }, SDK_RETRY_MS);
         return false;
+    }
+
+    /** One of your own, built from its words rather than a picture. */
+    private void loadCustom(int attempt) {
+        final HouseAd ad = HouseAds.pick(activity, AdFormat.NATIVE);
+        if (ad == null) {
+            onFailed(attempt, AdNetwork.CUSTOM, "no native ad of your own");
+            return;
+        }
+        release();
+        show(HouseAdViews.native_(activity, ad, style));
+        onLoaded(attempt, AdNetwork.CUSTOM);
     }
 
     /** Fires the empty callback once, and only once. */

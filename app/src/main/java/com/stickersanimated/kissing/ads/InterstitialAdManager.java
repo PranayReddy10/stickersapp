@@ -71,6 +71,8 @@ public final class InterstitialAdManager {
     private Runnable timeoutRunnable;
 
     private AdNetwork readyNetwork;
+    /** The one of your own that was picked, waiting to be shown. */
+    private HouseAd houseAd;
     private InterstitialAd admobAd;
     private MaxInterstitialAd maxAd;
     private AppLovinInterstitialAdDialog applovinDialog;
@@ -177,6 +179,9 @@ public final class InterstitialAdManager {
                     break;
                 case INMOBI:
                     loadInmobi(attempt, unitId);
+                    break;
+                case CUSTOM:
+                    loadCustom(attempt);
                     break;
                 default:
                     onFailed(attempt, network, "unsupported network");
@@ -356,6 +361,21 @@ public final class InterstitialAdManager {
         });
     }
 
+    /**
+     * One of your own. There is nothing to fetch, so the "load" is only picking
+     * which ad will be shown - it is held until show() rather than built now,
+     * because a full page built in advance would be a dialog nobody asked for.
+     */
+    private void loadCustom(int attempt) {
+        final HouseAd ad = HouseAds.pick(activity, AdFormat.INTERSTITIAL);
+        if (ad == null) {
+            onFailed(attempt, AdNetwork.CUSTOM, "no interstitial of your own");
+            return;
+        }
+        houseAd = ad;
+        onLoaded(attempt, AdNetwork.CUSTOM);
+    }
+
     private void loadVungle(int attempt, String placementId) {
         if (!sdkReady(attempt, AdNetwork.VUNGLE, () -> loadVungle(attempt, placementId))) {
             return;
@@ -504,6 +524,16 @@ public final class InterstitialAdManager {
                 }
                 readyNetwork = null;
                 inmobiAd.show();
+                return true;
+            case CUSTOM:
+                if (houseAd == null) {
+                    return false;
+                }
+                readyNetwork = null;
+                // Five seconds before the close button, the same as a network's
+                // own interstitial, so it does not feel like a different thing.
+                HouseAdViews.fullScreen(activity, houseAd, 5, this::finishShow).show();
+                houseAd = null;
                 return true;
             case UNITY:
                 if (unityPlacementId == null) {

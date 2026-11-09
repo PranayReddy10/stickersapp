@@ -62,9 +62,12 @@ public final class AdsConfig {
     private static final int MIN_NATIVE_LINES = 1;
 
     private final PrefManager pref;
+    /** Kept for the house ads, which are read from disk rather than preferences. */
+    private final Context context;
 
     public AdsConfig(Context context) {
-        this.pref = new PrefManager(context.getApplicationContext());
+        this.context = context.getApplicationContext();
+        this.pref = new PrefManager(this.context);
     }
 
     /** Paying users never see ads. */
@@ -99,6 +102,12 @@ public final class AdsConfig {
                 ordered.add(network);
             }
         }
+
+        // 4. Your own ads go last whatever the panel's order says - and are moved
+        //    there even if it put them in the middle. They cost nothing to show
+        //    and never fail, so anything behind them would never be reached.
+        ordered.remove(AdNetwork.CUSTOM);
+        ordered.add(AdNetwork.CUSTOM);
 
         final List<AdNetwork> usable = new ArrayList<>(ordered.size());
         for (AdNetwork network : ordered) {
@@ -212,10 +221,18 @@ public final class AdsConfig {
         if (network == AdNetwork.INMOBI && TextUtils.isEmpty(inmobiAccountId())) {
             return KEY_INMOBI_ACCOUNT_ID + " is empty";
         }
+        if (network == AdNetwork.CUSTOM) {
+            return "you have no " + format + " ad of your own";
+        }
         return format.unitIdKey(network) + " is empty";
     }
 
     private boolean isUsable(AdFormat format, AdNetwork network) {
+        // Your own ads need no credentials, only an ad of the right shape on the
+        // phone. With none there is nothing to show and the slot stays empty.
+        if (network == AdNetwork.CUSTOM) {
+            return HouseAds.has(context, format);
+        }
         // A network whose account level credential is missing can never serve.
         if (network == AdNetwork.UNITY && TextUtils.isEmpty(unityGameId())) {
             return false;
