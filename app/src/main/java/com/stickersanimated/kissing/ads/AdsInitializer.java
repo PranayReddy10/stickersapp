@@ -84,6 +84,11 @@ public final class AdsInitializer {
         startUnityLater(app);
         startVungleLater(app);
         startInmobiLater(app);
+
+        // Your own ads need no SDK, only the list. Fetched now so it is already
+        // on the phone by the time a slot has been turned down by everyone else,
+        // which is exactly when the network is least likely to answer.
+        BACKGROUND.execute(() -> HouseAds.refresh(app));
     }
 
     private static void initializeAdMob(Context context) {

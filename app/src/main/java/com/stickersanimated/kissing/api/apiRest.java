@@ -29,6 +29,24 @@ import retrofit2.http.Query;
 
 public interface apiRest {
 
+    // -------------------------------------------------------- your own ads
+
+    /**
+     * The ads of your own, cached on the phone.
+     *
+     * <p>Downloaded ahead of time rather than when a slot needs one: this is the
+     * last network in the waterfall, reached exactly when the others could not
+     * be reached, so a fetch at that moment is the one most likely to fail.
+     */
+    @GET("house/ads/" + Config.SECURE_KEY + "/" + Config.ITEM_PURCHASE_CODE + "/")
+    Call<com.stickersanimated.kissing.ads.HouseAds.Payload> houseAds();
+
+    @GET("house/impression/{id}/" + Config.SECURE_KEY + "/" + Config.ITEM_PURCHASE_CODE + "/")
+    Call<JsonObject> houseAdImpression(@Path("id") int id);
+
+    @GET("house/click/{id}/" + Config.SECURE_KEY + "/" + Config.ITEM_PURCHASE_CODE + "/")
+    Call<JsonObject> houseAdClick(@Path("id") int id);
+
     // ------------------------------------------------------------------ shop
 
     /**

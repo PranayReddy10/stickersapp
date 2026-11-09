@@ -194,6 +194,9 @@ public final class BannerAdManager {
                 case INMOBI:
                     loadInmobi(attempt, unitId);
                     break;
+                case CUSTOM:
+                    loadCustom(attempt);
+                    break;
                 default:
                     onFailed(attempt, network, "unsupported network");
                     break;
@@ -454,6 +457,20 @@ public final class BannerAdManager {
                 android.view.Gravity.CENTER));
         attach(banner);
         banner.load();
+    }
+
+    /**
+     * One of your own. Nothing to request and nothing to wait for - the list is
+     * already on the phone, which is why this is the one that cannot fail.
+     */
+    private void loadCustom(int attempt) {
+        final HouseAd ad = HouseAds.pick(activity, isMrec() ? HouseAds.MREC : AdFormat.BANNER.name());
+        if (ad == null) {
+            onFailed(attempt, AdNetwork.CUSTOM, "no " + label() + " ad of your own");
+            return;
+        }
+        attach(HouseAdViews.banner(activity, ad, isMrec()));
+        onLoaded(attempt, AdNetwork.CUSTOM);
     }
 
     /** InMobi placements are numeric; anything else means the panel value is wrong. */
